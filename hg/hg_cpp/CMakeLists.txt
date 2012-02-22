@@ -32,8 +32,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 rosbuild_add_library(serial_port src/serial_port.cpp)
 rosbuild_add_library(denso_bcap_serial src/denso/denso_bcap_serial.cpp src/denso/denso_bcap.cpp src/crc16.cpp)
 
-
-rosbuild_add_executable(hg_ros node/hg_ros.cpp)
-#target_link_libraries(hg_ros denso_bcap_serial serial_port)
+rosbuild_add_executable(hg_ros node/hg_ros.cpp src/controller.cpp src/denso/denso_ve026a_controller.cpp)
+target_link_libraries(hg_ros denso_bcap_serial serial_port)
 
 
