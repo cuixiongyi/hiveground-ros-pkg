@@ -1,0 +1,10 @@
+<stack>
+  <description brief="hg">hg</description>
+  <author>Maintained by Mahisorn Wongphati</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg</url>
+  <depend stack="ros" />
+  <depend stack="ros_comm" /> <!-- rospy, roscpp -->
+
+</stack>

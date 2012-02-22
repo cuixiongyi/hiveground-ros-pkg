@@ -1,0 +1,8 @@
+/build/
+syntax: glob
+*~
+*.bak
+.cproject
+.project
+.pydevproject
+*.so

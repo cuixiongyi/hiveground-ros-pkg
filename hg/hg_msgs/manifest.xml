@@ -1,0 +1,16 @@
+<package>
+  <description brief="hg_msgs">
+
+     hg_msgs
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg_msgs</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+
+</package>
+
+
