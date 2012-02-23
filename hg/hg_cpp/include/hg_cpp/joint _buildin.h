@@ -15,12 +15,10 @@ public:
 	JointBuildin(hg::HgROS* hg_ros, const std::string& name)
 		: Joint(hg_ros, name),
 		  touched_(false),
+		  motor_off_(true),
 		  desired_position_(0),
 		  last_command_(0),
-		  speed_(0),
-		  motor_off_(true)
-
-
+		  speed_(0)
 	{
 
 		joint_command_ = node_handle_.subscribe(name_ + "/command", 1,
@@ -82,6 +80,7 @@ public:
 			//reach target
 			if(last_command_ == desired_position_)
 			{
+				//ROS_INFO_STREAM("last_command_ " << last_command_);
 				touched_ = false;
 			}
 
@@ -134,6 +133,7 @@ public:
 				return;
 			}
 		}
+		//ROS_INFO_STREAM("start " << message.data);
 		touched_ = true;
 		desired_position_ = message.data;
 	}
