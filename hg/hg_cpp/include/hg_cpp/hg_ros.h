@@ -6,7 +6,6 @@
 
 #include <sensor_msgs/JointState.h>
 
-
 #include <boost/smart_ptr.hpp>
 
 
@@ -16,6 +15,11 @@ namespace hg
 class Controller;
 class Joint;
 
+typedef std::pair<std::string, boost::shared_ptr<hg::Controller> > ControllerPair;
+typedef std::pair<std::string, boost::shared_ptr<hg::Joint> > JointPair;
+typedef std::map<std::string, boost::shared_ptr<hg::Controller> > ControllerMap;
+typedef std::map<std::string, boost::shared_ptr<hg::Joint> > JointMap;
+
 class HgROS
 {
 public:
@@ -23,6 +27,8 @@ public:
 	~HgROS();
 
 	void run();
+
+	ros::NodeHandle node_handle_;
 
 	double update_rate_;
 	bool simulate_;
@@ -34,10 +40,10 @@ public:
 
 
 
-	std::vector<boost::shared_ptr<hg::Controller> > controllers_;
-	std::vector<boost::shared_ptr<hg::Joint> > joints_;
+	ControllerMap controllers_;
+	JointMap joints_;
 
-	ros::NodeHandle node_handle_;
+
 };
 
 

@@ -2,8 +2,11 @@
 #define _hg_denso_ve026a_controller_h_
 
 #include <hg_cpp/controller.h>
+#include <hg_cpp/joint.h>
 #include <hg_cpp/denso/denso_bcap_serial.h>
 
+
+#include <boost/thread.hpp>
 namespace hg
 {
 
@@ -19,6 +22,9 @@ public:
 	void update();
 	void shutdown();
 	bool active();
+
+	//thread function
+	void control_loop();
 
 private:
 	void initialize_ve026a();
@@ -44,7 +50,9 @@ public:
 
 	BCapSerial bcap_serial_;
 
-	float control_rate_;
+	double control_rate_;
+	bool is_running_;
+	boost::thread control_thread_;
 };
 
 

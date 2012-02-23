@@ -1,5 +1,13 @@
 #include <hg_cpp/hg_ros.h>
+
+//Joints
+#include <hg_cpp/joint _buildin.h>
+
+
+//Controllers
 #include <hg_cpp/denso/denso_ve026a_controller.h>
+
+
 
 using namespace hg;
 using namespace std;
@@ -7,28 +15,57 @@ using namespace std;
 
 
 HgROS::HgROS()
-	: node_handle_("~")
+	: node_handle_("~"),
+	  simulate_(false)
 {
+	//Add joints
+	XmlRpc::XmlRpcValue joints;
+	node_handle_.getParam("joints", joints);
+	ROS_ASSERT(joints.getType() == XmlRpc::XmlRpcValue::TypeStruct);
+	XmlRpc::XmlRpcValue::iterator itr;
+	for (itr = joints.begin(); itr != joints.end(); itr++)
+	{
+		string name = itr->first;
+		string type;
+		if(!node_handle_.getParam("joints/" + name + "/type", type))
+		{
+			continue;
+		}
+
+		if(type == "buildin")
+		{
+			ROS_INFO_STREAM("add buildin joint: " + name);
+			boost::shared_ptr<hg::Joint>
+				joint(new JointBuildin(this, name));
+			joints_.insert(JointPair(name, joint));
+		}
+		else
+		{
+			ROS_ERROR_STREAM("Unrecognized joint: " + type);
+		}
+	}
+
+
+	//Add controllers
 	XmlRpc::XmlRpcValue controllers;
 	node_handle_.getParam("controllers", controllers);
 	ROS_ASSERT(controllers.getType() == XmlRpc::XmlRpcValue::TypeStruct);
 
-	XmlRpc::XmlRpcValue::iterator i;
-	for (i = controllers.begin(); i != controllers.end(); i++)
+	for (itr = controllers.begin(); itr != controllers.end(); itr++)
 	{
-		string name = i->first;
-		cout << i->first << endl;
+		string name = itr->first;
 		string type;
-		node_handle_.getParam("controllers/" + name + "/type", type);
-
-
-		cout << "\t" << type << endl;
+		if(!node_handle_.getParam("controllers/" + name + "/type", type))
+		{
+			continue;
+		}
 
 		if(type == "ve026a_controller")
 		{
+			ROS_INFO_STREAM("add ve026a_controller: " + name);
 			boost::shared_ptr<hg::Controller>
 				controller(new DensoVe026a_BCapController(this, name));
-			controllers_.push_back(controller);
+			controllers_.insert(ControllerPair(name, controller));
 		}
 		else
 		{
@@ -45,9 +82,10 @@ HgROS::~HgROS()
 void HgROS::run()
 {
 	//start all controller
-	for(int i = 0; i < controllers_.size(); i++)
+	for(ControllerMap::iterator itr = controllers_.begin();
+			itr != controllers_.end(); itr++)
 	{
-		controllers_[i]->startup();
+		itr->second->startup();
 	}
 
 
@@ -61,9 +99,10 @@ void HgROS::run()
 
 
 	//shutdown all controller
-	for(int i = 0; i < controllers_.size(); i++)
+	for(ControllerMap::iterator itr = controllers_.begin();
+			itr != controllers_.end(); itr++)
 	{
-		controllers_[i]->shutdown();
+		itr->second->shutdown();
 	}
 }
 

@@ -4,11 +4,10 @@
 #include <ros/ros.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>
 
+#include <hg_cpp/hg_ros.h>
 
 namespace hg
 {
-
-class HgROS;
 
 /**
  * Controller abstract class.
@@ -22,8 +21,18 @@ public:
 	 * @param hg_ros HgROS instanc.
 	 * @param name the controller name.
 	 */
-	Controller(hg::HgROS* hg_ros, const std::string& name);
-	virtual ~Controller() { };
+	Controller(hg::HgROS* hg_ros, const std::string& name)
+		: name_(name),
+		  pause_(false),
+		  hg_ros_(hg_ros),
+		  node_handle_(hg_ros->node_handle_)
+	{ }
+
+	/**
+	 * Destructor
+	 */
+	virtual ~Controller()
+	{ };
 
 	/**
 	 * Start the controller, do any hardware setup needed.
@@ -59,13 +68,9 @@ public:
 
 
 	std::string name_;
-	bool simulate_;
 	bool pause_;
 
-	std::vector<std::string>	joint_names_;
-	std::vector<double>			joint_positions_;
-	std::vector<double>			joint_velocities_;
-
+	JointMap joints_;
 
 	hg::HgROS* hg_ros_;
 	ros::NodeHandle& node_handle_;

@@ -1,0 +1,9 @@
+<stack>
+  <description brief="robotic_arm">robotic_arm</description>
+  <author>Maintained by Mahisorn Wongphati</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/robotic_arm</url>
+  <depend stack="ros" />
+
+</stack>
