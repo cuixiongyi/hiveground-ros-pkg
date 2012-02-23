@@ -1,0 +1,27 @@
+joints: {
+  J1: {type: buildin, id: -1},
+  J2: {type: buildin, id: -1},
+  J3: {type: buildin, id: -1},
+  J4: {type: buildin, id: -1},
+  J5: {type: buildin, id: -1},
+  J6: {type: buildin, id: -1},
+  J7: {type: buildin, id: -1}
+}
+
+controllers : {
+  #Hardware controllers
+  ve026a_controller: {
+    type: ve026a_controller,
+    #port: /dev/ttyUSB0,
+    control_rate: 100,
+    is_hardware: true
+  },
+  
+  #Software controllers
+  arm_controller: {
+    type: follow_joint_controller, 
+    joints: [J1, J2, J3, J4, J5, J6, J7],
+    ros_action_name: arm_controller/follow_joint_trajectory,
+    is_hardware: false 
+  }
+}

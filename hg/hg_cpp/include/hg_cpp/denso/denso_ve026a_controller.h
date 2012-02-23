@@ -20,20 +20,31 @@ public:
 	void shutdown();
 	bool active();
 
+private:
+	void initialize_ve026a();
+	bool set_motor(bool on_off);
 
-	ros::NodeHandle n_;
+	/**
+	 * Set joints position of VE026a.
+	 * @param joint positions in degree (float [7])
+	 * @param current joint positions in degree (float [8])
+	 */
+	bool set_joints(float* positions, float* results);
+public:
 
+	bool is_initialized_;
 	uint32_t b_cap_controller_;
 	uint32_t b_cap_robot_;
 
-	std::string serial_port_;
+	std::string port_name_;
 	int baud_rate_;
 	int data_bits_;
 	int stop_bits_;
 	int parity_;
 
-
 	BCapSerial bcap_serial_;
+
+	float control_rate_;
 };
 
 

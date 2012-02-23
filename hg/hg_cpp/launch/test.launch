@@ -1,0 +1,7 @@
+<launch>
+	<!-- HgROS -->
+	<node name="HgROS" pkg="hg_cpp" type="hg_ros" output="screen">	
+		<rosparam file="$(find hg_cpp)/params/test.yaml" command="load" />
+		<param name="simulate" value="true"/>
+  </node>
+</launch>

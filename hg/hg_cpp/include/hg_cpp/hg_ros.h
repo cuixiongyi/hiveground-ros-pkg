@@ -22,6 +22,8 @@ public:
 	HgROS();
 	~HgROS();
 
+	void run();
+
 	double update_rate_;
 	bool simulate_;
 
