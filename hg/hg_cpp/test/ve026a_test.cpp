@@ -28,7 +28,7 @@ int main (int argc, char **argv)
 	hg_msgs::ArmAction action;
 	action.type = hg_msgs::ArmAction::MOVE_ARM;
 	action.goal.position.x = 0.064107;
-	action.goal.position.y = 0.110338;
+	action.goal.position.y = 0.110339;
 	action.goal.position.z = 0.289558;
 
 

@@ -234,7 +234,7 @@ trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajector
 			ROS_INFO("Hurey!!" );
 			if(!get_ik_solver_info_client_.call(arm_solver_info_))
 			{
-				ROS_ERROR_STREAM(name_ + " cannot get_ik_solver_info");
+				ROS_ERROR_STREAM(name_ + " cannot get_ik_solver_info!");
 			}
 			else
 			{
