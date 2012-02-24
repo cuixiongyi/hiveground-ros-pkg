@@ -9,11 +9,19 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/hg_cpp</url>
   <depend package="roscpp"/>
-  <depend package="sensor_msgs"/>
-  <depend package="diagnostic_msgs"/>
+  <depend package="actionlib"/>
   <depend package="urdf"/>
   
-  
+  <!-- messages -->
+  <depend package="arm_navigation_msgs"/>
+  <depend package="trajectory_msgs"/>
+  <depend package="kinematics_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="control_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="std_srvs"/>
+  <depend package="diagnostic_msgs"/>
+  <depend package="hg_msgs"/>
   
   <export>
   	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -lserial_port"/>

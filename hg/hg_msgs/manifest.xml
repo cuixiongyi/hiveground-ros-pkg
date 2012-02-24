@@ -10,7 +10,14 @@
   <url>http://ros.org/wiki/hg_msgs</url>
   <depend package="roscpp"/>
   <depend package="rospy"/>
-
+  <depend package="actionlib_msgs"/>
+  <depend package="geometry_msgs"/>
+   <!--
+  <depend package="arm_navigation_msgs"/>
+  <depend package="trajectory_msgs"/>
+  <depend package="kinematics_msgs"/>
+  
+  -->
 </package>
 
 

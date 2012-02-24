@@ -18,6 +18,11 @@ HgROS::HgROS()
 	: node_handle_("~"),
 	  simulate_(false)
 {
+	node_handle_.getParam("simulate", simulate_);
+	if(simulate_)
+		ROS_INFO_STREAM("Simulated HgROS");
+
+
 	//Add joints
 	XmlRpc::XmlRpcValue joints;
 	node_handle_.getParam("joints", joints);
@@ -72,6 +77,16 @@ HgROS::HgROS()
 			ROS_ERROR_STREAM("Unrecognized controller: " + type);
 		}
 	}
+
+	//publisher
+	publisher_diagnostic_ = node_handle_.advertise<diagnostic_msgs::DiagnosticArray>("diagnostics", 1);
+	diagnotic_duration_ = ros::Duration(1.0); //1 Hz
+	next_diagnotic_time_ = ros::Time::now() + diagnotic_duration_;
+
+	publisher_joint_state_ = node_handle_.advertise<sensor_msgs::JointState>("joint_states", 1);
+	joint_state_duration_= ros::Duration(1.0/10.0); //10 Hz
+	next_joint_state_time_ = ros::Time::now() + joint_state_duration_;
+
 }
 
 HgROS::~HgROS()
@@ -89,9 +104,11 @@ void HgROS::run()
 	}
 
 
-	ros::Rate loop_rate(5); // Hz
+	ros::Rate loop_rate(100); // Hz
 	while(node_handle_.ok())
 	{
+		publish();
+
 
 		ros::spinOnce();
 		loop_rate.sleep();
@@ -103,6 +120,24 @@ void HgROS::run()
 			itr != controllers_.end(); itr++)
 	{
 		itr->second->shutdown();
+	}
+}
+
+
+void HgROS::publish()
+{
+	if(ros::Time::now() > next_joint_state_time_)
+	{
+		sensor_msgs::JointState message;
+		message.header.stamp = ros::Time::now();
+		for(JointMap::iterator itr = joints_.begin(); itr != joints_.end(); itr++)
+		{
+			message.name.push_back(itr->second->name_);
+			message.position.push_back(itr->second->position_);
+			message.velocity.push_back(itr->second->velocity_);
+		}
+		publisher_joint_state_.publish(message);
+		next_joint_state_time_ = ros::Time::now() + joint_state_duration_;
 	}
 }
 

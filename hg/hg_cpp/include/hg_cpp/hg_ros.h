@@ -3,7 +3,7 @@
 
 
 #include <ros/ros.h>
-
+#include <diagnostic_msgs/DiagnosticArray.h>
 #include <sensor_msgs/JointState.h>
 
 #include <boost/smart_ptr.hpp>
@@ -28,6 +28,8 @@ public:
 
 	void run();
 
+	void publish();
+
 	ros::NodeHandle node_handle_;
 
 	double update_rate_;
@@ -35,10 +37,14 @@ public:
 
 
 
-	ros::Publisher publisher_joint_state_;
+
 	ros::Publisher publisher_diagnostic_;
+	ros::Duration diagnotic_duration_;
+	ros::Time next_diagnotic_time_;
 
-
+	ros::Publisher publisher_joint_state_;
+	ros::Duration joint_state_duration_;
+	ros::Time next_joint_state_time_;
 
 	ControllerMap controllers_;
 	JointMap joints_;

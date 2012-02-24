@@ -141,7 +141,7 @@
     <parent link="link5"/>
     <child link="link6"/>
   </joint>
-	
+<!--	
   <link name="gripper_left">
     <visual>
       <geometry>
@@ -179,5 +179,5 @@
     <parent link="link6"/>
     <child link="gripper_right"/>
   </joint>
-
+-->
 </robot>
