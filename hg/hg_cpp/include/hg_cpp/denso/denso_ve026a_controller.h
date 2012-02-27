@@ -83,6 +83,7 @@ public:
 	double control_rate_;
 	bool is_running_;
 	boost::thread control_thread_;
+	boost::thread follow_control_thread_;
 
 	bool trajectory_is_executing_;
 	std::string action_name_;

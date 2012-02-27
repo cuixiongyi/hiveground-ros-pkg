@@ -41,7 +41,7 @@ int main (int argc, char **argv)
 	action.goal.orientation.y = 0.10551;
 	action.goal.orientation.z = 0.229387;
 	action.goal.orientation.w = 0.879067;
-	action.move_time = ros::Duration(10.0);
+	action.move_time = ros::Duration(20.0);
 	goal.motions.push_back(action);
 
 	ac.sendGoal(goal);

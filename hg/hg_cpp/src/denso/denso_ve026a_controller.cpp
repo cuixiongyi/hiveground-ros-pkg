@@ -159,6 +159,8 @@ void DensoVe026a_BCapController::move_arm_action_callback()
 		return;
 	}
 
+	//std::vector<std::pa>
+
 	for(int i = 0; i < goal->motions.size(); i++)
 	{
 		hg_msgs::ArmAction action = goal->motions[i];
@@ -167,7 +169,11 @@ void DensoVe026a_BCapController::move_arm_action_callback()
 		{
 			ROS_INFO("haha");
 			//change motion to tarjectory
-			motion_to_trajectory(action, goal->header);
+			trajectory_msgs::JointTrajectory message =
+					motion_to_trajectory(action, goal->header);
+			follow_control_thread_ =
+				boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, message );
+			//execute_trajectory(message);
 		}
 		else
 		{
@@ -238,11 +244,40 @@ trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajector
 			}
 			else
 			{
+				message.joint_names =
+						arm_solver_info_.response.kinematic_solver_info.joint_names;
+				trajectory_msgs::JointTrajectoryPoint point;
+				//point.positions =
 
+				//message.points
+				point.positions.resize(respond.solution.joint_state.position.size());
+				point.velocities.resize(respond.solution.joint_state.position.size());
 				for(int i = 0; i < respond.solution.joint_state.position.size(); i++)
 				{
+					cout << "Joint " << message.joint_names[i] << " ";
 					cout << respond.solution.joint_state.position[i] << endl;
+
+					point.positions[i] = respond.solution.joint_state.position[i];
+					point.velocities[i] = 0.0;
+
 				}
+
+				cout << "Move time: " << action.move_time.toSec() << endl;
+				if(action.move_time > ros::Duration(0.0))
+				{
+					//move according to a specified time
+					point.time_from_start = action.move_time;
+				}
+				else
+				{
+					//move according to some specified time
+					point.time_from_start = ros::Duration(5.0);
+				}
+
+				message.points.push_back(point);
+				message.header.stamp = ros::Time::now() + ros::Duration(0.01);
+
+
 			}
 		}
 	}
@@ -251,8 +286,6 @@ trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajector
 		ROS_INFO("get IK request failed!");
 	}
 
-
-	//trajectory_msgs::JointTrajectory message;
 	return message;
 }
 
@@ -267,7 +300,96 @@ void DensoVe026a_BCapController::command_callback(const trajectory_msgs::JointTr
 
 void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::JointTrajectory& message)
 {
+	if(message.points.size() == 0)
+	{
+		ROS_INFO("Tracjectory empty");
+		return;
+	}
+	else
+	{
+		ROS_INFO("Execute tracjectory");
 
+	}
+
+	ros::Time time = ros::Time::now();
+	ros::Time start_time = message.header.stamp;
+
+	ROS_INFO("%6.3f %6.3f", time.toSec(), start_time.toSec());
+
+	std::vector<double> last_positions;
+	for(JointMap::iterator itr = joints_.begin(); itr != joints_.end(); itr++)
+	{
+		last_positions.push_back(itr->second->position_);
+		cout << "last position of "
+			 << itr->first << ":"
+			 << itr->second->position_
+			 << endl;
+
+	}
+
+	ROS_INFO("Start with %d trajectory point(s)", message.points.size());
+	for(int i = 0; i < message.points.size(); i++)
+	{
+		while(ros::Time::now() + ros::Duration(0.01) < start_time)
+		{
+			//wait for time
+			ros::Duration(0.01).sleep();
+		}
+
+
+		trajectory_msgs::JointTrajectoryPoint point =  message.points[i];
+		std::vector<double> target_positions = point.positions;
+		for(int j = 0; j < target_positions.size(); j++)
+		{
+			cout << "target joint[" << j << "]" <<  " position: " << target_positions[j] << endl;
+		}
+
+		ros::Time end_time = ros::Time::now() + point.time_from_start;
+		ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+
+		std::vector<double> error, velocity;
+		error.resize(target_positions.size());
+		velocity.resize(target_positions.size());
+		double command;
+		ros::Rate rate(50.0);
+		while((ros::Time::now()+ros::Duration(0.01)) < end_time)
+		{
+			JointMap::iterator itr = joints_.begin();
+			for(int k = 0; k < error.size(); k++, itr++)
+			{
+				error[i] = target_positions[i] - last_positions[i];
+				velocity[i] =
+						fabs(error[i] / (50.0 * (end_time - ros::Time::now()).toSec()));
+				ROS_INFO("v: %f", velocity[i]);
+
+				if(fabs(error[i]) > 0.001)
+				{
+					command = error[i];
+					if(command > velocity[i])
+					{
+						command = velocity[i];
+					}
+					else if(command > velocity[i])
+					{
+						command = -velocity[i];
+					}
+					last_positions[i] += command;
+					ROS_INFO("cmd: %f", last_positions[i]);
+					itr->second->set_position(last_positions[i]);
+				}
+				else
+				{
+					//reached
+					velocity[i] = 0;
+				}
+
+			}
+
+			rate.sleep();
+		}
+
+
+	}
 }
 
 void DensoVe026a_BCapController::control_loop()
