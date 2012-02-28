@@ -26,28 +26,44 @@ int main (int argc, char **argv)
 	goal.header.stamp = ros::Time::now();
 	goal.header.frame_id = "base_link";
 	hg_msgs::ArmAction action;
+	//action.type = hg_msgs::ArmAction::MOVE_ARM;
+	action.type = hg_msgs::ArmAction::MOVE_GRIPPER;
+	action.goal.position.x = 0.064107;
+	action.goal.position.y = 0.110339;
+	action.goal.position.z = 0.289558;
+	action.command = 0.0;
+
+
+	action.goal.orientation.x = -0.404339;
+	action.goal.orientation.y = 0.10551;
+	action.goal.orientation.z = 0.229387;
+	action.goal.orientation.w = 0.879067;
+	action.move_time = ros::Duration(10.0);
+
+	goal.motions.push_back(action);
+
 	action.type = hg_msgs::ArmAction::MOVE_ARM;
 	action.goal.position.x = 0.064107;
 	action.goal.position.y = 0.110339;
 	action.goal.position.z = 0.289558;
+	action.command = 0.0;
 
 
-	tf::Quaternion q = tf::createQuaternionFromRPY(0.0, 0.0, 1.0);
-	cout << q.x() << endl;
-	cout << q.y() << endl;
-	cout << q.z() << endl;
-	cout << q.w() << endl;
 	action.goal.orientation.x = -0.404339;
 	action.goal.orientation.y = 0.10551;
 	action.goal.orientation.z = 0.229387;
 	action.goal.orientation.w = 0.879067;
 	action.move_time = ros::Duration(20.0);
+
+
+
+
 	goal.motions.push_back(action);
 
 	ac.sendGoal(goal);
 
 	//wait for the action to return
-	bool finished_before_timeout = ac.waitForResult(ros::Duration(30.0));
+	bool finished_before_timeout = ac.waitForResult(ros::Duration(40.0));
 
 	if (finished_before_timeout)
 	{

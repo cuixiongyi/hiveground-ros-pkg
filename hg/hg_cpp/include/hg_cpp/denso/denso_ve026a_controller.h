@@ -86,6 +86,7 @@ public:
 	boost::thread follow_control_thread_;
 
 	bool trajectory_is_executing_;
+	bool trajectory_is_ok_;
 	std::string action_name_;
 
 	tf::TransformListener listener_;

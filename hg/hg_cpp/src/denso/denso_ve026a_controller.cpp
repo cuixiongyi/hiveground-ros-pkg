@@ -1,5 +1,5 @@
 #include <hg_cpp/denso/denso_ve026a_controller.h>
-
+#include <boost/any.hpp>
 
 
 using namespace std;
@@ -152,36 +152,115 @@ void DensoVe026a_BCapController::move_arm_action_callback()
 		return;
 	}
 	hg_msgs::MoveArmGoalConstPtr goal = move_arm_action_server_.acceptNewGoal();
+
+	hg_msgs::MoveArmResult result;
 	if(move_arm_action_server_.isPreemptRequested())
 	{
 		ROS_INFO("move_arm_action preempted");
-		move_arm_action_server_.setPreempted();
+		result.success = false;
+		move_arm_action_server_.setPreempted(result);
 		return;
 	}
 
 	//std::vector<std::pa>
-
+	std::vector<std::pair<std::string, boost::any> > computed_actions;
 	for(int i = 0; i < goal->motions.size(); i++)
 	{
 		hg_msgs::ArmAction action = goal->motions[i];
 
 		if(action.type == hg_msgs::ArmAction::MOVE_ARM)
 		{
-			ROS_INFO("haha");
+			ROS_INFO("move arm");
 			//change motion to tarjectory
 			trajectory_msgs::JointTrajectory message =
 					motion_to_trajectory(action, goal->header);
-			follow_control_thread_ =
-				boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, message );
+
+			if(message.points.size() == 0)
+			{
+				ROS_INFO("Trajectory empty");
+				result.success = false;
+				move_arm_action_server_.setAborted(result);
+				return;
+			}
+			//follow_control_thread_ =
+				//boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, message );
 			//execute_trajectory(message);
+
+			std::pair<std::string, boost::any> move("move", message);
+			computed_actions.push_back(move);
 		}
 		else
 		{
+			ROS_INFO("move gripper");
+			std::pair<std::string, boost::any> gripper("gripper", action);
+			computed_actions.push_back(gripper);
+			//joints_.at("J7")->set_position(action.command);
+		}//if action
+	}//for motion
 
+	//execute trajectory
+
+
+	ROS_INFO("computed action: %d", computed_actions.size());
+	bool first_move = true;
+	trajectory_msgs::JointTrajectory trajectory;
+	for(int i = 0; i < computed_actions.size(); i++)
+	{
+		if(computed_actions[i].first == "move")
+		{
+			cout << "move arm: "
+				 << (boost::any_cast<trajectory_msgs::JointTrajectory>(&(computed_actions[i].second)))->header.stamp.toSec()
+				 << endl;
+			if(first_move)
+			{
+				trajectory = *(boost::any_cast<trajectory_msgs::JointTrajectory>(&(computed_actions[i].second)));
+				first_move = false;
+
+			}
+			else
+			{
+				trajectory_msgs::JointTrajectory message = *(boost::any_cast<trajectory_msgs::JointTrajectory>(&(computed_actions[i].second)));
+				message.points[0].time_from_start +=
+						trajectory.points[trajectory.points.size() - 1].time_from_start;
+				trajectory.points.push_back(message.points[0]);
+			}
 		}
-
+		else if(computed_actions[i].first == "gripper")
+		{
+			if(trajectory.points.size() > 0)
+			{
+				//move arm before gripper
+				trajectory_is_ok_ = false;
+				follow_control_thread_ =
+					boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, trajectory);
+				follow_control_thread_.join();
+				if(!trajectory_is_ok_)
+				{
+					ROS_INFO("execute_trajectory fail");
+					return;
+				}
+				first_move = true;
+			}
+			//move gripper
+			joints_.at("J7")->set_position((boost::any_cast<hg_msgs::ArmAction>(&(computed_actions[i].second)))->command);
+			ros::Duration((boost::any_cast<hg_msgs::ArmAction>(&(computed_actions[i].second)))->move_time).sleep();
+			cout << "move gripper: "
+				 << (boost::any_cast<hg_msgs::ArmAction>(&(computed_actions[i].second)))->command
+				 << endl;
+		}
+	}
+	trajectory_is_ok_ = false;
+	follow_control_thread_ =
+		boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, trajectory);
+	follow_control_thread_.join();
+	if(!trajectory_is_ok_)
+	{
+		ROS_INFO("execute_trajectory fail");
+		return;
 	}
 
+	result.success = true;
+	move_arm_action_server_.setSucceeded(result);
 }
 
 trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajectory(
@@ -308,13 +387,12 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 	else
 	{
 		ROS_INFO("Execute tracjectory");
-
 	}
 
 	ros::Time time = ros::Time::now();
 	ros::Time start_time = message.header.stamp;
 
-	ROS_INFO("%6.3f %6.3f", time.toSec(), start_time.toSec());
+	//ROS_INFO("%6.3f %6.3f", time.toSec(), start_time.toSec());
 
 	std::vector<double> last_positions;
 	for(JointMap::iterator itr = joints_.begin(); itr != joints_.end(); itr++)
@@ -360,7 +438,7 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 				error[i] = target_positions[i] - last_positions[i];
 				velocity[i] =
 						fabs(error[i] / (50.0 * (end_time - ros::Time::now()).toSec()));
-				ROS_INFO("v: %f", velocity[i]);
+				ROS_INFO_THROTTLE(10, "v: %f", velocity[i]);
 
 				if(fabs(error[i]) > 0.001)
 				{
@@ -374,7 +452,7 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 						command = -velocity[i];
 					}
 					last_positions[i] += command;
-					ROS_INFO("cmd: %f", last_positions[i]);
+					ROS_INFO_THROTTLE(10, "cmd: %f", last_positions[i]);
 					itr->second->set_position(last_positions[i]);
 				}
 				else
@@ -387,9 +465,8 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 
 			rate.sleep();
 		}
-
-
 	}
+	trajectory_is_ok_ = true;
 }
 
 void DensoVe026a_BCapController::control_loop()
