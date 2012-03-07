@@ -22,12 +22,19 @@ public:
 		  hg_ros_(hg_ros),
 		  node_handle_(hg_ros->node_handle_)
 	{
+
+	}
+
+	virtual ~Joint() { }
+
+	virtual bool get_joint_info_urdf()
+	{
 		std::string robot;
 		if(!node_handle_.getParam("joints/" + name_ +"/robot", robot))
 		{
 			ROS_ERROR_STREAM(name_ + "couldn't find robot type" +
 					" check if ALL parameters have been set correctly");
-			return;
+			return false;
 		}
 
 		//Load joint information for URDF
@@ -41,36 +48,36 @@ public:
 			ROS_ERROR_STREAM(name_ +
 					": unable to load robot model from "
 					"parameter server robot_description\n");
-			return;
+			return false;
 		}
 
 		urdf::Model model;
 		if (!model.initString(xml_string))
 		{
 			ROS_ERROR_STREAM(name_ + ": failed to parse urdf file");
-			return;
+			return false;
 		}
 		ROS_INFO_STREAM(name_ + ": successfully parsed urdf file");
 
 		if(model.getName() != robot)
 		{
 			ROS_ERROR_STREAM(name_ +": wrong urdf file");
-			return;
+			return false;
 		}
 
 		boost::shared_ptr<const urdf::Joint> joint = model.getJoint(name_);
 		if(!joint)
 		{
 			ROS_ERROR_STREAM(name_ +": cannot find joint information");
-			return;
+			return false;
 		}
 
 		lower_ = joint->limits->lower;
 		upper_ = joint->limits->upper;
 		velocity_limit_ = joint->limits->velocity;
-	}
 
-	virtual ~Joint() { }
+		return true;
+	}
 
 	virtual double interpolate(double dt) = 0;
 

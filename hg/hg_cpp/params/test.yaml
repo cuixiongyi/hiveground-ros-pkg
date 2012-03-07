@@ -5,24 +5,37 @@ joints: {
   J4: {robot: ve026a, type: buildin, id: -1},
   J5: {robot: ve026a, type: buildin, id: -1},
   J6: {robot: ve026a, type: buildin, id: -1},
-  J7: {robot: ve026a, type: buildin, id: -1}
+  J7: {robot: ve026a, type: buildin, id: -1},
+  SRV0: {robot: table, type: rcservo, id: 0}
 }
 
 controllers : {
   #Hardware controllers
-  ve026a_controller: {
-    type: ve026a_controller,
-    port: /dev/ttyUSB0,
+  agb65_rsc2_controller: {
+    type: agb65_rsc2_servo_controller,
+    port: /dev/ttyUSB1,
+    baudrate: 9600,
     control_rate: 50,
-    joints: [J1, J2, J3, J4, J5, J6, J7],
-    action_name: arm_controller/ve026a/follow_joint_trajectory,
+    joints: [SRV0],
+    action_name: servo_controller/agb65_rsc2/follow_joint_trajectory,
   },
   
+  
+  
+  
+  #ve026a_controller: {
+  #  type: ve026a_controller,
+  #  port: /dev/ttyUSB0,
+  #  control_rate: 50,
+  #  joints: [J1, J2, J3, J4, J5, J6, J7],
+  #  action_name: arm_controller/ve026a/follow_joint_trajectory,
+  #}
+  
   #Software controllers
-  arm_controller: {
-    type: follow_joint_controller, 
-    joints: [J1, J2, J3, J4, J5, J6, J7],
-    ros_action_name: arm_controller/ve026a/follow_joint_trajectory,
-    is_hardware: false 
-  }
+  #arm_controller: {
+  #  type: follow_joint_controller, 
+  #  joints: [J1, J2, J3, J4, J5, J6, J7],
+  #  ros_action_name: arm_controller/ve026a/follow_joint_trajectory,
+  #  is_hardware: false 
+  #}
 }

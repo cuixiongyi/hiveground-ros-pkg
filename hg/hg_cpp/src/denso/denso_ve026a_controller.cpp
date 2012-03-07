@@ -16,7 +16,7 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 		  move_arm_action_server_("move_arm", false)
 {
 	string port_param_name = "controllers/" + name_ + "/port";
-	cout << port_param_name << endl;
+	//cout << port_param_name << endl;
 	if(!node_handle_.hasParam(port_param_name))
 	{
 		ROS_ERROR_STREAM(name_ + ": couldn't find " + port_param_name +
@@ -125,6 +125,9 @@ void DensoVe026a_BCapController::startup()
 
 	//start control loop
 	is_running_ = true;
+
+
+	ROS_INFO_STREAM(name_ << " started");
 }
 
 void DensoVe026a_BCapController::update()

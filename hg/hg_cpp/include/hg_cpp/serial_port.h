@@ -50,12 +50,12 @@ namespace hg
 class SerialPort
 {
 public:
-		enum
-		{
-			PARITY_NONE = 0,
-			PARITY_EVEN,
-			PARITY_ODD
-		};
+	enum
+	{
+		PARITY_NONE = 0,
+		PARITY_EVEN,
+		PARITY_ODD
+	};
 
     enum Errors {
         ErrorUnspecified    = -100, 

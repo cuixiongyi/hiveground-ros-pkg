@@ -2,11 +2,11 @@
 
 //Joints
 #include <hg_cpp/joint _buildin.h>
-
+#include <hg_cpp/joint _rcservo.h>
 
 //Controllers
 #include <hg_cpp/denso/denso_ve026a_controller.h>
-
+#include <hg_cpp/agb65_rsc2_servo_controller.h>
 
 
 using namespace hg;
@@ -42,6 +42,14 @@ HgROS::HgROS()
 			ROS_INFO_STREAM("add buildin joint: " + name);
 			boost::shared_ptr<hg::Joint>
 				joint(new JointBuildin(this, name));
+			joint->get_joint_info_urdf();
+			joints_.insert(JointPair(name, joint));
+		}
+		else if (type == "rcservo")
+		{
+			ROS_INFO_STREAM("add rcservo joint: " + name);
+			boost::shared_ptr<hg::Joint>
+				joint(new JointRcServo(this, name));
 			joints_.insert(JointPair(name, joint));
 		}
 		else
@@ -70,6 +78,13 @@ HgROS::HgROS()
 			ROS_INFO_STREAM("add ve026a_controller: " + name);
 			boost::shared_ptr<hg::Controller>
 				controller(new DensoVe026a_BCapController(this, name));
+			controllers_.insert(ControllerPair(name, controller));
+		}
+		else if(type == "agb65_rsc2_servo_controller")
+		{
+			ROS_INFO_STREAM("add agb65_rsc2_servo_controller: " + name);
+			boost::shared_ptr<hg::Controller>
+				controller(new Agb65Rsc2ServoController(this, name));
 			controllers_.insert(ControllerPair(name, controller));
 		}
 		else
