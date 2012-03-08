@@ -6,7 +6,7 @@ joints: {
   J5: {robot: ve026a, type: buildin, id: -1},
   J6: {robot: ve026a, type: buildin, id: -1},
   J7: {robot: ve026a, type: buildin, id: -1},
-  SRV0: {robot: table, type: rcservo, id: 0}
+  SRV0: {robot: table, type: rcservo, id: 0, ticks: 254,  }
 }
 
 controllers : {
@@ -23,13 +23,13 @@ controllers : {
   
   
   
-  #ve026a_controller: {
-  #  type: ve026a_controller,
-  #  port: /dev/ttyUSB0,
-  #  control_rate: 50,
-  #  joints: [J1, J2, J3, J4, J5, J6, J7],
-  #  action_name: arm_controller/ve026a/follow_joint_trajectory,
-  #}
+  ve026a_controller: {
+    type: ve026a_controller,
+    port: /dev/ttyUSB0,
+    control_rate: 50,
+    joints: [J1, J2, J3, J4, J5, J6, J7],
+    action_name: arm_controller/ve026a/follow_joint_trajectory,
+  }
   
   #Software controllers
   #arm_controller: {

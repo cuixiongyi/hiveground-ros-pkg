@@ -41,7 +41,16 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 		std::string joint_name;
 		ROS_ASSERT(joints[i].getType() == XmlRpc::XmlRpcValue::TypeString);
 		joint_name = static_cast<std::string>(joints[i]);
-		joints_.insert(*(hg_ros->joints_.find(joint_name)));
+		JointMap::iterator itr = hg_ros->joints_.find(joint_name);
+		if(itr != hg_ros->joints_.end())
+		{
+			joints_.insert(*itr);
+			ROS_INFO_STREAM(name_ << " added joint: " << joint_name);
+		}
+		else
+		{
+			ROS_WARN_STREAM(name_ << " joint: " << joint_name << " not found");
+		}
 	}
 
 	//set joint controller

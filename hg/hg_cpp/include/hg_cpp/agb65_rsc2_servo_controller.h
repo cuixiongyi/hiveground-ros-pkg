@@ -13,9 +13,34 @@ namespace hg
 
 class HgROS;
 
+
+/**
+ * Asakusagiken AGB65 RSC2 servo controller class.
+ * Home page: http://robotsfx.com/robot/AGB65_RSC2.html
+ * Protocol:
+ * Drive all servos: 	[255][ID][Length(14)][Command(1)][P0][P1]...[P10][P11][Speed]
+ * Drive single servo: 	[255][ID][Length(4)][Command(2)][Servo ID][Position][Speed]
+ * Stop all servos:		[255][ID][Length(1)][Command(3)]
+ * Stop single servo: 	[255][ID][Length(2)][Command(4)][Servo ID]
+ * 180 deg mode: 		[255][ID][Length(1)][Command(5)]
+ * 0-255 mode:			[255][ID][Length(1)][Command(6)]
+ * Self-test:			[255][ID][Length(1)][254]
+ * Respond(RX):			[255][ID][Length(1)][254]
+ */
 class Agb65Rsc2ServoController : public Controller
 {
 public:
+	enum Commands {
+		DRIVE_ALL_SERVOS = 1,
+		DRIVE_SERVO,
+		STOP_ALL_SERVOS,
+		STOP_SERVO,
+		MODE_180,
+		MODE_255, //default when turn on
+		SELF_TEST = 254
+	};
+
+
 	Agb65Rsc2ServoController(hg::HgROS* hg_ros, const std::string& name)
 		: Controller(hg_ros, name)
 	{
@@ -51,7 +76,17 @@ public:
 			std::string joint_name;
 			ROS_ASSERT(joints[i].getType() == XmlRpc::XmlRpcValue::TypeString);
 			joint_name = static_cast<std::string>(joints[i]);
-			joints_.insert(*(hg_ros->joints_.find(joint_name)));
+			//if(hg_ros->joints_.(joint_name))
+			JointMap::iterator itr = hg_ros->joints_.find(joint_name);
+			if(itr != hg_ros->joints_.end())
+			{
+				joints_.insert(*itr);
+				ROS_INFO_STREAM(name_ << " added joint: " << joint_name);
+			}
+			else
+			{
+				ROS_WARN_STREAM(name_ << " joint: " << joint_name << " not found");
+			}
 		}
 
 		//set joint controller
@@ -80,8 +115,13 @@ public:
 
 			ROS_INFO_STREAM(name_ + ": serial port connected");
 
-			uint8_t data[] = {255, 3, 4, 2, 0, 127, 20};
-			serial_.Out(data, 7, 100);
+			//set 180 degree mode
+			//uint8_t data1[] = {255, 3, 1, 5};
+			//serial_.Out(data1, 4, 100);
+
+			//uint8_t data[] = {255, 3, 4, 2, 0, 180, 1};
+			//uint8_t data[] = {255, 3, 4, 2, 0, 80, 1};
+			//serial_.Out(data, 7, 100);
 		}
 
 
