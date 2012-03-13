@@ -65,7 +65,7 @@ public:
 		//control rate
 		node_handle_.param<double>(
 				"controllers/" + name_ + "/control_rate", control_rate_, 100);
-		ROS_INFO_STREAM(name_ + ": control_rate: " << control_rate_);
+		ROS_INFO_STREAM(name_ + ": control_rate: " << control_rate);
 
 		//add joints
 		XmlRpc::XmlRpcValue joints;

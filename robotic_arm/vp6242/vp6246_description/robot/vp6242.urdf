@@ -1,23 +1,28 @@
 <?xml version="1.0"?>
-<robot name="ve026a">
+<robot name="vp6242">
+	<!--
+		J1   J2   J3   J4   J5   J6
+		160  120  160  160  120  360
+	   -160 -120   19 -160 -120 -360
+	-->
 	<link name="base_link">
     <visual>
       <geometry>
-	<box size="0.079 0.079 0.006"/>
+	<box size="0.160 0.160 0.155"/>
 	</geometry>
-	<origin xyz="0 0 0.003"/>
+	<origin xyz="0 0 0.0775"/>
 	<material name="base_link">
         <color rgba="0.3 0.3 0.3 1"/>
       </material>
     </visual>
   </link>
 	
-	<link name="link0">
+  <link name="link0">
     <visual>
       <geometry>
-        <cylinder length="0.130" radius="0.035"/>
+        <cylinder length="0.125" radius="0.075"/>
       </geometry>
-      <origin xyz="0 0 0.065"/>
+      <origin xyz="0 0 0.0625"/>
       <material name="link">
         <color rgba="0.8 0.8 0.8 1"/>
       </material>
@@ -26,26 +31,26 @@
 
   <joint name="J1" type="revolute">
     <axis xyz="0 0 1"/>
-    <limit effort="1000.0" lower="-1.39626" upper="1.83259" velocity="1.0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+    <limit effort="1000.0" lower="-2.792526" upper="2.792526" velocity="1.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.155"/>
     <parent link="base_link"/>
     <child link="link0"/>
   </joint>
-    
-	<link name="link1">
+
+  <link name="link1">
     <visual>
       <geometry>
-			  <box size="0.040 0.050 0.100"/>
-			</geometry>
-			<origin xyz="0 0 0.050"/>
-			<material name="link"/>
+        <cylinder length="0.210" radius="0.075"/>
+      </geometry>
+      <origin xyz="0 0 0.105"/>
+      <material name="link"/>
     </visual>
   </link>
-  
+
   <joint name="J2" type="revolute">
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="-0.61086" upper="1.57075" velocity="1.0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.130"/>
+    <limit effort="1000.0" lower="-2.094394" upper="2.094394" velocity="1.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.125"/>
     <parent link="link0"/>
     <child link="link1"/>
   </joint>
@@ -53,41 +58,39 @@
   <link name="link2">
     <visual>
       <geometry>
-			  <box size="0.040 0.030 0.020"/>
-			</geometry>
-			<origin xyz="0 0 0.010"/>
-			<material name="joint">
-        <color rgba="0.5 0.5 0.5 1"/>
+        <cylinder length="0.075" radius="0.075"/>
+      </geometry>
+	  <origin xyz="0 0 0.0375"/>
+	  <material name="joint">
+      <color rgba="0.5 0.5 0.5 1"/>
       </material>
     </visual>
   </link>
  	
- 	<joint name="J3" type="revolute">
+ <joint name="J3" type="revolute">
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="-1.30899" upper="2.35619" velocity="1.0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.100"/>
+    <limit effort="1000.0" lower="0.331612" upper="2.792526" velocity="1.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
     <parent link="link1"/>
     <child link="link2"/>
   </joint>
 	
-	<link name="link3">
+  <link name="link3">
     <visual>
-      <geometry>
-			  <box size="0.030 0.050 0.070"/>
-			</geometry>
-			<origin xyz="0 0 0.035"/>
-			<material name="link"/>
+    <geometry>
+      <cylinder length="0.202" radius="0.075"/>
+    </geometry>
+		<origin rpy="0 1.570796 0" xyz="0 0 0.075"/>
+		<material name="link"/>
     </visual>
   </link>
   
-  <joint name="J4" type="revolute">
-    <axis xyz="0 0 1"/>
-    <limit effort="1000.0" lower="-2.44346" upper="2.44346" velocity="1.0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.020"/>
+  <joint name="JF1" type="fixed">
+	<origin rpy="0 0 0" xyz="0.0 0.0 0.075"/>
     <parent link="link2"/>
     <child link="link3"/>
   </joint>
-  
+
   <link name="link4">
     <visual>
       <geometry>
@@ -98,14 +101,14 @@
     </visual>
   </link>
  	
- 	<joint name="J5" type="revolute">
+ 	<joint name="J4" type="revolute">
     <axis xyz="0 1 0"/>
     <limit effort="1000.0" lower="-1.57075" upper="1.83259" velocity="1.0"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.070"/>
     <parent link="link3"/>
     <child link="link4"/>
   </joint>
-  
+<!--  
   <link name="link5">
     <visual>
       <geometry>
@@ -141,6 +144,7 @@
     <parent link="link5"/>
     <child link="link6"/>
   </joint>
+-->
 <!--	
   <link name="gripper_left">
     <visual>
