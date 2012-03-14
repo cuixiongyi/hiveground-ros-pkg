@@ -109,10 +109,10 @@
   <link name="link5">
     <visual>
       <geometry>
-			  <box size="0.050 0.030 0.068"/>
-			</geometry>
-			<origin xyz="0 0 0.034"/>
-			<material name="link"/>
+		<box size="0.050 0.030 0.068"/>
+		</geometry>
+		<origin xyz="0 0 0.034"/>
+		<material name="link"/>
     </visual>
   </link>
   
@@ -134,8 +134,8 @@
     </visual>
   </link>
 	
-	<joint name="J7" type="revolute">
-		<axis xyz="0 0 1"/>
+  <joint name="J7" type="fixed">
+	<axis xyz="0 0 1"/>
     <limit effort="1000.0" lower="-1.30899" upper="0.43633" velocity="1.0"/> 
     <origin rpy="0 0 0" xyz="0.0 0.0 0.068"/>
     <parent link="link5"/>
