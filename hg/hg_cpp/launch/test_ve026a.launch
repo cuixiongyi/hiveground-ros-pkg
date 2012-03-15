@@ -1,0 +1,25 @@
+<launch>
+  <!-- HgROS -->  
+  <param name="robot_description" textfile="$(find ve026a_description)/robot/ve026a.urdf" /> 	
+  <node name="HgROS" pkg="hg_cpp" type="hg_ros" output="screen">
+	<rosparam file="$(find hg_cpp)/params/test.yaml" command="load" />			
+	<remap from="/HgROS/robot_description/ve026a" to="/robot_description" />
+	<param name="simulate" value="false"/>
+  </node>
+ 
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >    
+  	 
+  </node>
+  
+  <!-- fk/ik solver -->
+  <node pkg="arm_kinematics" type="arm_kinematics" name="arm_kinematics" >
+    <param name="root_name" value="base_link" />
+    <param name="tip_name" value="link6" />
+  </node>
+  
+<!--  
+  <node pkg="rviz" type="rviz" name="rviz">
+	
+  </node>
+--> 
+</launch>

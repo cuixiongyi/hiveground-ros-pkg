@@ -94,11 +94,11 @@ HgROS::HgROS()
 	}
 
 	//publisher
-	publisher_diagnostic_ = node_handle_.advertise<diagnostic_msgs::DiagnosticArray>("diagnostics", 1);
-	diagnotic_duration_ = ros::Duration(1.0); //1 Hz
-	next_diagnotic_time_ = ros::Time::now() + diagnotic_duration_;
+	//publisher_diagnostic_ = node_handle_.advertise<diagnostic_msgs::DiagnosticArray>("diagnostics", 1);
+	//diagnotic_duration_ = ros::Duration(1.0); //1 Hz
+	//next_diagnotic_time_ = ros::Time::now() + diagnotic_duration_;
 
-	publisher_joint_state_ = node_handle_.advertise<sensor_msgs::JointState>("joint_states", 1);
+	publisher_joint_state_ = node_handle_.advertise<sensor_msgs::JointState>("/joint_states", 1);
 	joint_state_duration_= ros::Duration(1.0/10.0); //10 Hz
 	next_joint_state_time_ = ros::Time::now() + joint_state_duration_;
 

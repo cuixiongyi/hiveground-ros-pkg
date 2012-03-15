@@ -15,11 +15,11 @@
   <node pkg="arm_kinematics" type="arm_kinematics" name="arm_kinematics" >
     <remap from="robot_description" to="/HgROS/robot_description/ve026a" />
     <param name="root_name" value="base_link" />
-    <param name="tip_name" value="link5" />
+    <param name="tip_name" value="link6" />
   </node>
-  
+<!--  
   <node pkg="rviz" type="rviz" name="rviz">
       <remap from="robot_description" to="/HgROS/robot_description/ve026a" />
   </node>
- 
+--> 
 </launch>

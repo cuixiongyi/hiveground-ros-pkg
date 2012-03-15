@@ -76,7 +76,7 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 	move_arm_action_server_.registerGoalCallback(
 			boost::bind(&DensoVe026a_BCapController::move_arm_action_callback, this));
 
-	/*
+
 	//action server
 	//get name
 	trajectory_is_executing_ = false;
@@ -92,7 +92,7 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 
 	//set callback
 	action_server_->registerGoalCallback(boost::bind(&DensoVe026a_BCapController::action_callback, this));
-
+	/*
 	//normal tarjectory command
 	tarjectory_command_ = node_handle_.subscribe(name_ + "/command", 1,
 			&DensoVe026a_BCapController::command_callback, this);
@@ -127,10 +127,12 @@ void DensoVe026a_BCapController::startup()
 
 	//start action server
 	move_arm_action_server_.start();
+	action_server_->start();
 
 
 	//create control thread
 	control_thread_ = boost::thread(&DensoVe026a_BCapController::control_loop, this);
+	follow_control_thread_ = boost::thread(&DensoVe026a_BCapController::execute_trajectory2, this);
 
 	//start control loop
 	is_running_ = true;
@@ -382,7 +384,50 @@ trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajector
 
 void DensoVe026a_BCapController::action_callback()
 {
-	//action_goal_ = action_server_->acceptNewGoal();
+	action_goal_ = action_server_->acceptNewGoal();
+	ROS_INFO_STREAM(name_ + ": Action goal received");
+
+	trajectory_msgs::JointTrajectory trajectory = action_goal_->trajectory;
+
+	control_msgs::FollowJointTrajectoryResult result;
+
+	//check joint names
+	for(size_t i = 0; i < trajectory.joint_names.size(); i++)
+	{
+		JointMap::iterator itr = joints_.find(trajectory.joint_names[i]);
+		if(itr == joints_.end())
+		{
+			result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+			action_server_->setAborted(result, "Trajectory joint names does not match action controlled joints");
+			return;
+		}
+	}
+
+
+	//check points
+	if(trajectory.points.size() == 0)
+	{
+		result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL ;
+		action_server_->setAborted(result, "Trajectory empty");
+		return;
+	}
+
+
+	ROS_INFO_STREAM("Trajectort points: " << trajectory.points.size());
+	for(int i = 0; i < trajectory.points.size(); i++)
+	{
+		trajectory_msgs::JointTrajectoryPoint point =  trajectory.points[i];
+		std::vector<double> target_positions = point.positions;
+		ros::Time end_time = ros::Time::now() + point.time_from_start;
+		//ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+	}
+
+	boost::unique_lock<boost::mutex> lock(mutex_);
+	trajectory_queue_.push(trajectory);
+	condition_.notify_one();
+
+	//action_server_->setAborted(result, "Test");
+	//execute_trajectory(trajectory);
 }
 
 void DensoVe026a_BCapController::command_callback(const trajectory_msgs::JointTrajectory& message)
@@ -393,12 +438,12 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 {
 	if(message.points.size() == 0)
 	{
-		ROS_INFO("Tracjectory empty");
+		ROS_INFO("Trajectory empty");
 		return;
 	}
 	else
 	{
-		ROS_INFO("Execute tracjectory");
+		ROS_INFO("Execute trajectory");
 	}
 
 	ros::Time time = ros::Time::now();
@@ -447,9 +492,9 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 			JointMap::iterator itr = joints_.begin();
 			for(int k = 0; k < error.size(); k++, itr++)
 			{
-				error[i] = target_positions[i] - last_positions[i];
-				velocity[i] =
-						fabs(error[i] / (50.0 * (end_time - ros::Time::now()).toSec()));
+				error[k] = target_positions[k] - last_positions[k];
+				velocity[k] =
+						fabs(error[k] / (50.0 * (end_time - ros::Time::now()).toSec()));
 				ROS_INFO_THROTTLE(10, "v: %f", velocity[i]);
 
 				if(fabs(error[i]) > 0.001)
@@ -481,10 +526,114 @@ void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::Joint
 	trajectory_is_ok_ = true;
 }
 
+void DensoVe026a_BCapController::execute_trajectory2()
+{
+	control_msgs::FollowJointTrajectoryResult result;
+	while(is_running_)
+	{
+
+		// Acquire lock on the queue
+		boost::unique_lock<boost::mutex> lock(mutex_);
+
+		// When there is no data, wait till someone fills it.
+		// Lock is automatically released in the wait and obtained
+		// again after the wait
+		while (trajectory_queue_.size()==0) condition_.wait(lock);
+
+		ROS_INFO("Got a new trajectory!!!");
+		// Retrieve the data from the queue
+		trajectory_msgs::JointTrajectory trajectory = trajectory_queue_.front();
+		trajectory_queue_.pop();
+
+
+		ros::Time time = ros::Time::now();
+		ros::Time start_time = trajectory.header.stamp;
+
+		//ROS_INFO("%6.3f %6.3f", time.toSec(), start_time.toSec());
+
+		std::vector<double> last_positions;
+		for(JointMap::iterator itr = joints_.begin(); itr != joints_.end(); itr++)
+		{
+			last_positions.push_back(itr->second->position_);
+			cout << "last position of "
+				 << itr->first << ":"
+				 << itr->second->position_
+				 << endl;
+
+		}
+
+		for(int i = 0; i < trajectory.points.size(); i++)
+		{
+			while((ros::Time::now() + ros::Duration(0.01)) < start_time)
+			{
+				//wait for time
+				ros::Duration(0.01).sleep();
+			}
+
+
+			trajectory_msgs::JointTrajectoryPoint point =  trajectory.points[i];
+			std::vector<double> target_positions = point.positions;
+			//for(int j = 0; j < target_positions.size(); j++)
+			//{
+				//cout << "target joint[" << j << "]" <<  " position: " << target_positions[j] << endl;
+			//}
+
+			ros::Time end_time = start_time + point.time_from_start;
+			ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+
+			std::vector<double> error, velocity;
+			error.resize(target_positions.size());
+			velocity.resize(target_positions.size());
+			double command;
+			ros::Rate rate(50.0);
+			while((ros::Time::now()+ros::Duration(0.01)) < end_time)
+			{
+				JointMap::iterator itr = joints_.begin();
+				for(int k = 0; k < error.size(); k++, itr++)
+				{
+					error[k] = target_positions[k] - last_positions[k];
+					velocity[k] =
+							fabs(error[k] / (50.0 * (end_time - ros::Time::now()).toSec()));
+					//ROS_INFO_THROTTLE(1, "v: %f", velocity[k]);
+
+					if(fabs(error[k]) > 0.001)
+					{
+						command = error[k];
+						if(command > velocity[k])
+						{
+							command = velocity[k];
+						}
+						else if(command > velocity[k])
+						{
+							command = -velocity[k];
+						}
+						last_positions[k] += command;
+						//ROS_INFO_THROTTLE(1, "cmd: %f", last_positions[k]);
+						itr->second->set_position(last_positions[k]);
+					}
+					else
+					{
+						//reached
+						velocity[k] = 0;
+					}
+
+				}
+
+				rate.sleep();
+			}
+		}
+		ROS_INFO("Trajectory done!!!");
+		result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+		action_server_->setSucceeded(result, "test!");
+	}
+}
+
 void DensoVe026a_BCapController::control_loop()
 {
 	ros::Rate loop_rate(control_rate_);
 	float command[7], result[8];
+	memset(command, 0, sizeof(command));
+	memset(result, 0, sizeof(result));
 	int i;
 	JointMap::iterator itr;
 	while(is_running_)
@@ -516,11 +665,10 @@ void DensoVe026a_BCapController::control_loop()
 				itr->second->set_feedback_data(command[i] * DEG_TO_RAD);
 			}
 		}
-
-
-
 		loop_rate.sleep();
 	}
+
+	condition_.notify_all();
 }
 
 void DensoVe026a_BCapController::initialize_ve026a()

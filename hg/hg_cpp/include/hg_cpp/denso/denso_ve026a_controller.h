@@ -23,6 +23,8 @@
 #include <hg_msgs/MoveArmAction.h>
 
 #include <boost/thread.hpp>
+#include <queue>
+
 namespace hg
 {
 
@@ -49,6 +51,7 @@ public:
 	void command_callback(const trajectory_msgs::JointTrajectory& message);
 
 	void execute_trajectory(const trajectory_msgs::JointTrajectory& message);
+	void execute_trajectory2();
 
 
 private:
@@ -84,6 +87,9 @@ public:
 	bool is_running_;
 	boost::thread control_thread_;
 	boost::thread follow_control_thread_;
+	std::queue<trajectory_msgs::JointTrajectory> trajectory_queue_;				// Use STL queue to store data
+	boost::mutex mutex_;							// The mutex to synchronise on
+	boost::condition_variable condition_;
 
 	bool trajectory_is_executing_;
 	bool trajectory_is_ok_;
@@ -97,8 +103,8 @@ public:
 
 	actionlib::SimpleActionServer<hg_msgs::MoveArmAction> move_arm_action_server_;
 
-	//boost::shared_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> > action_server_;
-	//control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
+	boost::shared_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> > action_server_;
+	control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
 
 	ros::Subscriber trajectory_command_;
 
