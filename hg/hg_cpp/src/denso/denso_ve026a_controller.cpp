@@ -132,7 +132,7 @@ void DensoVe026a_BCapController::startup()
 
 	//create control thread
 	control_thread_ = boost::thread(&DensoVe026a_BCapController::control_loop, this);
-	follow_control_thread_ = boost::thread(&DensoVe026a_BCapController::execute_trajectory2, this);
+	follow_control_thread_ = boost::thread(&DensoVe026a_BCapController::execute_trajectory, this);
 
 	//start control loop
 	is_running_ = true;
@@ -263,18 +263,10 @@ void DensoVe026a_BCapController::move_arm_action_callback()
 				 << endl;
 		}
 	}
-	trajectory_is_ok_ = false;
-	follow_control_thread_ =
-		boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, trajectory);
-	follow_control_thread_.join();
-	if(!trajectory_is_ok_)
-	{
-		ROS_INFO("execute_trajectory fail");
-		return;
-	}
 
-	result.success = true;
-	move_arm_action_server_.setSucceeded(result);
+	boost::unique_lock<boost::mutex> lock(mutex_);
+	trajectory_queue_.push(trajectory);
+	condition_.notify_one();
 }
 
 trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajectory(
@@ -434,99 +426,7 @@ void DensoVe026a_BCapController::command_callback(const trajectory_msgs::JointTr
 {
 }
 
-void DensoVe026a_BCapController::execute_trajectory(const trajectory_msgs::JointTrajectory& message)
-{
-	if(message.points.size() == 0)
-	{
-		ROS_INFO("Trajectory empty");
-		return;
-	}
-	else
-	{
-		ROS_INFO("Execute trajectory");
-	}
-
-	ros::Time time = ros::Time::now();
-	ros::Time start_time = message.header.stamp;
-
-	//ROS_INFO("%6.3f %6.3f", time.toSec(), start_time.toSec());
-
-	std::vector<double> last_positions;
-	for(JointMap::iterator itr = joints_.begin(); itr != joints_.end(); itr++)
-	{
-		last_positions.push_back(itr->second->position_);
-		cout << "last position of "
-			 << itr->first << ":"
-			 << itr->second->position_
-			 << endl;
-
-	}
-
-	ROS_INFO("Start with %d trajectory point(s)", message.points.size());
-	for(int i = 0; i < message.points.size(); i++)
-	{
-		while(ros::Time::now() + ros::Duration(0.01) < start_time)
-		{
-			//wait for time
-			ros::Duration(0.01).sleep();
-		}
-
-
-		trajectory_msgs::JointTrajectoryPoint point =  message.points[i];
-		std::vector<double> target_positions = point.positions;
-		for(int j = 0; j < target_positions.size(); j++)
-		{
-			cout << "target joint[" << j << "]" <<  " position: " << target_positions[j] << endl;
-		}
-
-		ros::Time end_time = ros::Time::now() + point.time_from_start;
-		ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
-
-		std::vector<double> error, velocity;
-		error.resize(target_positions.size());
-		velocity.resize(target_positions.size());
-		double command;
-		ros::Rate rate(50.0);
-		while((ros::Time::now()+ros::Duration(0.01)) < end_time)
-		{
-			JointMap::iterator itr = joints_.begin();
-			for(int k = 0; k < error.size(); k++, itr++)
-			{
-				error[k] = target_positions[k] - last_positions[k];
-				velocity[k] =
-						fabs(error[k] / (50.0 * (end_time - ros::Time::now()).toSec()));
-				ROS_INFO_THROTTLE(10, "v: %f", velocity[i]);
-
-				if(fabs(error[i]) > 0.001)
-				{
-					command = error[i];
-					if(command > velocity[i])
-					{
-						command = velocity[i];
-					}
-					else if(command > velocity[i])
-					{
-						command = -velocity[i];
-					}
-					last_positions[i] += command;
-					ROS_INFO_THROTTLE(10, "cmd: %f", last_positions[i]);
-					itr->second->set_position(last_positions[i]);
-				}
-				else
-				{
-					//reached
-					velocity[i] = 0;
-				}
-
-			}
-
-			rate.sleep();
-		}
-	}
-	trajectory_is_ok_ = true;
-}
-
-void DensoVe026a_BCapController::execute_trajectory2()
+void DensoVe026a_BCapController::execute_trajectory()
 {
 	control_msgs::FollowJointTrajectoryResult result;
 	while(is_running_)
@@ -579,7 +479,7 @@ void DensoVe026a_BCapController::execute_trajectory2()
 			//}
 
 			ros::Time end_time = start_time + point.time_from_start;
-			ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+			//ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
 
 			std::vector<double> error, velocity;
 			error.resize(target_positions.size());

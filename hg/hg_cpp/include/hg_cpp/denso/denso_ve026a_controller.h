@@ -50,8 +50,7 @@ public:
 
 	void command_callback(const trajectory_msgs::JointTrajectory& message);
 
-	void execute_trajectory(const trajectory_msgs::JointTrajectory& message);
-	void execute_trajectory2();
+	void execute_trajectory();
 
 
 private:

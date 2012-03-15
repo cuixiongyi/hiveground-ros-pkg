@@ -1,4 +1,4 @@
 <launch>
-	<!-- <param name="robot_description" textfile="$(find ve026a_description)/robot/ve026a.urdf" /> -->
+    <param name="robot_description" textfile="$(find ve026a_description)/robot/ve026a.urdf" />
     <rosparam command="load" ns="robot_description_planning" file="$(find ve026a_arm_navigation)/config/ve026a_planning_description.yaml" />
 </launch>
