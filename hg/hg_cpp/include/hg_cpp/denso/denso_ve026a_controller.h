@@ -25,13 +25,11 @@
 #include <boost/thread.hpp>
 #include <queue>
 
-namespace hg
-{
+namespace hg {
 
 class HgROS;
 
-class DensoVe026a_BCapController : public Controller
-{
+class DensoVe026a_BCapController: public Controller {
 public:
 	DensoVe026a_BCapController(hg::HgROS* hg_ros, const std::string& name);
 	~DensoVe026a_BCapController();
@@ -41,17 +39,16 @@ public:
 	void shutdown();
 	bool active();
 
-	void move_arm_action_callback();
+	//void move_arm_action_callback();
 
-	trajectory_msgs::JointTrajectory motion_to_trajectory(
-			hg_msgs::ArmAction action, std_msgs::Header header);
+	//trajectory_msgs::JointTrajectory motion_to_trajectory(
+	//hg_msgs::ArmAction action, std_msgs::Header header);
 
 	void action_callback();
 
 	void command_callback(const trajectory_msgs::JointTrajectory& message);
 
 	void execute_trajectory();
-
 
 private:
 	void initialize_ve026a();
@@ -86,8 +83,8 @@ public:
 	bool is_running_;
 	boost::thread control_thread_;
 	boost::thread follow_control_thread_;
-	std::queue<trajectory_msgs::JointTrajectory> trajectory_queue_;				// Use STL queue to store data
-	boost::mutex mutex_;							// The mutex to synchronise on
+	std::queue<trajectory_msgs::JointTrajectory> trajectory_queue_; // Use STL queue to store data
+	boost::mutex mutex_; // The mutex to synchronise on
 	boost::condition_variable condition_;
 
 	bool trajectory_is_executing_;
@@ -100,19 +97,17 @@ public:
 	ros::ServiceClient get_ik_solver_info_client_;
 	kinematics_msgs::GetKinematicSolverInfo arm_solver_info_;
 
-	actionlib::SimpleActionServer<hg_msgs::MoveArmAction> move_arm_action_server_;
+	//actionlib::SimpleActionServer<hg_msgs::MoveArmAction> move_arm_action_server_;
 
-	boost::shared_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> > action_server_;
+	boost::shared_ptr<actionlib::SimpleActionServer<
+			control_msgs::FollowJointTrajectoryAction> > action_server_;
 	control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
 
 	ros::Subscriber trajectory_command_;
 
 };
 
-
 }
-
-
 
 #endif
 

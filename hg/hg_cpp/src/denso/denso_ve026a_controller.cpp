@@ -12,8 +12,8 @@ using namespace hg;
 DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const std::string& name)
 		: Controller(hg_ros, name),
 		  is_initialized_(false),
-		  listener_(hg_ros->node_handle_),
-		  move_arm_action_server_("move_arm", false)
+		  listener_(hg_ros->node_handle_)
+		  //move_arm_action_server_("move_arm", false)
 {
 	string port_param_name = "controllers/" + name_ + "/port";
 	//cout << port_param_name << endl;
@@ -73,8 +73,8 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 
 	ROS_INFO("arm_kinematics services connected");
 	//move arm action server
-	move_arm_action_server_.registerGoalCallback(
-			boost::bind(&DensoVe026a_BCapController::move_arm_action_callback, this));
+	//move_arm_action_server_.registerGoalCallback(
+		//	boost::bind(&DensoVe026a_BCapController::move_arm_action_callback, this, ));
 
 
 	//action server
@@ -126,7 +126,7 @@ void DensoVe026a_BCapController::startup()
 
 
 	//start action server
-	move_arm_action_server_.start();
+	//move_arm_action_server_.start();
 	action_server_->start();
 
 
@@ -157,7 +157,7 @@ bool DensoVe026a_BCapController::active()
 {
 	return false;
 }
-
+#if 0
 void DensoVe026a_BCapController::move_arm_action_callback()
 {
 	if(!get_ik_solver_info_client_.call(arm_solver_info_))
@@ -373,6 +373,7 @@ trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajector
 
 	return message;
 }
+#endif
 
 void DensoVe026a_BCapController::action_callback()
 {

@@ -16,10 +16,4 @@
     <param name="root_name" value="base_link" />
     <param name="tip_name" value="link6" />
   </node>
-  
-<!--  
-  <node pkg="rviz" type="rviz" name="rviz">
-	
-  </node>
---> 
 </launch>
