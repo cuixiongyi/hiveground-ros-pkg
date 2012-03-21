@@ -9,3 +9,4 @@ syntax: glob
 .pydevproject
 *.so
 msg_gen
+*.orig
