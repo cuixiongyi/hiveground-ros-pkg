@@ -1,0 +1,14 @@
+<package>
+  <description brief="vp6246_description">
+
+     vp6246_description
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/vp6246_description</url>
+
+</package>
+
+
