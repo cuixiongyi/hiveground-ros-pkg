@@ -9,7 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/ve026a_teleop</url>
   <depend package="roscpp"/>
-	<depend package="sensor_msgs"/>
+  <depend package="sensor_msgs"/>
   <depend package="tf"/>
   
 
