@@ -155,6 +155,7 @@ public:
 					{
 						ss >> joint_angles_[i];
 					}
+					publish();
 				}
 			}
 		}
@@ -322,11 +323,11 @@ public:
 
 		for(int i = 0; i < NUM_JOINTS; i++)
 		{
-			std::cout << joint_angles_[i] << " ";
-		}
-		std::cout << endl;
 
-		publish();
+		}
+
+
+
 	}
 
 
@@ -340,10 +341,13 @@ public:
 			if(joint_angles_[i] < joint_limits_down_[i])
 				joint_angles_[i] = joint_limits_down_[i];
 
+			std::cout << joint_angles_[i] << " ";
+
 			std_msgs::Float32 msg;
 			msg.data = joint_angles_[i];
 			joint_pubs_[i].publish(msg);
 		}
+		std::cout << endl;
 	}
 
 
