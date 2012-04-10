@@ -10,6 +10,7 @@
 #include "topic_tools/MuxSelect.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Float32.h"
+#include "std_msgs/Bool.h"
 
 #include <ctime>
 #include <iostream>
@@ -69,6 +70,7 @@ public:
 	ros::Subscriber joy_state_;
 	ros::Subscriber joint_state_;
 	ros::Publisher joint_pubs_[NUM_JOINTS];
+	ros::Publisher motor_on_off_pub_;
 	float joint_angles_[NUM_JOINTS];
 	float joint_limits_up_[NUM_JOINTS];
 	float joint_limits_down_[NUM_JOINTS];
@@ -140,10 +142,6 @@ void tcp_connection::handle_read(const boost::system::error_code& e, std::size_t
 }
 
 
-
-
-
-
 Ve026aTeleop::Ve026aTeleop(boost::asio::io_service& io)
 	:  node_handle_private_("~"),
 	   joint_updated_(false),
@@ -194,6 +192,25 @@ void Ve026aTeleop::update_from_socket(std::string command)
 	{
 		ss >> joint_angles_[i];
 	}
+
+	if(joint_angles_[0] >= 9.0)
+	{
+		//turn on motor
+		std_msgs::Bool flag;
+		flag.data = 1;
+		motor_on_off_pub_.publish(flag);
+		return;
+	}
+	else if(joint_angles_[0] <= -9.0)
+	{
+		//turn off motor
+		std_msgs::Bool flag;
+		flag.data = 0;
+		motor_on_off_pub_.publish(flag);
+		return;
+	}
+
+
 	publish();
 
 }
@@ -218,6 +235,9 @@ void Ve026aTeleop::init()
 		joint_angles_[i] = 0;
 		joy_increase_step_ = 0.1;
 	}
+
+	motor_on_off_pub_ = node_handle_.advertise<std_msgs::Bool>(
+			"/HgROS/ve026a_controller/motor_on_off", 1);
 
 	//J1
 	joint_limits_up_[0] = 1.83259;

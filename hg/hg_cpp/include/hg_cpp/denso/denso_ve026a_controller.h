@@ -20,6 +20,9 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+
+#include <std_msgs/Bool.h>
+
 #include <hg_msgs/MoveArmAction.h>
 
 #include <boost/thread.hpp>
@@ -53,6 +56,7 @@ public:
 private:
 	void initialize_ve026a();
 	bool set_motor(bool on_off);
+	void set_motor_callback(const std_msgs::BoolConstPtr& flag);
 
 	/**
 	 * Control thread function.
@@ -104,6 +108,7 @@ public:
 	control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
 
 	ros::Subscriber trajectory_command_;
+	ros::Subscriber motor_on_off_command_;
 
 };
 

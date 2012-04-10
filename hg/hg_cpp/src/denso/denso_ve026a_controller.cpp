@@ -98,6 +98,10 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 			&DensoVe026a_BCapController::command_callback, this);
 	*/
 
+	motor_on_off_command_ = node_handle_.subscribe(name + "/motor_on_off",
+				1, &DensoVe026a_BCapController::set_motor_callback, this);
+
+
 
 	//ROS_INFO_STREAM("Start " + name_ + )
 }
@@ -704,6 +708,22 @@ bool DensoVe026a_BCapController::set_motor(bool on_off)
 		return true;
 	}
 }
+
+void DensoVe026a_BCapController::set_motor_callback(const std_msgs::BoolConstPtr& flag)
+{
+	if(flag->data)
+	{
+		ROS_INFO_STREAM("get motor on command");
+		set_motor(true);
+	}
+	else
+	{
+		ROS_INFO_STREAM("get motor off command");
+		set_motor(false);
+	}
+}
+
+
 
 bool DensoVe026a_BCapController::set_joints(float* position, float* result)
 {
