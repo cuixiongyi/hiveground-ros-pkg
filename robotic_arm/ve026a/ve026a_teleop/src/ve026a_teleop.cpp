@@ -199,6 +199,7 @@ void Ve026aTeleop::update_from_socket(std::string command)
 		std_msgs::Bool flag;
 		flag.data = 1;
 		motor_on_off_pub_.publish(flag);
+		joint_updated_ = false;
 		return;
 	}
 	else if(joint_angles_[0] <= -9.0)
@@ -283,7 +284,6 @@ void Ve026aTeleop::joint_callback(const sensor_msgs::JointStateConstPtr& joint_m
 			joint_angles_[i] = joint_msg->position[i];
 		}
 		joint_updated_ = true;
-		joint_state_.shutdown();
 	}
 }
 

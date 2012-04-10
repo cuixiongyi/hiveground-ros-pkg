@@ -12,11 +12,11 @@ using namespace hg;
 DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const std::string& name)
 		: Controller(hg_ros, name),
 		  is_initialized_(false),
+		  is_motor_on_(false),
 		  listener_(hg_ros->node_handle_)
-		  //move_arm_action_server_("move_arm", false)
 {
 	string port_param_name = "controllers/" + name_ + "/port";
-	//cout << port_param_name << endl;
+
 	if(!node_handle_.hasParam(port_param_name))
 	{
 		ROS_ERROR_STREAM(name_ + ": couldn't find " + port_param_name +
@@ -72,10 +72,6 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 
 
 	ROS_INFO("arm_kinematics services connected");
-	//move arm action server
-	//move_arm_action_server_.registerGoalCallback(
-		//	boost::bind(&DensoVe026a_BCapController::move_arm_action_callback, this, ));
-
 
 	//action server
 	//get name
@@ -92,18 +88,13 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 
 	//set callback
 	action_server_->registerGoalCallback(boost::bind(&DensoVe026a_BCapController::action_callback, this));
-	/*
-	//normal tarjectory command
-	tarjectory_command_ = node_handle_.subscribe(name_ + "/command", 1,
-			&DensoVe026a_BCapController::command_callback, this);
-	*/
 
 	motor_on_off_command_ = node_handle_.subscribe(name + "/motor_on_off",
 				1, &DensoVe026a_BCapController::set_motor_callback, this);
 
 
 
-	//ROS_INFO_STREAM("Start " + name_ + )
+
 }
 
 DensoVe026a_BCapController::~DensoVe026a_BCapController()
@@ -161,223 +152,7 @@ bool DensoVe026a_BCapController::active()
 {
 	return false;
 }
-#if 0
-void DensoVe026a_BCapController::move_arm_action_callback()
-{
-	if(!get_ik_solver_info_client_.call(arm_solver_info_))
-	{
-		ROS_ERROR_STREAM(name_ + " cannot get_ik_solver_info");
-		return;
-	}
-	hg_msgs::MoveArmGoalConstPtr goal = move_arm_action_server_.acceptNewGoal();
 
-	hg_msgs::MoveArmResult result;
-	if(move_arm_action_server_.isPreemptRequested())
-	{
-		ROS_INFO("move_arm_action preempted");
-		result.success = false;
-		move_arm_action_server_.setPreempted(result);
-		return;
-	}
-
-	//std::vector<std::pa>
-	std::vector<std::pair<std::string, boost::any> > computed_actions;
-	for(int i = 0; i < goal->motions.size(); i++)
-	{
-		hg_msgs::ArmAction action = goal->motions[i];
-
-		if(action.type == hg_msgs::ArmAction::MOVE_ARM)
-		{
-			ROS_INFO("move arm");
-			//change motion to tarjectory
-			trajectory_msgs::JointTrajectory message =
-					motion_to_trajectory(action, goal->header);
-
-			if(message.points.size() == 0)
-			{
-				ROS_INFO("Trajectory empty");
-				result.success = false;
-				move_arm_action_server_.setAborted(result);
-				return;
-			}
-			//follow_control_thread_ =
-				//boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, message );
-			//execute_trajectory(message);
-
-			std::pair<std::string, boost::any> move("move", message);
-			computed_actions.push_back(move);
-		}
-		else
-		{
-			ROS_INFO("move gripper");
-			std::pair<std::string, boost::any> gripper("gripper", action);
-			computed_actions.push_back(gripper);
-			//joints_.at("J7")->set_position(action.command);
-		}//if action
-	}//for motion
-
-	//execute trajectory
-
-
-	ROS_INFO("computed action: %d", computed_actions.size());
-	bool first_move = true;
-	trajectory_msgs::JointTrajectory trajectory;
-	for(int i = 0; i < computed_actions.size(); i++)
-	{
-		if(computed_actions[i].first == "move")
-		{
-			cout << "move arm: "
-				 << (boost::any_cast<trajectory_msgs::JointTrajectory>(&(computed_actions[i].second)))->header.stamp.toSec()
-				 << endl;
-			if(first_move)
-			{
-				trajectory = *(boost::any_cast<trajectory_msgs::JointTrajectory>(&(computed_actions[i].second)));
-				first_move = false;
-
-			}
-			else
-			{
-				trajectory_msgs::JointTrajectory message = *(boost::any_cast<trajectory_msgs::JointTrajectory>(&(computed_actions[i].second)));
-				message.points[0].time_from_start +=
-						trajectory.points[trajectory.points.size() - 1].time_from_start;
-				trajectory.points.push_back(message.points[0]);
-			}
-		}
-		else if(computed_actions[i].first == "gripper")
-		{
-			if(trajectory.points.size() > 0)
-			{
-				//move arm before gripper
-				trajectory_is_ok_ = false;
-				follow_control_thread_ =
-					boost::thread(&DensoVe026a_BCapController::execute_trajectory, this, trajectory);
-				follow_control_thread_.join();
-				if(!trajectory_is_ok_)
-				{
-					ROS_INFO("execute_trajectory fail");
-					return;
-				}
-				first_move = true;
-			}
-			//move gripper
-			joints_.at("J7")->set_position((boost::any_cast<hg_msgs::ArmAction>(&(computed_actions[i].second)))->command);
-			ros::Duration((boost::any_cast<hg_msgs::ArmAction>(&(computed_actions[i].second)))->move_time).sleep();
-			cout << "move gripper: "
-				 << (boost::any_cast<hg_msgs::ArmAction>(&(computed_actions[i].second)))->command
-				 << endl;
-		}
-	}
-
-	boost::unique_lock<boost::mutex> lock(mutex_);
-	trajectory_queue_.push(trajectory);
-	condition_.notify_one();
-}
-
-trajectory_msgs::JointTrajectory DensoVe026a_BCapController::motion_to_trajectory(
-		hg_msgs::ArmAction action, std_msgs::Header header)
-{
-
-	ROS_INFO("1");
-	geometry_msgs::PoseStamped ps;
-	ps.header.frame_id = header.frame_id;
-	ps.pose = action.goal;
-	geometry_msgs::PoseStamped pose;
-	listener_.transformPose("base_link", ps, pose);
-	ROS_INFO("2");
-
-
-	kinematics_msgs::GetPositionIK::Request request;
-	request.timeout = ros::Duration(5.0);
-	request.ik_request.pose_stamped.header.frame_id = "base_link";
-	request.ik_request.ik_link_name = "link5";
-	request.ik_request.pose_stamped.pose = pose.pose;
-
-	ROS_INFO("request: %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f",
-			pose.pose.position.x,
-			pose.pose.position.y,
-			pose.pose.position.z,
-			pose.pose.orientation.x,
-			pose.pose.orientation.y,
-			pose.pose.orientation.z,
-			pose.pose.orientation.w);
-	//pose.pose.orientation.
-
-	request.ik_request.ik_seed_state.joint_state.name =
-			arm_solver_info_.response.kinematic_solver_info.joint_names;
-	request.ik_request.ik_seed_state.joint_state.position.resize(
-			request.ik_request.ik_seed_state.joint_state.name.size());
-	for(int i = 0; i < request.ik_request.ik_seed_state.joint_state.name.size(); i++)
-	{
-		string name = request.ik_request.ik_seed_state.joint_state.name[i];
-		JointMap::iterator itr = joints_.find(name);
-		cout << name << " " << itr->second->position_ << endl;
-		request.ik_request.ik_seed_state.joint_state.position[i] = itr->second->position_;
-
-	}
-	ROS_INFO("3");
-	//request.ik_request.ik_seed_state.joint_state.position.
-
-	//tires = 0;
-	kinematics_msgs::GetPositionIK::Response respond;
-	trajectory_msgs::JointTrajectory message;
-	if(get_ik_client_.call(request, respond))
-	{
-		ROS_INFO("get IK respond!");
-		cout << respond.error_code << endl;
-		if(respond.error_code.val == respond.error_code.SUCCESS)
-		{
-			ROS_INFO("Hurey!!" );
-			if(!get_ik_solver_info_client_.call(arm_solver_info_))
-			{
-				ROS_ERROR_STREAM(name_ + " cannot get_ik_solver_info!");
-			}
-			else
-			{
-				message.joint_names =
-						arm_solver_info_.response.kinematic_solver_info.joint_names;
-				trajectory_msgs::JointTrajectoryPoint point;
-				//point.positions =
-
-				//message.points
-				point.positions.resize(respond.solution.joint_state.position.size());
-				point.velocities.resize(respond.solution.joint_state.position.size());
-				for(int i = 0; i < respond.solution.joint_state.position.size(); i++)
-				{
-					cout << "Joint " << message.joint_names[i] << " ";
-					cout << respond.solution.joint_state.position[i] << endl;
-
-					point.positions[i] = respond.solution.joint_state.position[i];
-					point.velocities[i] = 0.0;
-
-				}
-
-				cout << "Move time: " << action.move_time.toSec() << endl;
-				if(action.move_time > ros::Duration(0.0))
-				{
-					//move according to a specified time
-					point.time_from_start = action.move_time;
-				}
-				else
-				{
-					//move according to some specified time
-					point.time_from_start = ros::Duration(5.0);
-				}
-
-				message.points.push_back(point);
-				message.header.stamp = ros::Time::now() + ros::Duration(0.01);
-
-
-			}
-		}
-	}
-	else
-	{
-		ROS_INFO("get IK request failed!");
-	}
-
-	return message;
-}
-#endif
 
 void DensoVe026a_BCapController::action_callback()
 {
@@ -561,6 +336,10 @@ void DensoVe026a_BCapController::control_loop()
 			for(itr = joints_.begin(), i = 0; itr != joints_.end(); itr++, i++)
 			{
 				itr->second->set_feedback_data(result[i] * DEG_TO_RAD);
+				if(!is_motor_on_)
+				{
+					itr->second->set_position(result[i] * DEG_TO_RAD);
+				}
 			}
 		}
 		else
@@ -568,6 +347,10 @@ void DensoVe026a_BCapController::control_loop()
 			for(itr = joints_.begin(), i = 0; itr != joints_.end(); itr++, i++)
 			{
 				itr->second->set_feedback_data(command[i] * DEG_TO_RAD);
+				if(!is_motor_on_)
+				{
+					itr->second->set_position(command[i] * DEG_TO_RAD);
+				}
 			}
 		}
 		loop_rate.sleep();
@@ -668,6 +451,8 @@ void DensoVe026a_BCapController::initialize_ve026a()
 			itr->second->set_position(joints[i] * DEG_TO_RAD);
 		}
 
+
+
 		//turn on motor
 		if(!set_motor(true))
 			return;
@@ -684,6 +469,8 @@ bool DensoVe026a_BCapController::set_motor(bool on_off)
 {
 	if(hg_ros_->simulate_) return true;
 
+	boost::unique_lock<boost::mutex> lock(mutex_control_);
+
 	BCAP_HRESULT hr;
 	int mode = (on_off) ? 1 : 0;
 	long result;
@@ -696,11 +483,13 @@ bool DensoVe026a_BCapController::set_motor(bool on_off)
 		&result);
 	if(FAILED(hr))
 	{
+		is_motor_on_ = false;
 		ROS_ERROR_STREAM(name_ + ": set motor fail");
 		return false;
 	}
 	else
 	{
+		is_motor_on_ = on_off;
 		if(on_off)
 			ROS_INFO_STREAM(name_ + ": set motor on");
 		else
@@ -728,6 +517,8 @@ void DensoVe026a_BCapController::set_motor_callback(const std_msgs::BoolConstPtr
 bool DensoVe026a_BCapController::set_joints(float* position, float* result)
 {
 	if(hg_ros_->simulate_) return true;
+
+	boost::unique_lock<boost::mutex> lock(mutex_control_);
 
 	BCAP_HRESULT hr;
 	hr = bcap_serial_.bCap_RobotExecute2(

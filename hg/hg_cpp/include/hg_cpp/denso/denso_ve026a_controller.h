@@ -85,7 +85,9 @@ public:
 
 	double control_rate_;
 	bool is_running_;
+	bool is_motor_on_;
 	boost::thread control_thread_;
+	boost::mutex mutex_control_;
 	boost::thread follow_control_thread_;
 	std::queue<trajectory_msgs::JointTrajectory> trajectory_queue_; // Use STL queue to store data
 	boost::mutex mutex_; // The mutex to synchronise on
