@@ -7,6 +7,8 @@
 #include <hg_cpp/hg_ros.h>
 #include <urdf/model.h>
 
+#include <string>
+
 namespace hg
 {
 
@@ -22,6 +24,11 @@ public:
 		  hg_ros_(hg_ros),
 		  node_handle_(hg_ros->node_handle_)
 	{
+		std::string id_param_name = "joints/" + name_ +"/id";
+		node_handle_.param<int>(
+				id_param_name, id_, -1);
+		ROS_INFO_STREAM(name_ << ": id: " << id_);
+
 
 	}
 
@@ -36,6 +43,11 @@ public:
 					" check if ALL parameters have been set correctly");
 			return false;
 		}
+
+
+
+
+
 
 		//Load joint information for URDF
 		std::string param_name = "robot_description/" + robot;
@@ -96,6 +108,7 @@ public:
 
 
 	std::string name_;
+	int id_;
 	double lower_, upper_, velocity_limit_;
 	double position_;
 	double velocity_;

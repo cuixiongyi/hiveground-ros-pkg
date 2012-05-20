@@ -135,6 +135,7 @@ public:
 		}
 		//ROS_INFO_STREAM("start " << message.data);
 		touched_ = true;
+		motor_off_ = false;
 		desired_position_ = message.data;
 	}
 

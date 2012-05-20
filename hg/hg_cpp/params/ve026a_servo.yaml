@@ -1,0 +1,55 @@
+joints: {
+  J1: {robot: ve026a, type: buildin, id: -1},
+  J2: {robot: ve026a, type: buildin, id: -1},
+  J3: {robot: ve026a, type: buildin, id: -1},
+  J4: {robot: ve026a, type: buildin, id: -1},
+  J5: {robot: ve026a, type: buildin, id: -1},
+  J6: {robot: ve026a, type: buildin, id: -1},
+  J7: {robot: ve026a, type: buildin, id: -1},
+  SRV0: {robot: table, type: rcservo, id: 0, ticks: 254},
+  SRV1: {robot: table, type: rcservo, id: 1, ticks: 254},  
+  SRV2: {robot: table, type: rcservo, id: 2, ticks: 254},
+  SRV3: {robot: table, type: rcservo, id: 3, ticks: 254},
+  SRV4: {robot: table, type: rcservo, id: 4, ticks: 254},
+  SRV5: {robot: table, type: rcservo, id: 5, ticks: 254},  
+  SRV6: {robot: table, type: rcservo, id: 6, ticks: 254},
+  SRV7: {robot: table, type: rcservo, id: 7, ticks: 254},
+  SRV8: {robot: table, type: rcservo, id: 8, ticks: 254},
+  SRV9: {robot: table, type: rcservo, id: 9, ticks: 254},  
+  SRV10: {robot: table, type: rcservo, id: 10, ticks: 254},
+  SRV11: {robot: table, type: rcservo, id: 11, ticks: 254}
+}
+
+controllers : {
+  #Hardware controllers
+  agb65_rsc2_controller: {
+    type: agb65_rsc2_servo_controller,
+    port: /dev/ttyUSB1,
+    baudrate: 115200,
+    id: 3,
+    control_rate: 25,
+    #joints: [SRV0, SRV1, SRV2],
+    joints: [SRV0, SRV1, SRV2, SRV3, SRV4, SRV5, SRV6, SRV7, SRV8, SRV9, SRV10, SRV11],
+    #joints: [SRV0],
+    action_name: servo_controller/agb65_rsc2/follow_joint_trajectory,
+  },
+  
+  
+  
+  
+  #ve026a_controller: {
+  #  type: ve026a_controller,
+  #  port: /dev/ttyUSB0,
+  #  control_rate: 100,
+  #  joints: [J1, J2, J3, J4, J5, J6, J7],
+  #  action_name: arm_controller/ve026a/follow_joint_trajectory,
+  #}
+  
+  #Software controllers
+  #arm_controller: {
+  #  type: follow_joint_controller, 
+  #  joints: [J1, J2, J3, J4, J5, J6, J7],
+  #  ros_action_name: arm_controller/ve026a/follow_joint_trajectory,
+  #  is_hardware: false 
+  #}
+}
