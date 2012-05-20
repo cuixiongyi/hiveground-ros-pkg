@@ -59,19 +59,19 @@ DensoVe026a_BCapController::DensoVe026a_BCapController(hg::HgROS* hg_ros, const 
 		itr->second->controller_ = this;
 	}
 
-	ROS_INFO("Waiting for arm_kinematics services...");
-	ros::service::waitForService("/arm_kinematics/get_ik");
-	ros::service::waitForService("/arm_kinematics/get_ik_solver_info");
+	//ROS_INFO("Waiting for arm_kinematics services...");
+	//ros::service::waitForService("/arm_kinematics/get_ik");
+	//ros::service::waitForService("/arm_kinematics/get_ik_solver_info");
 
-	get_ik_client_ = node_handle_.serviceClient<kinematics_msgs::GetPositionIK>
-			("/arm_kinematics/get_ik");
-	get_ik_solver_info_client_ =
-			node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>
-				("/arm_kinematics/get_ik_solver_info");
+	//get_ik_client_ = node_handle_.serviceClient<kinematics_msgs::GetPositionIK>
+			//("/arm_kinematics/get_ik");
+	//get_ik_solver_info_client_ =
+			//node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>
+				//("/arm_kinematics/get_ik_solver_info");
 
 
 
-	ROS_INFO("arm_kinematics services connected");
+	//ROS_INFO("arm_kinematics services connected");
 
 	//action server
 	//get name

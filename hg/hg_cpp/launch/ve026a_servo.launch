@@ -2,7 +2,7 @@
   <!-- HgROS -->  
   <param name="robot_description" textfile="$(find ve026a_description)/robot/ve026a.urdf" /> 	
   <node name="HgROS" pkg="hg_cpp" type="hg_ros" output="screen">
-	<rosparam file="$(find hg_cpp)/params/test.yaml" command="load" />			
+	<rosparam file="$(find hg_cpp)/params/ve026a_servo.yaml" command="load" />			
 	<remap from="/HgROS/robot_description/ve026a" to="/robot_description" />
 	<param name="simulate" value="false"/>
   </node>

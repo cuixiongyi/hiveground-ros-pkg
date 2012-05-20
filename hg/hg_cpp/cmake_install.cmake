@@ -1,4 +1,4 @@
-# Install script for directory: /home/rosuser/ros_workspace/hg-ros-pkg/hg/hg_cpp
+# Install script for directory: /home/mahisorn/ros_workspace/hg-ros-pkg/hg/hg_cpp
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -38,7 +38,7 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
-FILE(WRITE "/home/rosuser/ros_workspace/hg-ros-pkg/hg/hg_cpp/${CMAKE_INSTALL_MANIFEST}" "")
+FILE(WRITE "/home/mahisorn/ros_workspace/hg-ros-pkg/hg/hg_cpp/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
-  FILE(APPEND "/home/rosuser/ros_workspace/hg-ros-pkg/hg/hg_cpp/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+  FILE(APPEND "/home/mahisorn/ros_workspace/hg-ros-pkg/hg/hg_cpp/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
 ENDFOREACH(file)

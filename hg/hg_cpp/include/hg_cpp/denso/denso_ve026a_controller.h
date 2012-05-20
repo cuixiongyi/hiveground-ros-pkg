@@ -99,9 +99,9 @@ public:
 
 	tf::TransformListener listener_;
 
-	ros::ServiceClient get_ik_client_;
-	ros::ServiceClient get_ik_solver_info_client_;
-	kinematics_msgs::GetKinematicSolverInfo arm_solver_info_;
+	//ros::ServiceClient get_ik_client_;
+	//ros::ServiceClient get_ik_solver_info_client_;
+	//kinematics_msgs::GetKinematicSolverInfo arm_solver_info_;
 
 	//actionlib::SimpleActionServer<hg_msgs::MoveArmAction> move_arm_action_server_;
 

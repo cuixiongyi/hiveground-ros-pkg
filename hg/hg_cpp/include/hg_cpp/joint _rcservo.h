@@ -1,10 +1,13 @@
 #ifndef _hg_joints_rcservo_h_
 #define _hg_joints_rcservo_h_
 
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 
 #include <hg_cpp/joint.h>
 #include <hg_cpp/controller.h>
+
+
 
 namespace hg
 {
@@ -15,14 +18,24 @@ public:
 	JointRcServo(hg::HgROS* hg_ros, const std::string& name)
 		: Joint(hg_ros, name),
 		  touched_(false),
-		  motor_off_(true),
-		  desired_position_(0),
+		  motor_on_(false),
+		  desired_position_(M_PI/2.0),
 		  last_command_(0),
 		  speed_(0)
 	{
 
 		joint_command_ = node_handle_.subscribe(name_ + "/command", 1,
 				&JointRcServo::joint_command_callback, this);
+
+		motor_on_off_command_ = node_handle_.subscribe(name_ + "/motor_on_off",
+						1, &JointRcServo::set_motor_callback, this);
+
+		velocity_limit_ = 3.0;
+		lower_ = 0.0;
+		upper_ = M_PI;
+
+
+
 
 		ROS_INFO_STREAM(name_ << " lower: " << lower_ << " uppper: "
 				<< upper_ << " velocity: " << velocity_limit_);
@@ -35,6 +48,11 @@ public:
 
 	double interpolate(double dt)
 	{
+		if(!motor_on_)
+		{
+			return -1.0;
+		}
+
 		if(touched_)
 		{
 			//ROS_INFO_STREAM("desired_position " << desired_position_);
@@ -107,7 +125,7 @@ public:
 		last_update_ = t;
 
 
-		if(motor_off_)
+		if(!motor_on_)
 			last_command_ = feedback;
 		//ROS_INFO_STREAM("fb velocity " << velocity_);
 		//ROS_INFO_STREAM("fb last_position " << last_position);
@@ -117,7 +135,7 @@ public:
 	double set_position(double position)
 	{
 		touched_ = true;
-		motor_off_ = false;
+		motor_on_ = true;
 		desired_position_ = position;
 		return position;
 	}
@@ -125,6 +143,7 @@ public:
 	void joint_command_callback(const std_msgs::Float32& message)
 	{
 		//std::cout << message.data << std::endl;
+
 		if(controller_)
 		{
 			if(controller_->active())
@@ -135,19 +154,32 @@ public:
 		}
 		//ROS_INFO_STREAM("start " << message.data);
 		touched_ = true;
+		motor_on_ = true;
 		desired_position_ = message.data;
 	}
 
+	void set_motor_callback(const std_msgs::BoolConstPtr& flag)
+	{
+		if(flag->data)
+		{
+			ROS_INFO_STREAM(name_ + " get motor on command");
+		}
+		else
+		{
+			ROS_INFO_STREAM(name_ + "get motor off command");
+		}
+		motor_on_ = flag->data;
+	}
 
 
 	ros::Subscriber joint_command_;
 
 	bool touched_;
-	bool motor_off_;
+	bool motor_on_;
 	double desired_position_;
 	double last_command_;
 	double speed_;
-
+	ros::Subscriber motor_on_off_command_;
 
 };
 

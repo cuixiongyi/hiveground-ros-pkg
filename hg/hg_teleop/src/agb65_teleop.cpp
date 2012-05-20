@@ -25,8 +25,9 @@
 
 using boost::asio::ip::tcp;
 
-const int PUBLISH_FREQ = 50;
-const int NUM_JOINTS = 7;
+const int PUBLISH_FREQ = 25;
+const int NUM_JOINTS = 3;
+const int PORT = 9560;
 
 using namespace std;
 
@@ -37,13 +38,13 @@ std::string make_daytime_string() {
 	return ctime(&now);
 }
 
-class Ve026aTeleop;
+class Agb65Teleop;
 class tcp_connection: public boost::enable_shared_from_this<tcp_connection>
 {
 public:
 	typedef boost::shared_ptr<tcp_connection> pointer;
 
-	Ve026aTeleop* ve026a_;
+	Agb65Teleop* agb65_;
 	tcp::socket socket_;
 	std::string message_;
 	boost::array<char, 8192> buffer_;
@@ -62,24 +63,24 @@ public:
 
 };
 
-class Ve026aTeleop
+class Agb65Teleop
 {
 public:
 	ros::NodeHandle node_handle_, node_handle_private_;
 	ros::Subscriber joy_sub_;
 	ros::Subscriber joy_state_;
-	ros::Subscriber joint_state_;
+	//ros::Subscriber joint_state_;
 	ros::Publisher joint_pubs_[NUM_JOINTS];
-	ros::Publisher motor_on_off_pub_;
+	ros::Publisher motor_on_off_pubs_[NUM_JOINTS];
 	float joint_angles_[NUM_JOINTS];
 	float joint_limits_up_[NUM_JOINTS];
 	float joint_limits_down_[NUM_JOINTS];
 	float joy_increase_step_;
-	bool joint_updated_;
+	//bool joint_updated_;
 	tcp::acceptor acceptor_;
 
-	Ve026aTeleop(boost::asio::io_service& io);
-	~Ve026aTeleop();
+	Agb65Teleop(boost::asio::io_service& io);
+	~Agb65Teleop();
 
 	void start_accept();
 	void handle_accept(tcp_connection::pointer new_connection,
@@ -130,7 +131,7 @@ void tcp_connection::handle_read(const boost::system::error_code& e, std::size_t
 
 
 		std::string command(buffer_.data());
-		ve026a_->update_from_socket(command);
+		agb65_->update_from_socket(command);
 
 
 		socket_.async_read_some(boost::asio::buffer(buffer_),
@@ -142,37 +143,37 @@ void tcp_connection::handle_read(const boost::system::error_code& e, std::size_t
 }
 
 
-Ve026aTeleop::Ve026aTeleop(boost::asio::io_service& io)
+Agb65Teleop::Agb65Teleop(boost::asio::io_service& io)
 	:  node_handle_private_("~"),
-	   joint_updated_(false),
-	   acceptor_(io, tcp::endpoint(tcp::v4(), 9559))
+	   //joint_updated_(false),
+	   acceptor_(io, tcp::endpoint(tcp::v4(), PORT))
 {
 	start_accept();
 }
 
-Ve026aTeleop::~Ve026aTeleop()
+Agb65Teleop::~Agb65Teleop()
 {
 
 }
 
-void Ve026aTeleop::start_accept()
+void Agb65Teleop::start_accept()
 {
 	tcp_connection::pointer new_connection =
 		  tcp_connection::create(acceptor_.io_service());
 
 	acceptor_.async_accept(new_connection->socket(), boost::bind(
-			&Ve026aTeleop::handle_accept, this,
+			&Agb65Teleop::handle_accept, this,
 			new_connection,
 			boost::asio::placeholders::error));
 
 }
 
-void Ve026aTeleop::handle_accept(tcp_connection::pointer new_connection,
+void Agb65Teleop::handle_accept(tcp_connection::pointer new_connection,
 		const boost::system::error_code& error)
 {
 	if (!error)
 	{
-		new_connection->ve026a_ = this;
+		new_connection->agb65_ = this;
 		new_connection->start();
 		ROS_INFO("Client connected");
 		start_accept();
@@ -184,95 +185,77 @@ void Ve026aTeleop::handle_accept(tcp_connection::pointer new_connection,
 	}
 }
 
-void Ve026aTeleop::update_from_socket(std::string command)
+void Agb65Teleop::update_from_socket(std::string command)
 {
 	std::stringstream ss;
 	ss << command;
 	for(int i = 0; i < NUM_JOINTS ; i++)
 	{
 		ss >> joint_angles_[i];
+
+		if(joint_angles_[i] >= 9.0)
+		{
+			//turn on motor
+			std_msgs::Bool flag;
+			flag.data = 1;
+			motor_on_off_pubs_[i].publish(flag);
+			return;
+		}
+		else if(joint_angles_[i] <= -9.0)
+		{
+			//turn off motor
+			std_msgs::Bool flag;
+			flag.data = 0;
+			motor_on_off_pubs_[i].publish(flag);
+			return;
+		}
+
 	}
 
-	if(joint_angles_[0] >= 9.0)
-	{
-		//turn on motor
-		std_msgs::Bool flag;
-		flag.data = 1;
-		motor_on_off_pub_.publish(flag);
-		joint_updated_ = false;
-		return;
-	}
-	else if(joint_angles_[0] <= -9.0)
-	{
-		//turn off motor
-		std_msgs::Bool flag;
-		flag.data = 0;
-		motor_on_off_pub_.publish(flag);
-		return;
-	}
+
 
 
 	publish();
 
 }
 
-void Ve026aTeleop::init()
+void Agb65Teleop::init()
 {
 	joy_sub_ = node_handle_.subscribe("joy",
-			1, &Ve026aTeleop::joy_callback, this);
+			1, &Agb65Teleop::joy_callback, this);
 
 
-	joint_state_ = node_handle_.subscribe("joint_states",
-					10, &Ve026aTeleop::joint_callback, this);
+	//joint_state_ = node_handle_.subscribe("joint_states",
+	//					10, &Agb65Teleop::joint_callback, this);
 
 	for(int i = 0; i < NUM_JOINTS ; i++)
 	{
 		std::stringstream ss;
 		std::string s;
-		ss << "/HgROS/" << "J" << i+1 << "/command";
+		ss << "/HgROS/" << "SRV" << i << "/command";
 		ss >> s;
 		ROS_INFO_STREAM(s);
 		joint_pubs_[i] = node_handle_.advertise<std_msgs::Float32>(s, 1);
-		joint_angles_[i] = 0;
-		joy_increase_step_ = 0.1;
+
+		ss.clear();
+		ss << "/HgROS/" << "SRV" << i << "/motor_on_off";
+		ss >> s;
+		ROS_INFO_STREAM(s);
+		motor_on_off_pubs_[i] = node_handle_.advertise<std_msgs::Bool>(s, 1);
+
+		joint_angles_[i] = 1.57;
+		joy_increase_step_ = 0.05;
+
+		joint_limits_up_[i] = 3.14;
+		joint_limits_down_[i] = 0.0;
 	}
 
-	motor_on_off_pub_ = node_handle_.advertise<std_msgs::Bool>("/HgROS/ve026a_controller/motor_on_off", 1);
-	//J1
-	joint_limits_up_[0] = 1.83259;
-	joint_limits_down_[0] = -1.39626;
-
-	//J2
-	joint_limits_up_[1] = 1.57075;
-	joint_limits_down_[1] = -0.61086;
-
-	//J3
-	joint_limits_up_[2] = 2.35619;
-	joint_limits_down_[2] = -1.30899;
-
-	//J4
-	joint_limits_up_[3] = 2.44346;
-	joint_limits_down_[3] = -2.44346;
-
-	//J5
-	joint_limits_up_[4] = 1.83259;
-	joint_limits_down_[4] = -1.57075;
-
-	//J6
-	joint_limits_up_[5] = 2.44346;
-	joint_limits_down_[5] = -2.44346;
-
-	//J7
-	joint_limits_up_[6] = 0.43633;
-	joint_limits_down_[6] = -0.63633;
-
-
-
-
+	//motor_on_off_pub_ = node_handle_.advertise<std_msgs::Bool>("/HgROS/ve026a_controller/motor_on_off", 1);
 }
 
-void Ve026aTeleop::joint_callback(const sensor_msgs::JointStateConstPtr& joint_msg)
+void Agb65Teleop::joint_callback(const sensor_msgs::JointStateConstPtr& joint_msg)
 {
+	/*
 	if(!joint_updated_)
 	{
 		ROS_INFO("Joint state!! %d", joint_msg->name.size());
@@ -283,9 +266,10 @@ void Ve026aTeleop::joint_callback(const sensor_msgs::JointStateConstPtr& joint_m
 		}
 		joint_updated_ = true;
 	}
+	*/
 }
 
-void Ve026aTeleop::joy_callback(const sensor_msgs::Joy::ConstPtr& joy_msg)
+void Agb65Teleop::joy_callback(const sensor_msgs::Joy::ConstPtr& joy_msg)
 {
 	//ROS_INFO("Joystick!!");
 	stringstream ss;
@@ -299,6 +283,7 @@ void Ve026aTeleop::joy_callback(const sensor_msgs::Joy::ConstPtr& joy_msg)
 	std::vector<int32_t> buttons = joy_msg->buttons;
 	std::vector<float> axes = joy_msg->axes;
 
+
 	//J1
 	if(axes[4] > 0) joint_angles_[0] += joy_increase_step_;
 	if(axes[4] < 0) joint_angles_[0] -= joy_increase_step_;
@@ -311,10 +296,22 @@ void Ve026aTeleop::joy_callback(const sensor_msgs::Joy::ConstPtr& joy_msg)
 	if(buttons[0]) joint_angles_[2] += joy_increase_step_;
 	if(buttons[2]) joint_angles_[2] -= joy_increase_step_;
 
-	//J4
-	if(buttons[3]) joint_angles_[3] += joy_increase_step_;
-	if(buttons[1]) joint_angles_[3] -= joy_increase_step_;
 
+	//J4
+	if(buttons[3])
+	{
+		joint_angles_[0] += joy_increase_step_;
+		joint_angles_[1] += joy_increase_step_;
+		joint_angles_[2] += joy_increase_step_;
+	}
+	if(buttons[1])
+	{
+		joint_angles_[0] -= joy_increase_step_;
+		joint_angles_[1] -= joy_increase_step_;
+		joint_angles_[2] -= joy_increase_step_;
+	}
+
+	/*
 	//J1
 	if(buttons[6]) joint_angles_[4] += joy_increase_step_;
 	if(buttons[4]) joint_angles_[4] -= joy_increase_step_;
@@ -328,22 +325,23 @@ void Ve026aTeleop::joy_callback(const sensor_msgs::Joy::ConstPtr& joy_msg)
 	//J7
 	if(buttons[10]) joint_angles_[6] += joy_increase_step_;
 	if(buttons[11]) joint_angles_[6] -= joy_increase_step_;
-
+	*/
 
 	if(buttons[8])
 	{
 		for(int i = 0; i < NUM_JOINTS; i++)
 		{
-			joint_angles_[i] = 0;
+			joint_angles_[i] = 1.57;
 		}
 	}
+
 	publish();
 }
 
 
-void Ve026aTeleop::publish()
+void Agb65Teleop::publish()
 {
-	if(!joint_updated_) return;
+	//if(!joint_updated_) return;
 	for(int i = 0; i < NUM_JOINTS; i++)
 	{
 		if(joint_angles_[i] > joint_limits_up_[i])
@@ -369,8 +367,8 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "ve026a_teleop");
 
 	boost::asio::io_service io;
-	Ve026aTeleop ve026a_teleop(io);
-	ve026a_teleop.init();
+	Agb65Teleop abg65_teleop(io);
+	abg65_teleop.init();
 	boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
 	ros::Rate rate(PUBLISH_FREQ);
 	while(ros::ok())
