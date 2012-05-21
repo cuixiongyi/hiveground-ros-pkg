@@ -26,7 +26,7 @@
 using boost::asio::ip::tcp;
 
 const int PUBLISH_FREQ = 25;
-const int NUM_JOINTS = 3;
+const int NUM_JOINTS = 4;
 const int PORT = 9560;
 
 using namespace std;
@@ -124,7 +124,7 @@ void tcp_connection::handle_read(const boost::system::error_code& e, std::size_t
 {
 	if(!e)
 	{
-		ROS_INFO("get: %d byte", bytes_transferred);
+		ROS_INFO("get: %d byte", (int)bytes_transferred);
 		std::cout.write(buffer_.data(), bytes_transferred);
 		std::cout << std::endl;
 
@@ -210,6 +210,7 @@ void Agb65Teleop::update_from_socket(std::string command)
 			return;
 		}
 
+		joint_angles_[i] = joint_angles_[i]*M_PI;
 	}
 
 
