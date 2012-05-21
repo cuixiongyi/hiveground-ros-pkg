@@ -276,7 +276,7 @@ void Ve026aTeleop::joint_callback(const sensor_msgs::JointStateConstPtr& joint_m
 	if(!joint_updated_)
 	{
 		ROS_INFO("Joint state!! %d", joint_msg->name.size());
-		for(int i = 0; i < joint_msg->name.size(); i++)
+		for(int i = 0; i < NUM_JOINTS; i++)
 		{
 			ROS_INFO_STREAM(joint_msg->name[i] << " " << joint_msg->position[i]);
 			joint_angles_[i] = joint_msg->position[i];
