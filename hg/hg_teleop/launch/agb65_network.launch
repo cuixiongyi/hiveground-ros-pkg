@@ -8,13 +8,13 @@
   <!-- joy node -->
   <!--
   <node respawn="true" pkg="joy"
-        type="joy" name="ve026a_joy" >
+        type="joy" name="joy" >
     <param name="dev" type="string" value="/dev/input/js0" />
     <param name="autorepeat_rate" value="20" />
   </node>
   -->
   
-  <node pkg="ve026a_teleop" type="ve026a_teleop" name="ve026a_teleop" output="screen">
+  <node pkg="hg_teleop" type="agb65_teleop" name="agb65_teleop" output="screen">
   </node>
 
 </launch>
