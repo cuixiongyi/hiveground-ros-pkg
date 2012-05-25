@@ -1,0 +1,12 @@
+/build/
+/bin/
+/lib/
+syntax: glob
+*~
+*.bak
+.cproject
+.project
+.pydevproject
+*.so
+msg_gen
+*.orig

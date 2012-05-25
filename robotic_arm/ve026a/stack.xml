@@ -1,0 +1,9 @@
+<stack>
+  <description brief="ve026e">ve026e</description>
+  <author>Maintained by Mahisorn Wongphati</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ve026e</url>
+  <depend stack="ros" />
+
+</stack>

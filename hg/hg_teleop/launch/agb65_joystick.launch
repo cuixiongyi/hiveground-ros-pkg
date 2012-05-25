@@ -1,0 +1,20 @@
+<launch>
+
+  <!-- To Use, do the following:
+        sudo bash
+        rosrun ps3joy ps3joy.py
+  -->
+
+  <!-- joy node -->
+  <node respawn="true" pkg="joy"
+        type="joy" name="joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="autorepeat_rate" value="20" />
+  </node>
+  
+  
+  <node pkg="hg_teleop" type="agb65_teleop" name="agb65_teleop" output="screen">
+  </node>
+
+</launch>
+
