@@ -20,7 +20,7 @@ controllers : {
     baudrate: 115200,
     id: 3,
     control_rate: 25,
-    joints: [SRV0, SRV1, SRV2],
+    joints: [SRV0, SRV1, SRV2, SRV3],
     #joints: [SRV0],
     action_name: servo_controller/agb65_rsc2/follow_joint_trajectory,
   }
