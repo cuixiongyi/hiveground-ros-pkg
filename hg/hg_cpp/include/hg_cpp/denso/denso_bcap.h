@@ -233,7 +233,7 @@ protected:
 
     //need CRC-CCITT for serial communication
     bool	m_need_crc;
-    bool        m_show_debug_packet;
+    bool 	m_show_debug_packet;
 };
 
 #endif
