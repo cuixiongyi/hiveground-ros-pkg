@@ -10,3 +10,5 @@ syntax: glob
 *.so
 msg_gen
 *.orig
+*.cmake
+.settings

@@ -13,6 +13,10 @@
 
   <depend package="hg_cpp"/>
 
+  <export>
+    <cpp cflags="-I${prefix}/include/"/>
+  </export>
+
 </package>
 
 

@@ -1,148 +1,224 @@
-/*
- * Software License Agreement (BSD License)
- *
- *  Copyright (c) 2012, Mahisorn Wongphati
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of Willow Garage, Inc. nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
-
 #ifndef BCAP_BCAP_H
 #define BCAP_BCAP_H
 
-
-
-
-
-namespace hg
-{
-
-namespace bcap
-{
-
-/* b-CAP argument constant */
-static const int SIZE_ARGLEN = 4; //!< size of length
-static const int SIZE_ARGTYPE = 2; //!< size of type
-static const int SIZE_ARGARRAYS = 4; //!< size of arrays
-static const int SIZE_ARGBASE = (SIZE_ARGLEN + SIZE_ARGTYPE + SIZE_ARGARRAYS);
-
-static const int SIZE_ARGSTRLEN = 4; //!< size of string length
-
-static const int MAX_PACKET_SIZE = 0x1000000; //!< max packet size (bytes)
-static const int MAX_ARG_SIZE = 0x1000000; //!< max argument size (bytes)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <string>
 
 /**
- * The b-CAP function IDs
+ * @enum BCAP_HRESULT
+ * @brief        BCAP_HRESULT values
  */
-enum FunctionID
+typedef enum BCAP_HRESULT
 {
-  kServiceStart = 1,
-  kServiceStop = 2,
-  kControllerConnect = 3,
-  kControllerDisconnect = 4,
-  kControllerGetRobot = 7,
-  kControllerGetTask = 8,
-  kControllerGetVariable = 9,
-  kControllerExecute = 17,
+  BCAP_S_OK                     = 0,            /*      OK                                                      */
+  BCAP_E_NOTIMPL                = 0x80004001,   /*      Not implemented function is called      */
+  BCAP_E_ABORT                  = 0x80004004,   /*      Function aborted                        */
+  BCAP_E_FAIL                   = 0x80004005,   /*      Function failed                         */
+  BCAP_E_UNEXPECTED             = 0x8000FFFF,   /*      Fatal Error occurred            */
+  BCAP_E_INVALIDRCVPACKET       = 0x80010001,   /*      Invalid packet is received. */
+  /* When this error is occurred, robot controller disconnect from client immediately.*/
+  /* Please make sure the packet that you sent. */
 
-  kRobotGetVariable = 62,
-  kRobotExecute = 64,
-  kRobotChange = 66,
-  kRobotMove = 72,
-  kRobotRelease = 84,
+  BCAP_E_INVALIDSNDPACKET       = 0x80010002,   /*      Invalid packet is sent          */
+  BCAP_E_INVALIDARGTYPE         = 0x80010003,   /*      Invalid argument type           */
+  BCAP_E_ROBOTISBUSY            = 0x80010004,   /*      Robot is busy (Wait for a while)        */
+  BCAP_E_INVALIDCOMMAND         = 0x80010005,   /*      Invalid command string is received      */
 
-  kTaskGetVariable = 85,
-  kTaskStart = 88,
-  kTaskStop = 89,
-  kTaskRelease = 99,
+  BCAP_E_PACKETSIZEOVER         = 0x80010011,   /*      Received packet size over ( > 16Mbytes) */
 
-  kVariablePutValue = 102,
-  kVariableGetValue = 101,
-  kVariableRelease = 111
-};
+  BCAP_E_ARGSIZEOVER            = 0x80010012,   /*      An argument siez over of the received packet. ( > 16Mbytes) */
+  BCAP_E_ACCESSDENIED           = 0x80070005,   /*      Access denied                           */
+  BCAP_E_HANDLE                 = 0x80070006,   /*      Invalid handle                          */
+  BCAP_E_OUTOFMEMORY            = 0x8007000E,   /*      Out of memory                           */
+  BCAP_E_INVALIDARG             = 0x80070057    /*      Invalid argument                        */
 
-/**
- * The b-CAP Type id
- */
-enum TypeID
-{
-  VT_EMPTY = 0,         //!< 0 byte
-  VT_NULL = 1,          //!< 0 byte
-  VT_ERROR = 10,        //!< 2 byte
-  VT_UI1 = 17,          //!< 1 byte
-  VT_I2 = 2,            //!< 2 byte
-  VT_UI2 = 18,          //!< 2 byte
-  VT_I4 = 3,            //!< 4 byte
-  VT_UI4 = 19,          //!< 4 byte
-  VT_R4 = 4,            //!< 4 byte
-  VT_R8 = 5,            //!< 8 byte
-  VT_CY = 6,            //!< 8 byte
-  VT_DATE = 7,          //!< 8  byte
-  VT_BOOL = 11,         //!< 2 byte
-  VT_BSTR = 8,          //!< ASCII string length *2 + 4 byte
+} BCAP_HRESULT;
 
-  // Double bytes per character
-  VT_VARIANT = 12,      //!< Variant
-  VT_ARRAY = 0x2000,    //!< Array
-};
+/* b-CAP Type id */
+#define VT_EMPTY                                0                       /* (0Byte) */
+#define VT_NULL                                 1                       /* (0Byte) */
+#define VT_ERROR                                10                      /* (2Byte) */
+#define VT_UI1                                  17                      /* (1Byte) */
+#define VT_I2                                   2                       /* (2Byte) */
+#define VT_UI2                                  18                      /* (2Byte) */
+#define VT_I4                                   3                       /* (4Byte) */
+#define VT_UI4                                  19                      /* (4Byte) */
+#define VT_R4                                   4                       /* (4Byte) */
+#define VT_R8                                   5                       /* (8Byte) */
+#define VT_CY                                   6                       /* (8Byte) */
+#define VT_DATE                                 7                       /* (8Byte) */
+#define VT_BOOL                                 11                      /* (2Byte) */
+#define VT_BSTR                                 8                       /* (ASCII string length *2 + 4 Byte) */
+/* Double bytes per character */
+#define VT_VARIANT                              12                      /* Variant */
+#define VT_ARRAY                                0x2000                  /* Array */
 
-/**
- * The error code of b-Cap protocol
- */
-enum Error
-{
-  kOK = 0, kNotImplement, //!< Not implemented function is called
-  kAborted, //!< Function aborted
-  kFail, //!< Function failed
-  kFatal, //!< Fatal Error occurred
-  kInvalidPacket, //!< Invalid packet is received.
-                  //!< When this error is occurred, robot controller disconnect from client immediately.
-                  //!< Please make sure the packet that you sent.
-
-  kInvalidSentPacket, //!< Invalid packet is sent
-  kInvalidArgumentType, //!< Invalid argument type
-  kRobotIsBusy, //!< Robot is busy (Wait for a while)
-  kInvalidCommand, //!< Invalid command string is received
-
-  kReceivedPacketSizeOver, //!< Received packet size over ( > 16Mbytes)
-
-  kArgumentSizeOver, //!< An argument siez over of the received packet. ( > 16Mbytes)
-  kAccessDenined, //!< Access denied
-  kInvalidHandle, //!< Invalid handle
-  kOutOfMemory, //!< Out of memory
-  kInvalidArgument //!< Invalid argument
-};
-
-}
-
-}
-
+/* b-CAP Utility macros */
+#ifndef SUCCEEDED
+#define SUCCEEDED(Status) ((BCAP_HRESULT)(Status) == 0)
 #endif
 
+#ifndef FAILED
+#define FAILED(Status) ((BCAP_HRESULT)(Status) != 0)
+#endif
+
+/* length of temporary string buffer */
+#define LOCALBUFFER_SZ                  256
+/* length of temporary recieve buffer (must be >= 16bytes) */
+#define LOCALRECBUFFER_SZ               256
+
+/* b-CAP packet constant */
+#define BCAP_SOH                        0x01                    /* size of packet header(SOH) */
+#define BCAP_EOT                        0x04                    /* size of packet terminater(EOT) */
+#define BCAP_SIZE_SOH                   1                       /* size of header(SOH)   */
+#define BCAP_SIZE_EOT                   1                       /* size of terminater(EOT)  */
+#define BCAP_SIZE_LEN                   4                       /* size of message size */
+#define BCAP_SIZE_SERIAL                2                       /* size of serial number */
+#define BCAP_SIZE_RESERVE               2                       /* size of reserved */
+#define BCAP_SIZE_FUNCID                4                       /* size of FunctionID */
+#define BCAP_SIZE_ARGNUM                2                       /* size of Args */
+
+/* b-CAP Packet header size */
+#define BCAP_SIZE_BASE                  (BCAP_SIZE_SOH + BCAP_SIZE_EOT + \
+    BCAP_SIZE_LEN + BCAP_SIZE_SERIAL + \
+    BCAP_SIZE_RESERVE + BCAP_SIZE_FUNCID + \
+    BCAP_SIZE_ARGNUM)
+
+/* b-CAP Argument structure */
+/**
+ * @struct       BCAP_ARG
+ * @brief        BCAP_ARG
+ */
+typedef struct BCAP_ARG
+{
+  uint32_t lLength;
+
+  uint16_t iType;
+  uint32_t lArrays;
+  void *data;
+
+  struct BCAP_ARG *pNextArg; /* pointer to the next argument  */
+} BCAP_ARG;
+
+/* b-CAP Packet structure */
+/**
+ * @struct       BCAP_PACKET
+ * @brief        BCAP_PACKET
+ */
+typedef struct BCAP_PACKET
+{
+
+  uint32_t lMsgLength;
+
+  uint16_t iSerialNo;
+  uint16_t iReserved;
+
+  uint32_t lFuncID;
+
+  uint16_t iArgs;
+
+  struct BCAP_ARG *pArg; /* pointer to the first argument */
+} BCAP_PACKET;
+
+class BCap
+{
+
+public:
+  BCap(bool need_crc = true);
+  virtual ~BCap()
+  {
+  }
+
+  void set_debug_packet(bool show)
+  {
+    m_show_debug_packet = show;
+  }
+
+  /* b-CAP Functions */
+  BCAP_HRESULT bCap_Open(char *pIPStr, int iPort);
+  BCAP_HRESULT bCap_Close();
 
 
+  BCAP_HRESULT bCap_ServiceStart();
+  BCAP_HRESULT bCap_ServiceStop();
+
+  /* b-CAP Controller Functions */
+  BCAP_HRESULT bCap_ControllerConnect(const std::string& pStrCtrlname, const std::string& pStrProvName,
+                                      const std::string& pStrPcName, const std::string& pStrOption,
+                                      uint32_t* plhController);
+  BCAP_HRESULT bCap_ControllerDisconnect(uint32_t lhController);
+
+  BCAP_HRESULT bCap_ControllerGetRobot(uint32_t lhController, const std::string& pStrRobotName, const std::string& pStrOption, uint32_t *lhRobot);
+  BCAP_HRESULT bCap_ControllerGetVariable(uint32_t lhController, char *pVarName, char *pstrOption, uint32_t *plhVar);
+  BCAP_HRESULT bCap_ControllerGetTask(uint32_t lhController, const std::string& pTskName, const std::string& pstrOption, uint32_t *plhVar);
+  BCAP_HRESULT bCap_ControllerExecute(uint32_t lhController, char *pStrCommand, char *pStrOption, long *plResult);
+
+  /* b-CAP Robot Functions */
+  BCAP_HRESULT bCap_RobotRelease(uint32_t lhRobot);
+  BCAP_HRESULT bCap_RobotGetVariable(uint32_t lhRobot, char *pVarName, char *pStrOption, uint32_t *lhVarCurJnt);
+  BCAP_HRESULT bCap_RobotExecute(uint32_t lhRobot, char *pStrCommand, char *pStrOption, long *plResult);
+  BCAP_HRESULT bCap_RobotExecute2(uint32_t lhRobot, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays,
+                                  void *pVntValue, void *pVntReturn);
+  BCAP_HRESULT bCap_RobotChange(uint32_t lhRobot, char *pStrCommand);
+  BCAP_HRESULT bCap_RobotMove(uint32_t lhRobot, long lComp, char *pStrPose, char *pStrOption);
+
+  /* b-CAP Task Functions */
+  BCAP_HRESULT bCap_TaskRelease(uint32_t lhTask);
+  BCAP_HRESULT bCap_TaskGetVariable(uint32_t lhTask, char *pVarName, char *pstrOption, uint32_t *plhVar);
+  BCAP_HRESULT bCap_TaskStart(uint32_t lhTask, long lMode, char *pStrOption);
+  BCAP_HRESULT bCap_TaskStop(uint32_t lhTask, long lMode, char *pStrOption);
+
+  /* b-CAP Variable Functions */
+  BCAP_HRESULT bCap_VariableRelease(uint32_t lhVar);
+  BCAP_HRESULT bCap_VariableGetValue(uint32_t lhVar, void *pVntValue);
+  BCAP_HRESULT bCap_VariablePutValue(uint32_t lhVar, uint16_t iType, uint32_t lArrays, void *pVntValue);
+
+protected:
+  /* module socket utility functions */
+  BCAP_HRESULT Packet_Send(BCAP_PACKET *pPacket);
+  BCAP_HRESULT bCapSendAndRec(BCAP_PACKET *pSndPacket, BCAP_PACKET *pRecPacket);
+  virtual BCAP_HRESULT sendBinary(uint8_t *pBuff, uint32_t lSize);
+  virtual uint8_t *receivePacket();
+
+  /* packet functions */
+  BCAP_PACKET *Packet_Create(uint32_t lFuncID);
+  void Packet_Release(BCAP_PACKET *pPacket); /* Release allocated packet and the arguments */
+  BCAP_HRESULT Packet_Serialize(BCAP_PACKET *pPacket, void *pBinData); /* struct ---> bin */
+  BCAP_HRESULT Packet_Deserialize(void *pBinData, BCAP_PACKET *pPacket); /* bin ---> struct  */
+  BCAP_HRESULT Packet_AddArg(BCAP_PACKET *pPacket, BCAP_ARG *pNewArg);
+  //BCAP_HRESULT      Packet_AddCRC(BCAP_PACKET *pPacket);
+
+  /* argument functions */
+  BCAP_ARG *Arg_Create(uint16_t iType, uint32_t lArrays, uint32_t lLength, void *data);
+  void Arg_Release(BCAP_ARG *pArg); /* free the allocated argument */
+  BCAP_ARG **Packet_GetLastArgHandle(BCAP_PACKET *pPacket);
+
+  /* module utility functions */
+  uint32_t sizeOfVarType(uint16_t iType);
+  uint32_t copyValue(void *pDst, void *pVntValue, uint32_t lLength);
+  uint32_t copyToBSTR(uint8_t *pbDstPtr, const char *pbSrcPtr);
+  uint32_t copyFromBSTR(void *pDstAsciiPtr, void *pSrcBstrPtr);
+  void *bMalloc(size_t size);
+  void bFree(void *pPtr);
+
+  /*
+   *   Memory allocation counter
+   */
+  int32_t m_lAllocCount;
+  int32_t m_lAllocSize;
+
+  //packet serial number: cyclic from 0x0001 to 0xFFFF
+  uint16_t m_iSerialNo;
+
+  //need CRC-CCITT for serial communication
+  bool m_need_crc;
+  bool m_show_debug_packet;
+
+  //socket
+  int m_sock_fd;
+};
+
+#endif
