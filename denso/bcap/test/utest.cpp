@@ -99,6 +99,8 @@ TEST_F(BCapTest, bCap_ControllerConnect)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
+//TEST_(BCapTest, bCap_ControllerExecute)
+
 TEST_F(BCapTest, bCap_ControllerGetTask)
 {
   BCAP_HRESULT hr;
@@ -119,8 +121,9 @@ TEST_F(BCapTest, bCap_TaskStart)
       ""); //not used
   EXPECT_EQ(BCAP_S_OK, hr);
 
-  std::cout << "press any key to continue\n";
-  getchar();
+  //std::cout << "press any key to continue\n";
+  //getchar();
+  sleep(1);
 
 }
 
@@ -133,24 +136,29 @@ TEST_F(BCapTest, bCap_ControllerGetRobot)
       "$IsIDHandle$",
       &hRobot_);
   EXPECT_EQ(BCAP_S_OK, hr);
+  //std::cout << "press any key to continue\n";
+  //getchar();
 }
 
-/*
+
 TEST_F(BCapTest, Execute_SlaveGetMode)
 {
   BCAP_HRESULT hr;
-  long result;
+  int mode = 0;
+  long result = 0;
   hr = bcap_.bCap_RobotExecute2(
       hRobot_,
       "slvGetMode",
       VT_EMPTY,
       1,
+      &mode,
       &result);
   EXPECT_EQ(BCAP_S_OK, hr);
 
-  std::cout << "press any key to continue\n";
-  getchar();
-}*/
+  std::cout << "slave mode: " << result << "\n";
+  //getchar();
+}
+
 
 TEST_F(BCapTest, Execute_SlaveChangeMode_Slave)
 {
@@ -166,11 +174,74 @@ TEST_F(BCapTest, Execute_SlaveChangeMode_Slave)
      &result);
   EXPECT_EQ(BCAP_S_OK, hr);
 
-  std::cout << "press any key to continue\n";
-  getchar();
+  //std::cout << "press any key to continue\n";
+  //getchar();
 }
 
-/*
+TEST_F(BCapTest, Execute_SlaveGetMode2)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.bCap_RobotExecute2(
+      hRobot_,
+      "slvGetMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "slave mode: " << result << "\n";
+  //getchar();
+}
+
+
+TEST_F(BCapTest, Get_Joint_information)
+{
+  BCAP_HRESULT hr;
+  uint32_t hVariable;
+  hr = bcap_.bCap_RobotGetVariable(
+      hRobot_,
+      "@CURRENT_POSITION",
+      "",
+      &hVariable);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  float position[8];
+
+  hr = bcap_.bCap_VariableGetValue(hVariable, position);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "position: ";
+  for(int i = 0; i < 7; i++)
+  {
+    std::cout << position[i] << ",";
+  }
+  std::cout << std::endl;
+
+  hr = bcap_.bCap_VariableRelease(hVariable);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  hr = bcap_.bCap_RobotGetVariable(
+    hRobot_,
+    "@CURRENT_ANGLE",
+    "",
+    &hVariable);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  hr = bcap_.bCap_VariableGetValue(hVariable, position);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "angle";
+  for(int i = 0; i < 8; i++)
+  {
+    std::cout << position[i] << ",";
+  }
+  std::cout << std::endl;
+
+}
+
 TEST_F(BCapTest, Execute_SlaveChangeMode_Normal)
 {
   BCAP_HRESULT hr;
@@ -184,8 +255,28 @@ TEST_F(BCapTest, Execute_SlaveChangeMode_Normal)
      &mode,
      &result);
   EXPECT_EQ(BCAP_S_OK, hr);
+  std::cout << "press any key to continue\n";
+  //getchar();
 }
-*/
+
+TEST_F(BCapTest, Execute_SlaveGetMode3)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.bCap_RobotExecute2(
+      hRobot_,
+      "slvGetMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "slave mode: " << result << "\n";
+  //getchar();
+}
+
 
 TEST_F(BCapTest, bCap_RobotRelease)
 {

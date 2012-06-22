@@ -155,10 +155,11 @@ public:
   BCAP_HRESULT bCap_ControllerGetVariable(uint32_t lhController, char *pVarName, char *pstrOption, uint32_t *plhVar);
   BCAP_HRESULT bCap_ControllerGetTask(uint32_t lhController, const std::string& pTskName, const std::string& pstrOption, uint32_t *plhVar);
   BCAP_HRESULT bCap_ControllerExecute(uint32_t lhController, char *pStrCommand, char *pStrOption, long *plResult);
+  BCAP_HRESULT bCap_ControllerExecute2(uint32_t lhController, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays, void *pVntValue, void *pVntReturn);
 
   /* b-CAP Robot Functions */
   BCAP_HRESULT bCap_RobotRelease(uint32_t lhRobot);
-  BCAP_HRESULT bCap_RobotGetVariable(uint32_t lhRobot, char *pVarName, char *pStrOption, uint32_t *lhVarCurJnt);
+  BCAP_HRESULT bCap_RobotGetVariable(uint32_t lhRobot, char *pVarName, char *pStrOption, uint32_t *lhVar);
   BCAP_HRESULT bCap_RobotExecute(uint32_t lhRobot, char *pStrCommand, char *pStrOption, long *plResult);
   BCAP_HRESULT bCap_RobotExecute2(uint32_t lhRobot, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays,
                                   void *pVntValue, void *pVntReturn);
