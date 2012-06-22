@@ -1,6 +1,7 @@
 /build/
 /bin/
 /lib/
+/_gtest_from_src/
 syntax: glob
 *~
 *.bak
@@ -12,4 +13,4 @@ msg_gen
 *.orig
 *.cmake
 .settings
-*.make
+
