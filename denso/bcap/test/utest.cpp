@@ -99,7 +99,54 @@ TEST_F(BCapTest, bCap_ControllerConnect)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-//TEST_(BCapTest, bCap_ControllerExecute)
+TEST_F(BCapTest, bCap_ControllerExecute_GetAutoMode_Before)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.bCap_ControllerExecute2(
+      hController_,
+      "GetAutoMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "auto mode: " << result << "\n";
+}
+
+TEST_F(BCapTest, bCap_ControllerExecute_PutAutoMode)
+{
+  BCAP_HRESULT hr;
+  uint16_t mode = 2;
+  long result = 0;
+  hr = bcap_.bCap_ControllerExecute2(
+      hController_,
+      "PutAutoMode",
+      VT_I2,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+}
+
+TEST_F(BCapTest, bCap_ControllerExecute_GetAutoMode_After)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.bCap_ControllerExecute2(
+      hController_,
+      "GetAutoMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "auto mode: " << result << "\n";
+}
 
 TEST_F(BCapTest, bCap_ControllerGetTask)
 {
@@ -255,7 +302,7 @@ TEST_F(BCapTest, Execute_SlaveChangeMode_Normal)
      &mode,
      &result);
   EXPECT_EQ(BCAP_S_OK, hr);
-  std::cout << "press any key to continue\n";
+  //std::cout << "press any key to continue\n";
   //getchar();
 }
 

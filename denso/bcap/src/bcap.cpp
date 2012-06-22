@@ -731,125 +731,110 @@ BCAP_HRESULT BCap::bCap_ControllerExecute2(uint32_t lhController,
     }
 
     {
-          uint32_t lDataLen = 0;
-          uint32_t lLen;
-          lLen = sizeOfVarType((uint16_t)(iType & ~VT_ARRAY));
-          lDataLen = lLen * lArrays;
-          //if (lDataLen != 0) <-- removed to support empty argument
-          {
-            printf("aa\n");
-            uint32_t i;
-            uint8_t *pSrcData = (uint8_t *)pVntValue;
-            uint8_t *pDstData = (uint8_t *)bMalloc(lDataLen);
-            if (pDstData != NULL)
-            {
-              uint8_t *pDstPtr = pDstData;
-              for (i = 0; i < lArrays; i++)
-              {
-
-                copyValue(pDstPtr, pSrcData, lLen);
-                pDstPtr += lLen;
-                pSrcData += lLen;
-              }
-
-              pArg = Arg_Create(iType, lArrays, lDataLen, pDstData);
-              if (pArg != NULL)
-              {
-                Packet_AddArg(pSndPacket, pArg);
-              }
-              bFree(pDstData);
-            }
-          }
-          //else
-          //{ /* lDataLen = 0,then Unknown data type */
-            //printf("bb\n");
-           // Packet_Release(pSndPacket);
-           // return (BCAP_E_INVALIDARGTYPE);
-          //}
-        }
-
+      uint32_t lDataLen = 0;
+      uint32_t lLen;
+      lLen = sizeOfVarType((uint16_t)(iType & ~VT_ARRAY));
+      lDataLen = lLen * lArrays;
+      //if (lDataLen != 0) <-- removed to support empty argument
+      {
+        //printf("aa\n");
+        uint32_t i;
+        uint8_t *pSrcData = (uint8_t *)pVntValue;
+        uint8_t *pDstData = (uint8_t *)bMalloc(lDataLen);
+        if (pDstData != NULL)
         {
-          pRecPacket = Packet_Create(BCAP_S_OK);
-          if (pRecPacket != NULL)
+          uint8_t *pDstPtr = pDstData;
+          for (i = 0; i < lArrays; i++)
           {
-            hr = bCapSendAndRec(pSndPacket, pRecPacket);
-            if SUCCEEDED(hr)
-            {
-              printf("arg no. %d\n", pRecPacket->iArgs);
-              if (pRecPacket->iArgs >= 1)
+
+            copyValue(pDstPtr, pSrcData, lLen);
+            pDstPtr += lLen;
+            pSrcData += lLen;
+          }
+
+          pArg = Arg_Create(iType, lArrays, lDataLen, pDstData);
+          if (pArg != NULL)
+          {
+            Packet_AddArg(pSndPacket, pArg);
+          }
+          bFree(pDstData);
+        }
+      }
+    }
+
+    {
+      pRecPacket = Packet_Create(BCAP_S_OK);
+      if (pRecPacket != NULL)
+      {
+        hr = bCapSendAndRec(pSndPacket, pRecPacket);
+        if SUCCEEDED(hr)
+        {
+          //printf("arg no. %d\n", pRecPacket->iArgs);
+          if (pRecPacket->iArgs >= 1)
+          {
+            { /* Copy values */
+              uint32_t i;
+              uint32_t lSize;
+              uint16_t iType;
+              BCAP_ARG *pArgValue = pRecPacket->pArg;
+
+              iType = (pArgValue->iType) & ~VT_ARRAY; /* Mask "Array" */
+
+              //switch(iType)
+              //printf("iType: 0x%x %d\n", iType, iType);
+
+              if (iType == VT_BSTR)
               {
-                { /* Copy values */
-                  uint32_t i;
-                  uint32_t lSize;
-                  uint16_t iType;
-                  BCAP_ARG *pArgValue = pRecPacket->pArg;
+                //printf("a\n");
+                uint8_t *pDstAscii = (uint8_t *)pVntReturn;
+                uint8_t *pSrcBstr = (uint8_t *)pArgValue->data;
 
-                  iType = (pArgValue->iType) & ~VT_ARRAY; /* Mask "Array" */
+                for (i = 0;i < pArgValue->lArrays;i++)
+                {
+                  lSize = copyFromBSTR(pDstAscii, pSrcBstr);
+                  pDstAscii += lSize;
+                  pSrcBstr += BCAP_SIZE_ARGSTRLEN + ((lSize -1) * 2); /* lSize include Terminator,so (lSize -1) * 2) */
+                }
+              }
+              else
+              {
 
-                  //switch(iType)
-                  printf("iType: 0x%x %d\n", iType, iType);
+                //printf("b\n");
+                lSize = sizeOfVarType((uint16_t)(pArgValue->iType));
+                //printf("%d %d %d %x\n", lSize, pArgValue->lArrays, pArgValue->iType, pArgValue->iType);
 
-                  if (iType == VT_BSTR)
+                if(pArgValue->iType & VT_ARRAY)
+                {
+                  //printf("b1\n");
+                  if (lSize != 0)
                   {
-                    printf("a\n");
-                    uint8_t *pDstAscii = (uint8_t *)pVntReturn;
-                    uint8_t *pSrcBstr = (uint8_t *)pArgValue->data;
+
+                    uint8_t *pDst = (uint8_t *)pVntReturn;
+                    uint8_t *pSrc = (uint8_t *)pArgValue->data;
 
                     for (i = 0;i < pArgValue->lArrays;i++)
                     {
-                      lSize = copyFromBSTR(pDstAscii, pSrcBstr);
-                      pDstAscii += lSize;
-                      pSrcBstr += BCAP_SIZE_ARGSTRLEN + ((lSize -1) * 2); /* lSize include Terminator,so (lSize -1) * 2) */
-                    }
-                  }
-                  else
-                  {
-
-
-
-                    printf("b\n");
-                    lSize = sizeOfVarType((uint16_t)(pArgValue->iType));
-                    printf("%d %d %d %x\n", lSize,  pArgValue->lArrays, pArgValue->iType, pArgValue->iType);
-
-                    if(pArgValue->iType & VT_ARRAY)
-                    {
-                      printf("b1\n");
-                      if (lSize != 0)
-                      {
-
-                        uint8_t *pDst = (uint8_t *)pVntReturn;
-                        uint8_t *pSrc = (uint8_t *)pArgValue->data;
-
-                        for (i = 0;i < pArgValue->lArrays;i++)
-                        {
-                          copyValue(pDst, pSrc, lSize);
-                          pDst += lSize;
-                          pSrc += lSize;
-                        }
-                      }
-                    }
-                    else
-                    {
-                      printf("b2\n");
-                      uint8_t *pDst = (uint8_t *)pVntReturn;
-                      uint8_t *pSrc = (uint8_t *)pArgValue->data;
                       copyValue(pDst, pSrc, lSize);
+                      pDst += lSize;
+                      pSrc += lSize;
                     }
                   }
                 }
-
-                //copyValue(plResult, pRecPacket->pArg->data, 4);
+                else
+                {
+                  //printf("b2\n");
+                  uint8_t *pDst = (uint8_t *)pVntReturn;
+                  uint8_t *pSrc = (uint8_t *)pArgValue->data;
+                  copyValue(pDst, pSrc, lSize);
+                }
               }
-              //else{
-              /* NO Argument */
-              //hr = BCAP_E_FAIL;
-              //}
             }
-
           }
-          Packet_Release(pRecPacket);
         }
-        Packet_Release(pSndPacket);
+      }
+      Packet_Release(pRecPacket);
+    }
+    Packet_Release(pSndPacket);
   }
 
   return hr;
@@ -1098,37 +1083,30 @@ BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
       uint32_t lLen;
       lLen = sizeOfVarType((uint16_t)(iType & ~VT_ARRAY));
       lDataLen = lLen * lArrays;
-      //if (lDataLen != 0) <-- removed to support empty argument
+
+      //printf("aa\n");
+      uint32_t i;
+      uint8_t *pSrcData = (uint8_t *)pVntValue;
+      uint8_t *pDstData = (uint8_t *)bMalloc(lDataLen);
+      if (pDstData != NULL)
       {
-        printf("aa\n");
-        uint32_t i;
-        uint8_t *pSrcData = (uint8_t *)pVntValue;
-        uint8_t *pDstData = (uint8_t *)bMalloc(lDataLen);
-        if (pDstData != NULL)
+        uint8_t *pDstPtr = pDstData;
+        for (i = 0; i < lArrays; i++)
         {
-          uint8_t *pDstPtr = pDstData;
-          for (i = 0; i < lArrays; i++)
-          {
 
-            copyValue(pDstPtr, pSrcData, lLen);
-            pDstPtr += lLen;
-            pSrcData += lLen;
-          }
-
-          pArg = Arg_Create(iType, lArrays, lDataLen, pDstData);
-          if (pArg != NULL)
-          {
-            Packet_AddArg(pSndPacket, pArg);
-          }
-          bFree(pDstData);
+          copyValue(pDstPtr, pSrcData, lLen);
+          pDstPtr += lLen;
+          pSrcData += lLen;
         }
+
+        pArg = Arg_Create(iType, lArrays, lDataLen, pDstData);
+        if (pArg != NULL)
+        {
+          Packet_AddArg(pSndPacket, pArg);
+        }
+        bFree(pDstData);
       }
-      //else
-      //{ /* lDataLen = 0,then Unknown data type */
-        //printf("bb\n");
-       // Packet_Release(pSndPacket);
-       // return (BCAP_E_INVALIDARGTYPE);
-      //}
+
     }
 
     {
@@ -1138,7 +1116,7 @@ BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
         hr = bCapSendAndRec(pSndPacket, pRecPacket);
         if SUCCEEDED(hr)
         {
-          printf("arg no. %d\n", pRecPacket->iArgs);
+          //printf("arg no. %d\n", pRecPacket->iArgs);
           if (pRecPacket->iArgs >= 1)
           {
             { /* Copy values */
@@ -1150,11 +1128,11 @@ BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
               iType = (pArgValue->iType) & ~VT_ARRAY; /* Mask "Array" */
 
               //switch(iType)
-              printf("iType: 0x%x %d\n", iType, iType);
+              //printf("iType: 0x%x %d\n", iType, iType);
 
               if (iType == VT_BSTR)
               {
-                printf("a\n");
+                //printf("a\n");
                 uint8_t *pDstAscii = (uint8_t *)pVntReturn;
                 uint8_t *pSrcBstr = (uint8_t *)pArgValue->data;
 
@@ -1170,13 +1148,13 @@ BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
 
 
 
-                printf("b\n");
+                //printf("b\n");
                 lSize = sizeOfVarType((uint16_t)(pArgValue->iType));
-                printf("%d %d %d %x\n", lSize,  pArgValue->lArrays, pArgValue->iType, pArgValue->iType);
+                //printf("%d %d %d %x\n", lSize,  pArgValue->lArrays, pArgValue->iType, pArgValue->iType);
 
                 if(pArgValue->iType & VT_ARRAY)
                 {
-                  printf("b1\n");
+                  //printf("b1\n");
                   if (lSize != 0)
                   {
 
@@ -1193,22 +1171,15 @@ BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
                 }
                 else
                 {
-                  printf("b2\n");
+                  //printf("b2\n");
                   uint8_t *pDst = (uint8_t *)pVntReturn;
                   uint8_t *pSrc = (uint8_t *)pArgValue->data;
                   copyValue(pDst, pSrc, lSize);
                 }
               }
             }
-
-            //copyValue(plResult, pRecPacket->pArg->data, 4);
           }
-          //else{
-          /* NO Argument */
-          //hr = BCAP_E_FAIL;
-          //}
         }
-
       }
       Packet_Release(pRecPacket);
     }
