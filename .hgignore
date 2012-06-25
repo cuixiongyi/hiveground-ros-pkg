@@ -1,6 +1,7 @@
 /build/
 /bin/
 /lib/
+/_gtest_from_src/
 syntax: glob
 *~
 *.bak
@@ -8,7 +9,7 @@ syntax: glob
 .project
 .pydevproject
 *.so
-msg_gen
 *.orig
 *.cmake
 .settings
+

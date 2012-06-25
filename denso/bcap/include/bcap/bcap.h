@@ -72,9 +72,9 @@ typedef enum BCAP_HRESULT
 
 /* b-CAP packet constant */
 #define BCAP_SOH                        0x01                    /* size of packet header(SOH) */
-#define BCAP_EOT                        0x04                    /* size of packet terminater(EOT) */
+#define BCAP_EOT                        0x04                    /* size of packet terminator(EOT) */
 #define BCAP_SIZE_SOH                   1                       /* size of header(SOH)   */
-#define BCAP_SIZE_EOT                   1                       /* size of terminater(EOT)  */
+#define BCAP_SIZE_EOT                   1                       /* size of terminator(EOT)  */
 #define BCAP_SIZE_LEN                   4                       /* size of message size */
 #define BCAP_SIZE_SERIAL                2                       /* size of serial number */
 #define BCAP_SIZE_RESERVE               2                       /* size of reserved */
