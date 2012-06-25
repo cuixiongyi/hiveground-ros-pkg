@@ -9,7 +9,6 @@ syntax: glob
 .project
 .pydevproject
 *.so
-msg_gen
 *.orig
 *.cmake
 .settings
