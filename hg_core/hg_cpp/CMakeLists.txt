@@ -28,3 +28,14 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
+
+rosbuild_add_library(${PROJECT_NAME} 
+  src/hg_node.cpp
+  src/hg_controller.cpp 
+  src/hg_joint.cpp)
+
+rosbuild_add_executable(hg_ros node/hg_ros.cpp)
+target_link_libraries(hg_ros ${PROJECT_NAME})
+
+rosbuild_add_gtest(utest test/utest.cpp)
+target_link_libraries(utest ${PROJECT_NAME})

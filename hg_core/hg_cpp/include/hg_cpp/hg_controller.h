@@ -12,7 +12,7 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory, nor the name of its
+ *      * Neither the name of the HiveGround Co.,Ltd. , nor the name of its
  *      contributors may be used to endorse or promote products derived from
  *      this software without specific prior written permission.
  *
@@ -29,40 +29,86 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef HG_CONTROLLER_H_
+#define HG_CONTROLLER_H_
+
+#include <ros/ros.h>
+#include <diagnostic_msgs/DiagnosticStatus.h>
+
 #include <hg_cpp/hg_node.h>
 
-using namespace hg;
-
-Node::Node() :
-    node_handle_("~"),
-    simulate_(true),
-    loop_rate_(50.0)
+namespace hg
 {
 
-}
-
-Node::~Node()
+/**
+ * A controller abstract class.
+ */
+class Controller
 {
+public:
 
-}
-
-void Node::run()
-{
-  ros::Rate loop_rate(loop_rate_);
-  while (node_handle_.ok())
+  /**
+   * A constructor.
+   * @param nod Node instance.
+   * @param name the controller name.
+   */
+  Controller(hg::Node* node, const std::string& name)
+    : node_(node), name_(name)
   {
-    //publish message
-    publish();
-
-    //execute all controllers and joints
-
-    ros::spinOnce();
-    loop_rate.sleep();
   }
 
+  /**
+   * A destructor.
+   *
+   */
+  virtual ~Controller()
+  {
+  }
+  ;
+
+  /**
+   * Start the controller, do any hardware setup needed.
+   */
+  virtual void startup() = 0;
+
+  /**
+   * Do any read/writes to device.
+   */
+  virtual void update() = 0;
+
+  /**
+   * Stop the controller, do any hardware shutdown needed.
+   */
+  virtual void shutdown() = 0;
+
+  /**
+   * Is the controller actively sending commands to joints/robots?
+   */
+  virtual bool active() = 0;
+
+  /**
+   * Get a diagnostics message for this controller.
+   */
+  virtual diagnostic_msgs::DiagnosticStatus get_diagnostics()
+  {
+    diagnostic_msgs::DiagnosticStatus message;
+    message.name = name_;
+    message.level = diagnostic_msgs::DiagnosticStatus::OK;
+    message.message = "OK";
+    return message;
+  }
+
+  hg::Node* node_;
+  std::string name_;
+  bool pause_;
+
+
+
+};
+
+
+
 }
 
-void Node::publish()
-{
-  ROS_INFO_STREAM_THROTTLE(1.0, "hello");
-}
+
+#endif

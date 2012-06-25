@@ -1,5 +1,5 @@
-#ifndef BCAP_BCAP_H
-#define BCAP_BCAP_H
+#ifndef BCAP_BCAP_H_
+#define BCAP_BCAP_H_
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -12,9 +12,9 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory, nor the name of its
- *      contributors may be used to endorse or promote products derived from
- *      this software without specific prior written permission.
+ *      * Neither the name of the Southwest Research Institute, nor the names
+ *      of its contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -29,40 +29,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hg_cpp/hg_node.h>
+#include <gtest/gtest.h>
 
-using namespace hg;
-
-Node::Node() :
-    node_handle_("~"),
-    simulate_(true),
-    loop_rate_(50.0)
+int main(int argc, char **argv)
 {
-
-}
-
-Node::~Node()
-{
-
-}
-
-void Node::run()
-{
-  ros::Rate loop_rate(loop_rate_);
-  while (node_handle_.ok())
-  {
-    //publish message
-    publish();
-
-    //execute all controllers and joints
-
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-
-}
-
-void Node::publish()
-{
-  ROS_INFO_STREAM_THROTTLE(1.0, "hello");
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

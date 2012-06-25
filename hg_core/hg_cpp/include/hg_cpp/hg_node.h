@@ -12,9 +12,9 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory, nor the name of its
- *      contributors may be used to endorse or promote products derived from
- *      this software without specific prior written permission.
+ *      * Neither the name of the author, nor the name of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -29,40 +29,48 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hg_cpp/hg_node.h>
+#ifndef HG_NODE_H_
+#define HG_NODE_H_
 
-using namespace hg;
+#include <ros/ros.h>
 
-Node::Node() :
-    node_handle_("~"),
-    simulate_(true),
-    loop_rate_(50.0)
+namespace hg
 {
+
+/**
+ * A node class.
+ */
+class Node
+{
+public:
+
+  /**
+   * A constructor.
+   */
+  Node();
+
+  /**
+   * A destructor.
+   */
+  ~Node();
+
+  /**
+   * Main loop of the node.
+   */
+  void run();
+
+  /**
+   * Node message will be published from this function.
+   */
+  void publish();
+
+
+  ros::NodeHandle node_handle_; //!< ROS node handle?
+  bool simulate_; //!< Is the node simulated?
+  double loop_rate_; //!< mail loop frequency (Hz)
+};
 
 }
 
-Node::~Node()
-{
 
-}
-
-void Node::run()
-{
-  ros::Rate loop_rate(loop_rate_);
-  while (node_handle_.ok())
-  {
-    //publish message
-    publish();
-
-    //execute all controllers and joints
-
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-
-}
-
-void Node::publish()
-{
-  ROS_INFO_STREAM_THROTTLE(1.0, "hello");
-}
+#endif /* HG_NODE_H_ */

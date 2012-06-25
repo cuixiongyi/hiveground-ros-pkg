@@ -29,40 +29,4 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hg_cpp/hg_node.h>
-
-using namespace hg;
-
-Node::Node() :
-    node_handle_("~"),
-    simulate_(true),
-    loop_rate_(50.0)
-{
-
-}
-
-Node::~Node()
-{
-
-}
-
-void Node::run()
-{
-  ros::Rate loop_rate(loop_rate_);
-  while (node_handle_.ok())
-  {
-    //publish message
-    publish();
-
-    //execute all controllers and joints
-
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-
-}
-
-void Node::publish()
-{
-  ROS_INFO_STREAM_THROTTLE(1.0, "hello");
-}
+#include <hg_cpp/hg_controller.h>

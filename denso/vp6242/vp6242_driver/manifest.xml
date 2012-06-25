@@ -1,21 +1,18 @@
 <package>
-  <description brief="bcap">
+  <description brief="vp6242_driver">
 
-     bcap
+     vp6242_driver
 
   </description>
   <author>Mahisorn Wongphati</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/bcap</url>
+  <url>http://ros.org/wiki/vp6242_driver</url>
   <depend package="roscpp"/>
   <depend package="std_msgs"/>
 
   <depend package="hg_cpp"/>
-
-  <export>
-  	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>
-  </export>
+  <depend package="bcap"/>
 
 </package>
 

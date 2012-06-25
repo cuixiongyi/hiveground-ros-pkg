@@ -12,7 +12,7 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory, nor the name of its
+ *      * Neither the name of the HiveGround Co.,Ltd. , nor the name of its
  *      contributors may be used to endorse or promote products derived from
  *      this software without specific prior written permission.
  *
@@ -29,40 +29,82 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef HG_JOINT_H_
+#define HG_JOINT_H_
+
+
+#include <ros/ros.h>
+#include <diagnostic_msgs/DiagnosticStatus.h>
+#include <urdf/model.h>
+
 #include <hg_cpp/hg_node.h>
+#include <hg_cpp/hg_controller.h>
 
-using namespace hg;
+#include <string>
 
-Node::Node() :
-    node_handle_("~"),
-    simulate_(true),
-    loop_rate_(50.0)
+namespace hg
 {
 
-}
-
-Node::~Node()
+/**
+ * A joint abstract class.
+ */
+class Joint
 {
+public:
 
-}
+  /**
+   * A constructor.
+   */
+  Joint(hg::Node* node, const std::string& name) :
+      node_(node),
+      last_update_(ros::Time::now()),
+      name_(name),
+      lower_limit_(0),
+      upper_limit_(0),
+      velocity_limit_(0),
+      position_(0),
+      velocity_(0)
 
-void Node::run()
-{
-  ros::Rate loop_rate(loop_rate_);
-  while (node_handle_.ok())
   {
-    //publish message
-    publish();
-
-    //execute all controllers and joints
-
-    ros::spinOnce();
-    loop_rate.sleep();
   }
 
+  virtual ~Joint()
+  {
+  }
+
+  virtual bool get_joint_info_urdf()
+  {
+    return false;
+  }
+
+  virtual double interpolate(double dt) = 0;
+
+  virtual void set_feedback_data(double feedback) = 0;
+
+  virtual double set_position(double position) = 0;
+
+  virtual diagnostic_msgs::DiagnosticStatus get_diagnostics()
+  {
+    diagnostic_msgs::DiagnosticStatus message;
+    message.name = name_;
+    message.level = diagnostic_msgs::DiagnosticStatus::OK;
+    message.message = "OK";
+    return message;
+  }
+
+  hg::Node* node_;
+  hg::Controller* controller_;
+  ros::Time last_update_;
+
+  std::string name_;
+  int id_;
+  double lower_limit_;
+  double upper_limit_;
+  double velocity_limit_;
+  double position_;
+  double velocity_;
+};
+
 }
 
-void Node::publish()
-{
-  ROS_INFO_STREAM_THROTTLE(1.0, "hello");
-}
+#endif

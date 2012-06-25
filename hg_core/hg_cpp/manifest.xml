@@ -9,7 +9,15 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/hg_cpp</url>
   <depend package="roscpp"/>
+  <depend package="urdf"/>
+
+  <!-- Message -->
   <depend package="std_msgs"/>
+  <depend package="diagnostic_msgs"/>
+
+  <export>
+  	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>
+  </export>
 
 </package>
 
