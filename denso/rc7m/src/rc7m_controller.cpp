@@ -12,7 +12,7 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory. , nor the name of its
+ *      * Neither the name of the Imai Laboratory, nor the name of its
  *      contributors may be used to endorse or promote products derived from
  *      this software without specific prior written permission.
  *
@@ -29,14 +29,41 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hg_cpp/hg_node.h>
+#include <rc7m/rc7m_controller.h>
 
-int main(int argc, char** argv)
+using namespace hg;
+
+RC7MController::RC7MController(hg::Node* node, const std::string& name)
+  : hg::Controller(node, name)
 {
-  ros::init(argc, argv, "HgRos");
+  //read parameters
 
-  hg::Node node;
-  node.run();
 
-  return 0;
 }
+
+RC7MController::~RC7MController()
+{
+
+}
+
+void RC7MController::startup()
+{
+
+}
+
+void RC7MController::update()
+{
+
+}
+
+void RC7MController::shutdown()
+{
+
+}
+
+bool RC7MController::active()
+{
+  return false;
+}
+
+

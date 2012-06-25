@@ -12,7 +12,7 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory. , nor the name of its
+ *      * Neither the name of the Imai Laboratory, nor the name of its
  *      contributors may be used to endorse or promote products derived from
  *      this software without specific prior written permission.
  *
@@ -29,14 +29,57 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hg_cpp/hg_node.h>
+#ifndef HG_RC7M_CONTROLLER_H_
+#define HG_RC7M_CONTROLLER_H_
 
-int main(int argc, char** argv)
+#include <hg_cpp/hg_controller.h>
+#include <bcap/bcap.h>
+
+namespace hg
 {
-  ros::init(argc, argv, "HgRos");
 
-  hg::Node node;
-  node.run();
+class RC7MController : public hg::Controller
+{
+  /**
+   * A constructor.
+   * @param nod Node instance.
+   * @param name the controller name.
+   */
+  RC7MController(hg::Node* node, const std::string& name);
 
-  return 0;
+  /**
+   * A destructor.
+   *
+   */
+  ~RC7MController();
+
+  /**
+   * Start the controller, do any hardware setup needed.
+   */
+  void startup();
+
+  /**
+   * Do any read/writes to device.
+   */
+  void update();
+
+  /**
+   * Stop the controller, do any hardware shutdown needed.
+   */
+  void shutdown();
+
+  /**
+   * Is the controller actively sending commands to joints/robots?
+   */
+  bool active();
+
+
+public:
+  BCap bcap_;
+
+};
+
+
 }
+
+#endif

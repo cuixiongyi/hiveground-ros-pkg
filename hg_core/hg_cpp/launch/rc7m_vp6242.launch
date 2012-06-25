@@ -1,0 +1,10 @@
+<launch>  
+  
+  <!-- RC7M -->
+  <node name="arm1" pkg="hg_cpp" type="hg_ros" output="screen">  
+    <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />
+    <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />
+    <param name="simulate" value="true"/>
+  </node>
+  
+</launch>
