@@ -12,7 +12,7 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the Imai Laboratory. , nor the name of its
+ *      * Neither the name of the Imai Laboratory, nor the name of its
  *      contributors may be used to endorse or promote products derived from
  *      this software without specific prior written permission.
  *
@@ -29,14 +29,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hg_cpp/hg_node.h>
+#ifndef HG_RC7M_JOINT_H_
+#define HG_RC7M_JOINT_H_
 
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "HgRos");
+#include <hg_cpp/hg_joint.h>
 
-  hg::Node node;
-  node.run();
-
-  return 0;
-}
+#endif
