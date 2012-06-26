@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- * Copyright (c) 2012, Mahisorn Wongphati
+ * Copyright (c) 2012, Imai Laboratory, Keio University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -12,9 +12,9 @@
  *      * Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *      * Neither the name of the author, nor the name of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
+ *      * Neither the name of the Imai Laboratory, nor the name of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -27,6 +27,8 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Mahisorn Wongphati
  */
 
 #ifndef HG_NODE_H_
@@ -71,9 +73,16 @@ public:
   ros::NodeHandle node_handle_; //!< ROS node handle?
   bool simulate_; //!< Is the node simulated?
   double loop_rate_; //!< mail loop frequency (Hz)
+  double joint_publish_rate_; //!< joint state publish frequency (Hz)
+  double diagnostic_publish_rate_; //!< diagnostic publish frequency (Hz)
 
-  pluginlib::ClassLoader<hg::Controller> controller_plugin_loader;
-  pluginlib::ClassLoader<hg::Joint> joint_plugin_loader;
+  ros::Duration next_joint_publish_time_;
+  ros::Duration next_diagnostic_publish_time_;
+
+  pluginlib::ClassLoader<hg::Controller> controller_plugin_loader_;
+  pluginlib::ClassLoader<hg::Joint> joint_plugin_loader_;
+  std::vector<boost::shared_ptr<hg::Controller> > controllers_;
+  std::vector<boost::shared_ptr<hg::Joint> > joints_;
 };
 
 }

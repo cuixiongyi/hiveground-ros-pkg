@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- * Copyright (c) 2012, Mahisorn Wongphati
+ * Copyright (c) 2012, Imai Laboratory, Keio University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,8 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Mahisorn Wongphati
  */
 
 #include <hg_cpp/hg_node.h>
@@ -38,31 +40,20 @@ Node::Node() :
     node_handle_("~"),
     simulate_(true),
     loop_rate_(50.0),
-    controller_plugin_loader("hg_cpp", "hg::Controller"),
-    joint_plugin_loader("hg_cpp", "hg::Joint")
+    joint_publish_rate_(10.0),
+    diagnostic_publish_rate_(10.0),
+    controller_plugin_loader_("hg_cpp", "hg::Controller"),
+    joint_plugin_loader_("hg_cpp", "hg::Joint")
 {
-  //load all plugins
-  boost::shared_ptr<hg::Controller> controller;
-  boost::shared_ptr<hg::Joint> joint;
-
-  try
-  {
-    controller = controller_plugin_loader.createInstance("hg_cpp/rc7m_controller");
-    joint = joint_plugin_loader.createInstance("hg_cpp/rc7m_joint");
-  }
-  catch (pluginlib::PluginlibException& ex)
-  {
-    ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
-  }
-
-
-
-  //simulate ?
-  node_handle_.getParam("simulate", simulate_);
-  if(simulate_)
-    ROS_INFO_STREAM("start " + node_handle_.getNamespace() + " node in simulated mode");
-  else
-    ROS_INFO_STREAM("start " + node_handle_.getNamespace() + " node in real mode");
+  //note settings
+  ROS_ASSERT(node_handle_.getParam("simulate", simulate_));
+  ROS_INFO_STREAM("simulated mode: " + simulate_);
+  ROS_ASSERT(node_handle_.getParam("loop_rate", loop_rate_));
+  ROS_INFO_STREAM("loop rate: " << loop_rate_);
+  ROS_ASSERT(node_handle_.getParam("joint_publish_rate", joint_publish_rate_));
+  ROS_INFO_STREAM("joint publish rate: " << joint_publish_rate_);
+  ROS_ASSERT(node_handle_.getParam("diagnostic_publish_rate", diagnostic_publish_rate_));
+  ROS_INFO_STREAM("diagnostic publish rate: " << diagnostic_publish_rate_);
 
   //add joints
   XmlRpc::XmlRpcValue joints;
@@ -85,30 +76,18 @@ Node::Node() :
 
     try
     {
-      boost::shared_ptr<hg::Joint> joint = joint_plugin_loader.createInstance("hg_cpp/" + type);
+      boost::shared_ptr<hg::Joint> joint = joint_plugin_loader_.createInstance("hg_cpp/" + type);
       joint->initilize(this, name);
+      joints_.push_back(joint);
       ROS_INFO_STREAM("added joint : " + name);
     }
-    catch (pluginlib::PluginlibException& ex)
+    catch (pluginlib::PluginlibException& e)
     {
-      ROS_ERROR("The %s plugin failed to load for some reason. Error: %s",
-                type.c_str(), ex.what());
+      ROS_FATAL("The %s plugin failed to load for some reason. Error: %s",
+                type.c_str(), e.what());
+      ROS_BREAK();
     }
-    /*
-    if(type == "built-in")
-    {
-      ROS_INFO_STREAM("added joint : " + name);
-    }
-    else
-    {
-      ROS_FATAL_STREAM("joint with " + type + " is not support");
-    }
-    */
-
-
   }
-
-
 
   //add controllers
   XmlRpc::XmlRpcValue controllers;
@@ -121,6 +100,19 @@ Node::Node() :
     if(!node_handle_.getParam("controllers/" + name + "/type", type))
     {
       ROS_FATAL_STREAM(name + " has no type information");
+      ROS_BREAK();
+    }
+
+    try
+    {
+      boost::shared_ptr<hg::Controller> controller = controller_plugin_loader_.createInstance("hg_cpp/" + type);
+      controller->initilize(this, name);
+      controllers_.push_back(controller);
+      ROS_INFO_STREAM("added controller : " + name);
+    }
+    catch (pluginlib::PluginlibException& e)
+    {
+      ROS_FATAL("The %s plugin failed to load for some reason. Error: %s", type.c_str(), e.what());
       ROS_BREAK();
     }
   }
