@@ -1,18 +1,24 @@
 <package>
   <description brief="rc7m">
 
-     The rc7m package includes node for interfacing with a denso RC7M industrial controller.
+     rc7m
 
   </description>
   <author>Mahisorn Wongphati</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/rc7m</url>
-  <depend package="std_msgs"/>
   <depend package="roscpp"/>
+  <depend package="pluginlib"/>
+  <depend package="std_msgs"/>
 
   <depend package="hg_cpp"/>
   <depend package="bcap"/>
+
+  <export>
+  	<hg_cpp plugin="${prefix}/rc7m_plugins.xml" />	
+  </export>
+
 </package>
 
 

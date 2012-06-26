@@ -32,7 +32,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 rosbuild_add_library(${PROJECT_NAME} 
   src/hg_node.cpp
   src/hg_controller.cpp 
-  src/hg_joint.cpp)
+  src/hg_joint.cpp
+)
 
 rosbuild_add_executable(hg_ros node/hg_ros.cpp)
 target_link_libraries(hg_ros ${PROJECT_NAME})

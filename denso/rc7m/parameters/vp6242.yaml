@@ -1,37 +1,37 @@
 #All joint information
 joints: {
   J1: {
-    type: built-in,
+    type: rc7m_joint,
     upper_limit: 0,
     lower_limit: 0,
     velocity_limit: 2.0
   },
   J2: {
-    type: built-in,
+    type: rc7m_joint,
     upper_limit: 0,
     lower_limit: 0,
     velocity_limit: 2.0  
   },
   J3: {
-    type: built-in,
+    type: rc7m_joint,
     upper_limit: 0,
     lower_limit: 0,
     velocity_limit: 2.0
   },
   J4: {
-    type: built-in,
+    type: rc7m_joint,
     upper_limit: 0,
     lower_limit: 0,
     velocity_limit: 2.0
   },
   J5: {
-    type: built-in,
+    type: rc7m_joint,
     upper_limit: 0,
     lower_limit: 0,
     velocity_limit: 2.0
   },
   J6: {
-    type: built-in,
+    type: rc7m_joint,
     upper_limit: 0,
     lower_limit: 0,
     velocity_limit: 2.0
@@ -40,7 +40,8 @@ joints: {
 
 #All controller information
 controllers: {
-  rc7m: {
+  rc7m_arm1 : {
+    type: rc7m_controller,
     name: arm1,
     ip: 10.0.0.101,
     port: 5007,

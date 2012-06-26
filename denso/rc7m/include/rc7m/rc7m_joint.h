@@ -32,6 +32,57 @@
 #ifndef HG_RC7M_JOINT_H_
 #define HG_RC7M_JOINT_H_
 
+#include <pluginlib/class_list_macros.h>
 #include <hg_cpp/hg_joint.h>
+
+namespace hg_plugins
+{
+
+class RC7MJoint : public hg::Joint
+{
+public:
+  /**
+   * A default constructor.
+   */
+  RC7MJoint();
+
+  /**
+   * A destructor.
+   */
+  ~RC7MJoint();
+
+  /**
+   * An initializing function.
+   */
+  void initilize(hg::Node* node, const std::string& name);
+
+  /**
+   * Load joint information from URDF.
+   */
+  bool get_joint_info_urdf();
+  /**
+   * Interpolate joint position after dt.
+   */
+  double interpolate(double dt);
+
+  /**
+   * Set feedback data from sensor (encoder, camera, ...).
+   */
+  void set_feedback_data(double feedback);
+
+  /**
+   * Set joint position.
+   */
+  double set_position(double position);
+
+  /**
+   * Get a diagnostics message for this joint.
+   */
+  diagnostic_msgs::DiagnosticStatus get_diagnostics();
+};
+
+}
+
+
 
 #endif

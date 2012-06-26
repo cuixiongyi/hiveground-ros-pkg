@@ -28,3 +28,53 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <pluginlib/class_list_macros.h>
+#include <rc7m/rc7m_joint.h>
+
+PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_joint, hg_plugins::RC7MJoint, hg::Joint)
+
+using namespace hg_plugins;
+
+RC7MJoint::RC7MJoint()
+  : hg::Joint()
+{
+  //ROS_INFO_STREAM(__FUNCTION__);
+}
+
+RC7MJoint::~RC7MJoint()
+{
+  //ROS_INFO_STREAM(__FUNCTION__);
+}
+
+void RC7MJoint::initilize(hg::Node* node, const std::string& name)
+{
+  ROS_INFO_STREAM(__FUNCTION__  << " rc7m");
+  hg::Joint::initilize(node, name);
+}
+
+bool RC7MJoint::get_joint_info_urdf()
+{
+  return false;
+}
+
+double RC7MJoint::interpolate(double dt)
+{
+  return 0;
+}
+
+void RC7MJoint::set_feedback_data(double feedback)
+{
+
+}
+
+double RC7MJoint::set_position(double position)
+{
+  return 0;
+}
+
+diagnostic_msgs::DiagnosticStatus RC7MJoint::get_diagnostics()
+{
+  return hg::Joint::get_diagnostics();
+}
+

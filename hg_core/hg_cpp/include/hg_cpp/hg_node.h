@@ -33,6 +33,9 @@
 #define HG_NODE_H_
 
 #include <ros/ros.h>
+#include <pluginlib/class_loader.h>
+#include <hg_cpp/hg_controller.h>
+#include <hg_cpp/hg_joint.h>
 
 namespace hg
 {
@@ -52,22 +55,25 @@ public:
   /**
    * A destructor.
    */
-  ~Node();
+  virtual ~Node();
 
   /**
    * Main loop of the node.
    */
-  void run();
+  virtual void run();
 
   /**
    * Node message will be published from this function.
    */
-  void publish();
+  virtual void publish();
 
 
   ros::NodeHandle node_handle_; //!< ROS node handle?
   bool simulate_; //!< Is the node simulated?
   double loop_rate_; //!< mail loop frequency (Hz)
+
+  pluginlib::ClassLoader<hg::Controller> controller_plugin_loader;
+  pluginlib::ClassLoader<hg::Joint> joint_plugin_loader;
 };
 
 }

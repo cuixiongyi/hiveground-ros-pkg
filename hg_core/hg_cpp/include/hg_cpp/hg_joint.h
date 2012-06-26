@@ -37,13 +37,11 @@
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <urdf/model.h>
 
-#include <hg_cpp/hg_node.h>
-#include <hg_cpp/hg_controller.h>
-
-#include <string>
-
 namespace hg
 {
+
+class Node;
+class Controller;
 
 /**
  * A joint abstract class.
@@ -51,38 +49,64 @@ namespace hg
 class Joint
 {
 public:
-
   /**
-   * A constructor.
+   * A default constructor.
    */
-  Joint(hg::Node* node, const std::string& name) :
-      node_(node),
-      last_update_(ros::Time::now()),
-      name_(name),
+  Joint()
+    : last_update_(ros::Time::now()),
       lower_limit_(0),
       upper_limit_(0),
       velocity_limit_(0),
       position_(0),
       velocity_(0)
-
   {
+    //ROS_INFO_STREAM(__FUNCTION__);
   }
 
+  /**
+   * A destructor
+   */
   virtual ~Joint()
   {
+    //ROS_INFO_STREAM(__FUNCTION__);
   }
 
+  /**
+   * An initializing function.
+   */
+  virtual void initilize(hg::Node* node, const std::string& name)
+  {
+    ROS_INFO_STREAM(__FUNCTION__);
+    node_ = node;
+    name_ = name;
+  }
+
+  /**
+   * Load joint information from URDF.
+   */
   virtual bool get_joint_info_urdf()
   {
     return false;
   }
 
+  /**
+   * Interpolate joint position after dt.
+   */
   virtual double interpolate(double dt) = 0;
 
+  /**
+   * Set feedback data from sensor (encoder, camera, ...).
+   */
   virtual void set_feedback_data(double feedback) = 0;
 
+  /**
+   * Set joint position.
+   */
   virtual double set_position(double position) = 0;
 
+  /**
+   * Get a diagnostics message for this joint.
+   */
   virtual diagnostic_msgs::DiagnosticStatus get_diagnostics()
   {
     diagnostic_msgs::DiagnosticStatus message;
@@ -93,10 +117,12 @@ public:
   }
 
   hg::Node* node_;
+  std::string name_;
+
   hg::Controller* controller_;
   ros::Time last_update_;
 
-  std::string name_;
+
   int id_;
   double lower_limit_;
   double upper_limit_;
