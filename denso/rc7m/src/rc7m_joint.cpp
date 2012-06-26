@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- * Copyright (c) 2012, Mahisorn Wongphati
+ * Copyright (c) 2012, Imai Laboratory, Keio University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,10 +27,14 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Mahisorn Wongphati
  */
 
 #include <pluginlib/class_list_macros.h>
+#include <hg_cpp/hg_node.h>
 #include <rc7m/rc7m_joint.h>
+
 
 PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_joint, hg_plugins::RC7MJoint, hg::Joint)
 
@@ -49,8 +53,15 @@ RC7MJoint::~RC7MJoint()
 
 void RC7MJoint::initilize(hg::Node* node, const std::string& name)
 {
-  ROS_INFO_STREAM(__FUNCTION__  << " rc7m");
+  //ROS_INFO_STREAM(__FUNCTION__  << " rc7m");
   hg::Joint::initilize(node, name);
+
+  //read parameters
+  ROS_INFO_STREAM("read " + name + " parameter from file");
+  ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/upper_limit", upper_limit_));
+  ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/lower_limit", lower_limit_));
+  ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/velocity_limit", velocity_limit_));
+
 }
 
 bool RC7MJoint::get_joint_info_urdf()

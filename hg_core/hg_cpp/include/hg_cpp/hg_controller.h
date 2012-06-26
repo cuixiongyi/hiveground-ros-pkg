@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- * Copyright (c) 2012, Mahisorn Wongphati
+ * Copyright (c) 2012, Imai Laboratory, Keio University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,8 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Mahisorn Wongphati
  */
 
 #ifndef HG_CONTROLLER_H_
@@ -41,7 +43,7 @@ namespace hg
 {
 
 class Node;
-
+class Joint;
 /**
  * A controller abstract class.
  */
@@ -52,6 +54,8 @@ public:
    * A default constructor.
    */
   Controller()
+    : pause_(true),
+      rate_(10.0)
   {
     //ROS_INFO_STREAM(__FUNCTION__);
   }
@@ -110,9 +114,8 @@ public:
   hg::Node* node_;
   std::string name_;
   bool pause_;
-
-
-
+  double rate_;
+  std::vector<boost::shared_ptr<hg::Joint> > joints_;
 };
 
 
