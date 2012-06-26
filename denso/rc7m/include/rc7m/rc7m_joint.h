@@ -81,6 +81,9 @@ public:
    * Get a diagnostics message for this joint.
    */
   diagnostic_msgs::DiagnosticStatus get_diagnostics();
+
+  ros::Subscriber subscriber_joint_position_;
+  ros::Subscriber subscriber_joint_velocity_;
 };
 
 }

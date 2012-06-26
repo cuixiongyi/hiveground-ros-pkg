@@ -32,6 +32,8 @@
  */
 
 #include <hg_cpp/hg_node.h>
+#include <diagnostic_msgs/DiagnosticArray.h>
+#include <sensor_msgs/JointState.h>
 
 using namespace hg;
 using namespace std;
@@ -116,6 +118,10 @@ Node::Node() :
       ROS_BREAK();
     }
   }
+
+  //setup publisher
+  publisher_joint_state_ = node_handle_.advertise<sensor_msgs::JointState>("joint_states", 1);
+  publisher_diagnostic_ = node_handle_.advertise<diagnostic_msgs::DiagnosticArray>("diagnostics", 1);
 }
 
 Node::~Node()
@@ -141,5 +147,15 @@ void Node::run()
 
 void Node::publish()
 {
-  ROS_INFO_STREAM_THROTTLE(1.0, "hello");
+  if (ros::Time::now() > next_joint_publish_time_)
+  {
+    //ROS_INFO("joint state");
+    next_joint_publish_time_ = ros::Time::now() + ros::Duration(1.0 / joint_publish_rate_);
+  }
+
+  if (ros::Time::now() > next_diagnostic_publish_time_)
+  {
+    //ROS_INFO("diagnostic");
+    next_diagnostic_publish_time_ = ros::Time::now() + ros::Duration(1.0 / diagnostic_publish_rate_);
+  }
 }

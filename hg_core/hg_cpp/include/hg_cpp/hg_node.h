@@ -76,13 +76,16 @@ public:
   double joint_publish_rate_; //!< joint state publish frequency (Hz)
   double diagnostic_publish_rate_; //!< diagnostic publish frequency (Hz)
 
-  ros::Duration next_joint_publish_time_;
-  ros::Duration next_diagnostic_publish_time_;
+  ros::Time next_joint_publish_time_;
+  ros::Time next_diagnostic_publish_time_;
 
   pluginlib::ClassLoader<hg::Controller> controller_plugin_loader_;
   pluginlib::ClassLoader<hg::Joint> joint_plugin_loader_;
   std::vector<boost::shared_ptr<hg::Controller> > controllers_;
   std::vector<boost::shared_ptr<hg::Joint> > joints_;
+
+  ros::Publisher publisher_joint_state_;
+  ros::Publisher publisher_diagnostic_;
 };
 
 }
