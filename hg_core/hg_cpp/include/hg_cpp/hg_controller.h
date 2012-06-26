@@ -40,21 +40,20 @@
 namespace hg
 {
 
+class Node;
+
 /**
  * A controller abstract class.
  */
 class Controller
 {
 public:
-
   /**
-   * A constructor.
-   * @param nod Node instance.
-   * @param name the controller name.
+   * A default constructor.
    */
-  Controller(hg::Node* node, const std::string& name)
-    : node_(node), name_(name)
+  Controller()
   {
+    //ROS_INFO_STREAM(__FUNCTION__);
   }
 
   /**
@@ -63,8 +62,18 @@ public:
    */
   virtual ~Controller()
   {
+    //ROS_INFO_STREAM(__FUNCTION__);
   }
-  ;
+
+  /**
+   * An initializing function.
+   */
+  virtual void initilize(hg::Node* node, const std::string& name)
+  {
+    ROS_INFO_STREAM(__FUNCTION__);
+    node_ = node;
+    name_ = name;
+  }
 
   /**
    * Start the controller, do any hardware setup needed.

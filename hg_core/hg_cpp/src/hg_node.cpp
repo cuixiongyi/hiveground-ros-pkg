@@ -37,16 +37,32 @@ using namespace std;
 Node::Node() :
     node_handle_("~"),
     simulate_(true),
-    loop_rate_(50.0)
+    loop_rate_(50.0),
+    controller_plugin_loader("hg_cpp", "hg::Controller"),
+    joint_plugin_loader("hg_cpp", "hg::Joint")
 {
+  //load all plugins
+  boost::shared_ptr<hg::Controller> controller;
+  boost::shared_ptr<hg::Joint> joint;
+
+  try
+  {
+    controller = controller_plugin_loader.createInstance("hg_cpp/rc7m_controller");
+    joint = joint_plugin_loader.createInstance("hg_cpp/rc7m_joint");
+  }
+  catch (pluginlib::PluginlibException& ex)
+  {
+    ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
+  }
+
+
+
   //simulate ?
   node_handle_.getParam("simulate", simulate_);
   if(simulate_)
     ROS_INFO_STREAM("start " + node_handle_.getNamespace() + " node in simulated mode");
   else
     ROS_INFO_STREAM("start " + node_handle_.getNamespace() + " node in real mode");
-
-
 
   //add joints
   XmlRpc::XmlRpcValue joints;
@@ -63,10 +79,22 @@ Node::Node() :
     string type;
     if(!node_handle_.getParam("joints/" + name + "/type", type))
     {
-      ROS_FATAL_STREAM(name + "has no type information");
+      ROS_FATAL_STREAM(name + " has no type information");
       ROS_BREAK();
     }
 
+    try
+    {
+      boost::shared_ptr<hg::Joint> joint = joint_plugin_loader.createInstance("hg_cpp/" + type);
+      joint->initilize(this, name);
+      ROS_INFO_STREAM("added joint : " + name);
+    }
+    catch (pluginlib::PluginlibException& ex)
+    {
+      ROS_ERROR("The %s plugin failed to load for some reason. Error: %s",
+                type.c_str(), ex.what());
+    }
+    /*
     if(type == "built-in")
     {
       ROS_INFO_STREAM("added joint : " + name);
@@ -75,7 +103,7 @@ Node::Node() :
     {
       ROS_FATAL_STREAM("joint with " + type + " is not support");
     }
-
+    */
 
 
   }
@@ -86,9 +114,15 @@ Node::Node() :
   XmlRpc::XmlRpcValue controllers;
   node_handle_.getParam("controllers", controllers);
   ROS_ASSERT(controllers.getType() == XmlRpc::XmlRpcValue::TypeStruct);
-  for(XmlRpc::XmlRpcValue::iterator it = joints.begin(); it != joints.end(); it++)
+  for(XmlRpc::XmlRpcValue::iterator it = controllers.begin(); it != controllers.end(); it++)
   {
-
+    string name = it->first;
+    string type;
+    if(!node_handle_.getParam("controllers/" + name + "/type", type))
+    {
+      ROS_FATAL_STREAM(name + " has no type information");
+      ROS_BREAK();
+    }
   }
 }
 

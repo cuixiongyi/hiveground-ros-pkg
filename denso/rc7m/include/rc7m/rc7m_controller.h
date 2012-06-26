@@ -35,23 +35,28 @@
 #include <hg_cpp/hg_controller.h>
 #include <bcap/bcap.h>
 
-namespace hg
+namespace hg_plugins
 {
 
 class RC7MController : public hg::Controller
 {
+
+public:
   /**
-   * A constructor.
-   * @param nod Node instance.
-   * @param name the controller name.
+   * A default constructor.
    */
-  RC7MController(hg::Node* node, const std::string& name);
+  RC7MController();
 
   /**
    * A destructor.
    *
    */
   ~RC7MController();
+
+  /**
+   * An initializing function.
+   */
+  void initilize(hg::Node* node, const std::string& name);
 
   /**
    * Start the controller, do any hardware setup needed.
@@ -79,7 +84,6 @@ public:
 
 };
 
-
-}
+}//hg_plugins
 
 #endif

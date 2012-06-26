@@ -29,21 +29,29 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <pluginlib/class_list_macros.h>
 #include <rc7m/rc7m_controller.h>
 
-using namespace hg;
+PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_controller, hg_plugins::RC7MController, hg::Controller)
 
-RC7MController::RC7MController(hg::Node* node, const std::string& name)
-  : hg::Controller(node, name)
+using namespace hg_plugins;
+
+RC7MController::RC7MController()
+  : hg::Controller()
 {
-  //read parameters
-
-
+  //ROS_INFO_STREAM(__FUNCTION__);
 }
+
 
 RC7MController::~RC7MController()
 {
+  //ROS_INFO_STREAM(__FUNCTION__);
+}
 
+void RC7MController::initilize(hg::Node* node, const std::string& name)
+{
+  hg::Controller::initilize(node, name);
+  ROS_INFO_STREAM(__FUNCTION__);
 }
 
 void RC7MController::startup()

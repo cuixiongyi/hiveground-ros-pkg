@@ -9,6 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/hg_cpp</url>
   <depend package="roscpp"/>
+  <depend package="pluginlib"/>
   <depend package="urdf"/>
 
   <!-- Message -->
