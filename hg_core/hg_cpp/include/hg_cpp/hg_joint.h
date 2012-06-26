@@ -131,6 +131,9 @@ public:
   double velocity_limit_;
   double position_;
   double velocity_;
+
+  ros::Subscriber subscriber_joint_position_;
+  ros::Subscriber subscriber_joint_velocity_;
 };
 
 }
