@@ -74,7 +74,7 @@ public:
    */
   virtual void initilize(hg::Node* node, const std::string& name)
   {
-    ROS_INFO_STREAM(__FUNCTION__);
+    //ROS_INFO_STREAM(__FUNCTION__);
     node_ = node;
     name_ = name;
   }
@@ -88,6 +88,12 @@ public:
    * Do any read/writes to device.
    */
   virtual void update() = 0;
+
+  /**
+   * Control loop.
+   * Execute in separated thread or call in update() to use node mail loop.
+   */
+  virtual void control() = 0;
 
   /**
    * Stop the controller, do any hardware shutdown needed.

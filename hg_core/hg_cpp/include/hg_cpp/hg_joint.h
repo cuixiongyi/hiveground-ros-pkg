@@ -60,7 +60,10 @@ public:
       upper_limit_(0),
       velocity_limit_(0),
       position_(0),
-      velocity_(0)
+      velocity_(0),
+      touched_(false),
+      desired_position_(0),
+      last_commanded_position_(0)
   {
     //ROS_INFO_STREAM(__FUNCTION__);
   }
@@ -131,6 +134,9 @@ public:
   double velocity_limit_;
   double position_;
   double velocity_;
+  bool touched_;
+  double desired_position_;
+  double last_commanded_position_;
 
   ros::Subscriber subscriber_joint_position_;
   ros::Subscriber subscriber_joint_velocity_;

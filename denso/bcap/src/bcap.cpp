@@ -132,7 +132,7 @@ BCap::BCap(bool need_crc) :
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_Open(char *pIPStr, int iPort)
+BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
 {
 
   struct sockaddr_in serverAddr; /* server's socket address */
@@ -155,7 +155,7 @@ BCAP_HRESULT BCap::bCap_Open(char *pIPStr, int iPort)
   serverAddr.sin_addr.S_un.S_addr = inet_addr(pIPStr); /* SERVER_IP_ADDRESS */
 #else
   //serverAddr.sin_len = (u_char)sockAddrSize;
-  inet_aton(pIPStr, &(serverAddr.sin_addr));
+  inet_aton(pIPStr.c_str(), &(serverAddr.sin_addr));
 #endif
 
   /* socket  */
@@ -1500,7 +1500,7 @@ BCAP_HRESULT BCap::bCap_TaskGetVariable(uint32_t lhTask, char *pVarName, char *p
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_TaskStart(uint32_t lhTask, long lMode, char *pStrOption)
+BCAP_HRESULT BCap::bCap_TaskStart(uint32_t lhTask, long lMode, const std::string& pStrOption)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1532,7 +1532,7 @@ BCAP_HRESULT BCap::bCap_TaskStart(uint32_t lhTask, long lMode, char *pStrOption)
     }
 
     {
-      lLen = copyToBSTR(buff, pStrOption); /* Arg3 option param */
+      lLen = copyToBSTR(buff, pStrOption.c_str()); /* Arg3 option param */
       pArg = Arg_Create(VT_BSTR, 1, lLen, buff);
       if (pArg != NULL)
       {
@@ -1570,7 +1570,7 @@ BCAP_HRESULT BCap::bCap_TaskStart(uint32_t lhTask, long lMode, char *pStrOption)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_TaskStop(uint32_t lhTask, long lMode, char *pStrOption)
+BCAP_HRESULT BCap::bCap_TaskStop(uint32_t lhTask, long lMode, const std::string& pStrOption)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1602,7 +1602,7 @@ BCAP_HRESULT BCap::bCap_TaskStop(uint32_t lhTask, long lMode, char *pStrOption)
     }
 
     {
-      lLen = copyToBSTR(buff, pStrOption); /* Arg3 option param */
+      lLen = copyToBSTR(buff, pStrOption.c_str()); /* Arg3 option param */
       pArg = Arg_Create(VT_BSTR, 1, lLen, buff);
       if (pArg != NULL)
       {
