@@ -58,6 +58,7 @@ public:
     : last_update_(ros::Time::now()),
       lower_limit_(0),
       upper_limit_(0),
+      position_offset_(0),
       velocity_limit_(0),
       position_(0),
       velocity_(0),
@@ -131,6 +132,7 @@ public:
   int id_;
   double lower_limit_;
   double upper_limit_;
+  double position_offset_;
   double velocity_limit_;
   double position_;
   double velocity_;

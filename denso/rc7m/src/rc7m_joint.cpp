@@ -60,7 +60,14 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
   ROS_INFO_STREAM("read " + name + " parameter from file");
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/upper_limit", upper_limit_));
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/lower_limit", lower_limit_));
+  ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/position_offset", position_offset_));
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/velocity_limit", velocity_limit_));
+
+  //set position according to limit
+  if(lower_limit_ > 0)
+    position_ = desired_position_ = lower_limit_;
+  else if(upper_limit_ < 0)
+    position_ = desired_position_ = upper_limit_;
 
   //subscribers
   subscriber_joint_position_ =
