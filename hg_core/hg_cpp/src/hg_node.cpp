@@ -47,6 +47,9 @@ Node::Node() :
     controller_plugin_loader_("hg_cpp", "hg::Controller"),
     joint_plugin_loader_("hg_cpp", "hg::Joint")
 {
+
+
+
   //note settings
   ROS_ASSERT(node_handle_.getParam("simulate", simulate_));
   ROS_INFO_STREAM("simulated mode: " << simulate_);
@@ -129,7 +132,7 @@ Node::~Node()
 
 }
 
-void Node::run()
+void Node::run(sig_atomic_t volatile *is_shutdown)
 {
   //start all controllers
   std::vector<boost::shared_ptr<hg::Controller> >::iterator it;
@@ -140,7 +143,7 @@ void Node::run()
 
 
   ros::Rate loop_rate(loop_rate_);
-  while (node_handle_.ok())
+  while (!(*is_shutdown))
   {
     //publish message
     publish();
@@ -155,7 +158,7 @@ void Node::run()
     loop_rate.sleep();
   }
 
-  //stop all contorllers
+  //stop all controllers
   for(it = controllers_.begin(); it != controllers_.end(); it++)
   {
     (*it)->shutdown();

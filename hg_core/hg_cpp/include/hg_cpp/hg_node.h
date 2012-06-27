@@ -34,6 +34,7 @@
 #ifndef HG_NODE_H_
 #define HG_NODE_H_
 
+#include <signal.h>
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
 #include <hg_cpp/hg_controller.h>
@@ -62,7 +63,7 @@ public:
   /**
    * Main loop of the node.
    */
-  virtual void run();
+  virtual void run(sig_atomic_t volatile *is_shutdown);
 
   /**
    * Node message will be published from this function.
