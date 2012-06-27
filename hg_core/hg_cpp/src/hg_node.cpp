@@ -176,7 +176,7 @@ void Node::publish()
     for(it = joints_.begin(); it != joints_.end(); it++)
     {
       message.name.push_back((*it)->name_);
-      message.position.push_back((*it)->position_);
+      message.position.push_back((*it)->position_ + (*it)->position_offset_); // add URDF offset
       message.velocity.push_back((*it)->velocity_);
     }
     publisher_joint_state_.publish(message);

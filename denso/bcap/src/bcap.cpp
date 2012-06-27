@@ -931,7 +931,7 @@ BCAP_HRESULT BCap::bCap_RobotRelease(uint32_t lhRobot)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotGetVariable(uint32_t lhRobot, char *pVarName, char *pstrOption, uint32_t *plhVar)
+BCAP_HRESULT BCap::bCap_RobotGetVariable(uint32_t lhRobot, const std::string& pVarName, const std::string& pstrOption, uint32_t *plhVar)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -955,7 +955,7 @@ BCAP_HRESULT BCap::bCap_RobotGetVariable(uint32_t lhRobot, char *pVarName, char 
     }
 
     {
-      lLen = copyToBSTR(buff, pVarName);
+      lLen = copyToBSTR(buff, pVarName.c_str());
       pArg = Arg_Create(VT_BSTR, 1, lLen, buff);
       if (pArg != NULL)
       {
@@ -964,7 +964,7 @@ BCAP_HRESULT BCap::bCap_RobotGetVariable(uint32_t lhRobot, char *pVarName, char 
     }
 
     {
-      lLen = copyToBSTR(buff, pstrOption);
+      lLen = copyToBSTR(buff, pstrOption.c_str());
       pArg = Arg_Create(VT_BSTR, 1, lLen, buff);
       if (pArg != NULL)
       {

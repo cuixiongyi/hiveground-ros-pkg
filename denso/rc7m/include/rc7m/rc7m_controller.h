@@ -89,6 +89,11 @@ public:
    */
   bool active();
 
+private:
+  bool setMotor(bool on_off);
+  void setJoint();
+  void getJointFeedback();
+
 
 public:
   BCap bcap_;
@@ -97,6 +102,8 @@ public:
   uint32_t hController_;
   uint32_t hTask_;
   uint32_t hRobot_;
+  uint32_t hPositionVariable;
+  uint32_t hAngleVariable;
 
   bool is_running_;
   boost::thread control_thread_;
