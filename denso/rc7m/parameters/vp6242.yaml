@@ -1,39 +1,45 @@
 #All joint information
 joints: {
   J1: {
+    #-160 / 160
     type: rc7m_joint,
-    upper_limit: 0,
-    lower_limit: 0,
+    upper_limit: 2.792526804,
+    lower_limit: -2.792526804,
     velocity_limit: 2.0
   },
   J2: {
+    #-120 / 120
     type: rc7m_joint,
-    upper_limit: 0,
-    lower_limit: 0,
+    upper_limit: 2.094395103,
+    lower_limit: -2.094395103,
     velocity_limit: 2.0  
   },
   J3: {
+    # 19 / 160 -> -71/70 in ROS
     type: rc7m_joint,
-    upper_limit: 0,
-    lower_limit: 0,
+    upper_limit: 1.221730477,
+    lower_limit: -1.239183769,
     velocity_limit: 2.0
   },
   J4: {
+    #-160 / 160
     type: rc7m_joint,
-    upper_limit: 0,
-    lower_limit: 0,
+    upper_limit: 2.792526804,
+    lower_limit: -2.792526804,
     velocity_limit: 2.0
   },
   J5: {
+    #-120 / 120
     type: rc7m_joint,
-    upper_limit: 0,
-    lower_limit: 0,
+    upper_limit: 2.094395103,
+    lower_limit: -2.094395103,
     velocity_limit: 2.0
   },
   J6: {
+    #-360 / 360
     type: rc7m_joint,
-    upper_limit: 0,
-    lower_limit: 0,
+    upper_limit: 6.283185308,
+    lower_limit: -6.283185308,
     velocity_limit: 2.0
   }
 }

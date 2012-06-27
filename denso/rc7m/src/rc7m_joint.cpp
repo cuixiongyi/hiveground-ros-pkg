@@ -153,6 +153,14 @@ void RC7MJoint::set_feedback_data(double feedback)
 
 double RC7MJoint::set_position(double position)
 {
+  //check position limit
+  if ((position > upper_limit_) || (position < lower_limit_))
+  {
+    ROS_WARN_STREAM(name_ + " position out of range [" << lower_limit_ << ", " << upper_limit_ << "]");
+    return position_;
+  }
+
+
   touched_ = true;
   desired_position_ = position;
   return position;

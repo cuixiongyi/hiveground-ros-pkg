@@ -40,6 +40,7 @@ using namespace hg_plugins;
 
 RC7MController::RC7MController()
   : hg::Controller(),
+    bcap_(false), //do not need CRC check in network mode
     is_running_(false)
 {
   //ROS_INFO_STREAM(__FUNCTION__);
@@ -59,6 +60,9 @@ void RC7MController::initilize(hg::Node* node, const std::string& name)
   ROS_ASSERT(node_->node_handle_.getParam("controllers/" + name + "/rate", rate_));
   ROS_ASSERT(node_->node_handle_.getParam("controllers/" + name + "/ip", ip_));
   ROS_ASSERT(node_->node_handle_.getParam("controllers/" + name + "/port", port_));
+  ROS_INFO_STREAM("control rate " << rate_);
+  ROS_INFO_STREAM("controller IP " << ip_);
+  ROS_INFO_STREAM("controller port " << port_);
 
   //add joints
   XmlRpc::XmlRpcValue joints;
@@ -100,49 +104,116 @@ void RC7MController::initilize(hg::Node* node, const std::string& name)
 
 void RC7MController::startup()
 {
-  if(!node_->simulate_)
+  //if(!node_->simulate_)
   {
     BCAP_HRESULT hr;
 
     //open connection
+    ROS_INFO_STREAM("connect to: " + ip_ +":" << port_);
     hr = bcap_.bCap_Open(ip_, port_);
+    if(FAILED(hr))
+    {
+      ROS_BREAK();
+    }
 
     //get controller
+    ROS_INFO_STREAM("get controller handle");
     hr = bcap_.bCap_ControllerConnect("", "", "", "", &hController_);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
 
     {
       //put controller in external auto mode
+      ROS_INFO_STREAM("put controller into external auto execution mode");
       uint16_t mode = 2;
       long result = 0;
       hr = bcap_.bCap_ControllerExecute2(hController_, "PutAutoMode", VT_I2, 1, &mode, &result);
-    }
+      if(FAILED(hr))
+      {
+        bcap_.bCap_Close();
+        ROS_BREAK();
+      }
 
-    {
       //check auto execution mode
-      int mode = 0;
-      long result = 0;
+      ROS_INFO_STREAM("check auto execution mode");
+      mode = 0;
+      result = 0;
       hr = bcap_.bCap_ControllerExecute2(hController_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
+      if(FAILED(hr))
+      {
+        bcap_.bCap_Close();
+        ROS_BREAK();
+      }
+      ROS_INFO_STREAM("auto execution mode " << result);
+      if(result != 2)
+      {
+        bcap_.bCap_Close();
+        ROS_BREAK();
+      }
     }
 
     //get slave mode task
+    ROS_INFO_STREAM("get slave mode task");
     hr = bcap_.bCap_ControllerGetTask(hController_, "RobSlave", "", &hTask_);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
 
     //start task
+    ROS_INFO_STREAM("start slave mode task");
     hr = bcap_.bCap_TaskStart(hTask_, 1, "");
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+    ROS_INFO("waiting to for task execution");
     ros::Duration(1.0).sleep(); //waiting to the execution
 
     //get robot
+    ROS_INFO_STREAM("get robot");
     hr = bcap_.bCap_ControllerGetRobot(hController_, name_, "$IsIDHandle$", &hRobot_);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+
     {
       //set slave mode
       int mode = 258;
       long result;
+      ROS_INFO_STREAM("set robot to slave mode");
       hr = bcap_.bCap_RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
+      if(FAILED(hr))
+      {
+        bcap_.bCap_Close();
+        ROS_BREAK();
+      }
 
       //check slave mode
       mode = 0;
       result = 0;
+      ROS_INFO_STREAM("check robot mode");
       hr = bcap_.bCap_RobotExecute2(hRobot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+      if(FAILED(hr))
+      {
+        bcap_.bCap_Close();
+        ROS_BREAK();
+      }
+      ROS_INFO_STREAM("mode " << result);
+      if(result != 258)
+      {
+        bcap_.bCap_Close();
+        ROS_BREAK();
+      }
+
     }
   }
 
@@ -164,7 +235,7 @@ void RC7MController::control()
 {
   ros::Rate rate(rate_);
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-  double command[7], result[8];
+  double command[7], command_degree[7];
   while (is_running_)
   {
     ROS_INFO_STREAM_THROTTLE(1.0, name_ << " " << __FUNCTION__);
@@ -173,7 +244,9 @@ void RC7MController::control()
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
-      command[i++] = (*it)->interpolate(1.0/rate_);
+      command[i] = (*it)->interpolate(1.0/rate_);
+      command_degree[i] = (command[i] * 180.0) / M_PI;
+      i++;
     }
 
 
@@ -200,7 +273,8 @@ void RC7MController::control()
       int i = 0;
       for (it = joints_.begin(); it != joints_.end(); it++)
       {
-        (*it)->set_feedback_data((command[i] * M_PI) / 180.0);
+        (*it)->set_feedback_data(command[i]);
+        i++;
       }
     }
     rate.sleep();
@@ -211,13 +285,76 @@ void RC7MController::control()
 
 void RC7MController::shutdown()
 {
-  if(!node_->simulate_)
-  {
-
-  }
-
   is_running_ = false;
   control_thread_.join();
+
+  //if(!node_->simulate_)
+  {
+    BCAP_HRESULT hr;
+    //turn off motor
+
+    //go back to normal mode
+    int mode = 0;
+    long result;
+    ROS_INFO_STREAM("set robot to normal mode");
+    hr = bcap_.bCap_RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
+
+    //check slave mode
+    mode = 0;
+    result = 0;
+    ROS_INFO_STREAM("check robot mode");
+    hr = bcap_.bCap_RobotExecute2(hRobot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+    ROS_INFO_STREAM("mode " << result);
+    if(result != 0)
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+    //release robot
+    ROS_INFO_STREAM("release robot");
+    hr = bcap_.bCap_RobotRelease(hRobot_);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+    //stop slave task
+    ROS_INFO_STREAM("stop slave task");
+    hr = bcap_.bCap_TaskStop(hTask_, 1, "");
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+    //release task
+    ROS_INFO_STREAM("release task");
+    hr = bcap_.bCap_TaskRelease(hTask_);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+    //disconnect controller
+    ROS_INFO_STREAM("disconnect controller");
+    hr = bcap_.bCap_ControllerDisconnect(hController_);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+    //close network connection
+    ROS_INFO_STREAM("close network connection");
+    hr = bcap_.bCap_Close();
+    if(FAILED(hr))
+    {
+      ROS_BREAK();
+    }
+  }
 
 
 
