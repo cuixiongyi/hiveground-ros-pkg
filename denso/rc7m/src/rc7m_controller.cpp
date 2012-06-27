@@ -104,7 +104,7 @@ void RC7MController::initilize(hg::Node* node, const std::string& name)
 
 void RC7MController::startup()
 {
-  //if(!node_->simulate_)
+  if(!node_->simulate_)
   {
     BCAP_HRESULT hr;
 
@@ -288,7 +288,7 @@ void RC7MController::shutdown()
   is_running_ = false;
   control_thread_.join();
 
-  //if(!node_->simulate_)
+  if(!node_->simulate_)
   {
     BCAP_HRESULT hr;
     //turn off motor
