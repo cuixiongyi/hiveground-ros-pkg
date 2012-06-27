@@ -39,8 +39,10 @@
 
 #include <hg_cpp/hg_node.h>
 
-//override shutdown form
-//http://answers.ros.org/question/27655/what-is-the-correct-way-to-do-stuff-before-a-node/
+/*
+ * Override shutdown. Adopt from
+ * http://answers.ros.org/question/27655/what-is-the-correct-way-to-do-stuff-before-a-node/
+ */
 
 // Signal-safe flag for whether shutdown is requested
 sig_atomic_t volatile g_request_shutdown = 0;
