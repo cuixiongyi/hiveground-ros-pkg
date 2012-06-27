@@ -49,7 +49,7 @@ Node::Node() :
 {
   //note settings
   ROS_ASSERT(node_handle_.getParam("simulate", simulate_));
-  ROS_INFO_STREAM("simulated mode: " + simulate_);
+  ROS_INFO_STREAM("simulated mode: " << simulate_);
   ROS_ASSERT(node_handle_.getParam("loop_rate", loop_rate_));
   ROS_INFO_STREAM("loop rate: " << loop_rate_);
   ROS_ASSERT(node_handle_.getParam("joint_publish_rate", joint_publish_rate_));
@@ -81,7 +81,7 @@ Node::Node() :
       boost::shared_ptr<hg::Joint> joint = joint_plugin_loader_.createInstance("hg_cpp/" + type);
       joint->initilize(this, name);
       joints_.push_back(joint);
-      ROS_INFO_STREAM("added joint : " + name);
+      ROS_INFO_STREAM("added joint " + name + " to " + node_handle_.getNamespace());
     }
     catch (pluginlib::PluginlibException& e)
     {
@@ -110,7 +110,7 @@ Node::Node() :
       boost::shared_ptr<hg::Controller> controller = controller_plugin_loader_.createInstance("hg_cpp/" + type);
       controller->initilize(this, name);
       controllers_.push_back(controller);
-      ROS_INFO_STREAM("added controller : " + name);
+      ROS_INFO_STREAM("added controller " + name + " to " + node_handle_.getNamespace());
     }
     catch (pluginlib::PluginlibException& e)
     {
@@ -131,18 +131,35 @@ Node::~Node()
 
 void Node::run()
 {
+  //start all controllers
+  std::vector<boost::shared_ptr<hg::Controller> >::iterator it;
+  for(it = controllers_.begin(); it != controllers_.end(); it++)
+  {
+    (*it)->startup();
+  }
+
+
   ros::Rate loop_rate(loop_rate_);
   while (node_handle_.ok())
   {
     //publish message
     publish();
 
-    //execute all controllers and joints
+    //update all controllers
+    for(it = controllers_.begin(); it != controllers_.end(); it++)
+    {
+      (*it)->update();
+    }
 
     ros::spinOnce();
     loop_rate.sleep();
   }
 
+  //stop all contorllers
+  for(it = controllers_.begin(); it != controllers_.end(); it++)
+  {
+    (*it)->shutdown();
+  }
 }
 
 void Node::publish()
@@ -150,6 +167,16 @@ void Node::publish()
   if (ros::Time::now() > next_joint_publish_time_)
   {
     //ROS_INFO("joint state");
+    sensor_msgs::JointState message;
+    message.header.stamp = ros::Time::now();
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    for(it = joints_.begin(); it != joints_.end(); it++)
+    {
+      message.name.push_back((*it)->name_);
+      message.position.push_back((*it)->position_);
+      message.velocity.push_back((*it)->velocity_);
+    }
+    publisher_joint_state_.publish(message);
     next_joint_publish_time_ = ros::Time::now() + ros::Duration(1.0 / joint_publish_rate_);
   }
 

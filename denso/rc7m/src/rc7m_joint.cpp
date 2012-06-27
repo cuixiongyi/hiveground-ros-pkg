@@ -62,6 +62,12 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/lower_limit", lower_limit_));
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/velocity_limit", velocity_limit_));
 
+  //subscribers
+  subscriber_joint_position_ =
+      node_->node_handle_.subscribe(name_ + "/command/position", 1, &RC7MJoint::callback_joint_position, this);
+  subscriber_joint_velocity_ =
+      node_->node_handle_.subscribe(name_ + "/command/velocity", 1, &RC7MJoint::callback_joint_velocity, this);
+
 }
 
 bool RC7MJoint::get_joint_info_urdf()
@@ -71,17 +77,85 @@ bool RC7MJoint::get_joint_info_urdf()
 
 double RC7MJoint::interpolate(double dt)
 {
+  //if position updated
+  if (touched_)
+  {
+    double command = desired_position_ - last_commanded_position_;
+
+    //check velocity limit
+    double move_limit_dt = velocity_limit_ * dt;
+    if (command > move_limit_dt)
+    {
+      command = move_limit_dt;
+      ROS_WARN_STREAM(name_ + " is reached velocity limit (+)");
+    }
+    else if (command < -move_limit_dt)
+    {
+      command = -move_limit_dt;
+      ROS_WARN_STREAM(name_ + " is reached velocity limit (-)");
+    }
+
+    //check position limit
+    command = last_commanded_position_ + command;
+    if (command > upper_limit_)
+    {
+      command = upper_limit_;
+      ROS_WARN_STREAM(name_ + " is reached upper limit");
+    }
+    else if (command < lower_limit_)
+    {
+      command = lower_limit_;
+      ROS_WARN_STREAM(name_ + " is reached lower limit");
+    }
+
+    //store last command
+    last_commanded_position_ = command;
+
+    //reach target
+    if (last_commanded_position_ == desired_position_)
+    {
+      touched_ = false; //stop the movement
+      ROS_INFO_STREAM("reached desired position: " << desired_position_);
+    }
+
+    //is simulated?
+    if (node_->simulate_)
+    {
+      //set position according to command
+      position_ = last_commanded_position_;
+    }
+
+    return command;
+  }
+  else
+  {
+    return desired_position_; //do not move and hold position
+  }
+
   return 0;
 }
 
 void RC7MJoint::set_feedback_data(double feedback)
 {
+  //save current position
+  double last_position = position_;
 
+  //set new position from feedback data
+  position_ = feedback;
+
+  //compute joint velocity in unit/sec
+  ros::Time t = ros::Time::now();
+  velocity_ = ((position_ - last_position) * 1.0e9)/(t - last_update_).toNSec();
+
+  //save last updated time
+  last_update_ = t;
 }
 
 double RC7MJoint::set_position(double position)
 {
-  return 0;
+  touched_ = true;
+  desired_position_ = position;
+  return position;
 }
 
 diagnostic_msgs::DiagnosticStatus RC7MJoint::get_diagnostics()
@@ -89,3 +163,16 @@ diagnostic_msgs::DiagnosticStatus RC7MJoint::get_diagnostics()
   return hg::Joint::get_diagnostics();
 }
 
+void RC7MJoint::callback_joint_position(const std_msgs::Float64& position)
+{
+  //check controller status
+  if(!controller_->active())
+  {
+    set_position(position.data);
+  }
+}
+
+void RC7MJoint::callback_joint_velocity(const std_msgs::Float64& velocity)
+{
+  //check controller status
+}

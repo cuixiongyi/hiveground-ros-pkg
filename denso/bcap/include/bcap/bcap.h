@@ -172,7 +172,7 @@ public:
   }
 
   /* b-CAP Functions */
-  BCAP_HRESULT bCap_Open(char *pIPStr, int iPort);
+  BCAP_HRESULT bCap_Open(const std::string& pIPStr, int iPort);
   BCAP_HRESULT bCap_Close();
 
 
@@ -203,8 +203,8 @@ public:
   /* b-CAP Task Functions */
   BCAP_HRESULT bCap_TaskRelease(uint32_t lhTask);
   BCAP_HRESULT bCap_TaskGetVariable(uint32_t lhTask, char *pVarName, char *pstrOption, uint32_t *plhVar);
-  BCAP_HRESULT bCap_TaskStart(uint32_t lhTask, long lMode, char *pStrOption);
-  BCAP_HRESULT bCap_TaskStop(uint32_t lhTask, long lMode, char *pStrOption);
+  BCAP_HRESULT bCap_TaskStart(uint32_t lhTask, long lMode, const std::string& pStrOption);
+  BCAP_HRESULT bCap_TaskStop(uint32_t lhTask, long lMode, const std::string& pStrOption);
 
   /* b-CAP Variable Functions */
   BCAP_HRESULT bCap_VariableRelease(uint32_t lhVar);

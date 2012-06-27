@@ -34,6 +34,8 @@
 #ifndef HG_RC7M_CONTROLLER_H_
 #define HG_RC7M_CONTROLLER_H_
 
+#include <boost/thread.hpp>
+
 #include <hg_cpp/hg_controller.h>
 #include <bcap/bcap.h>
 #include <rc7m/rc7m_joint.h>
@@ -72,6 +74,12 @@ public:
   void update();
 
   /**
+   * Control loop of RC7M.
+   * Execute in separated thread.
+   */
+  void control();
+
+  /**
    * Stop the controller, do any hardware shutdown needed.
    */
   void shutdown();
@@ -86,7 +94,13 @@ public:
   BCap bcap_;
   std::string ip_;
   int port_;
+  uint32_t hController_;
+  uint32_t hTask_;
+  uint32_t hRobot_;
 
+  bool is_running_;
+  boost::thread control_thread_;
+  boost::mutex control_mutex_;
 };
 
 }//hg_plugins

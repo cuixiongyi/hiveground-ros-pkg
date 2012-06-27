@@ -35,6 +35,9 @@
 #define HG_RC7M_JOINT_H_
 
 #include <pluginlib/class_list_macros.h>
+#include <std_msgs/Float64.h>
+
+
 #include <hg_cpp/hg_joint.h>
 
 namespace hg_plugins
@@ -82,8 +85,13 @@ public:
    */
   diagnostic_msgs::DiagnosticStatus get_diagnostics();
 
+  //callback
+  void callback_joint_position(const std_msgs::Float64& position);
+  void callback_joint_velocity(const std_msgs::Float64& velocity);
+
   ros::Subscriber subscriber_joint_position_;
   ros::Subscriber subscriber_joint_velocity_;
+
 };
 
 }
