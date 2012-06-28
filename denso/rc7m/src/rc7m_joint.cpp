@@ -125,7 +125,7 @@ double RC7MJoint::interpolate(double dt)
     if (last_commanded_position_ == desired_position_)
     {
       touched_ = false; //stop the movement
-      ROS_INFO_STREAM("reached desired position: " << desired_position_);
+      //ROS_INFO_STREAM("reached desired position: " << desired_position_);
     }
 
     //is simulated?

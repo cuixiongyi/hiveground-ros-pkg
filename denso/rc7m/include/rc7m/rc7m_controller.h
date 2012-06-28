@@ -34,6 +34,14 @@
 #ifndef HG_RC7M_CONTROLLER_H_
 #define HG_RC7M_CONTROLLER_H_
 
+#include <actionlib/server/simple_action_server.h>
+#include <actionlib/client/simple_action_client.h>
+#include <actionlib_msgs/GoalStatus.h>
+
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <trajectory_msgs/JointTrajectory.h>
+#include <trajectory_msgs/JointTrajectoryPoint.h>
+
 #include <boost/thread.hpp>
 
 #include <hg_cpp/hg_controller.h>
@@ -97,9 +105,12 @@ private:
 
   /**
    * Get feedback from robot and update joints.
+   * @
    */
   BCAP_HRESULT getJointFeedback(bool set_desired_position_ = false);
 
+  //action server
+  void callbackAction(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
 
 public:
   BCap bcap_;
@@ -112,10 +123,16 @@ public:
   uint32_t hAngleVariable;
   bool motor_on_;
   bool slave_mode_on_;
+  bool is_busy_;
 
   bool is_running_;
   boost::thread control_thread_;
   boost::mutex control_mutex_;
+
+  typedef actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> FollowJointTrajectoryActionServer;
+  typedef boost::shared_ptr<FollowJointTrajectoryActionServer> FollowJointTrajectoryActionServerPtr;
+  FollowJointTrajectoryActionServerPtr action_server_;
+  control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
 };
 
 }//hg_plugins

@@ -15,10 +15,10 @@
       <remap from="robot_description" to="/arm1/robot_description" />
       <!--remap from="joint_states" to="/arm1/joint_states" /-->
   </node>
-	
-  <node pkg="rviz" type="rviz" name="rviz">
+  
+  <!--node pkg="rviz" type="rviz" name="rviz">
       <remap from="robot_description" to="/arm1/robot_description" />
-  </node>
+  </node-->
   
     
 </launch>

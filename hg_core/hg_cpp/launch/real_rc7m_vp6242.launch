@@ -13,7 +13,7 @@
   
   <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >
       <remap from="robot_description" to="/arm1/robot_description" />
-      <remap from="joint_states" to="/arm1/joint_states" />
+      <!--remap from="joint_states" to="/arm1/joint_states" /-->
   </node>
 	
   <node pkg="rviz" type="rviz" name="rviz">

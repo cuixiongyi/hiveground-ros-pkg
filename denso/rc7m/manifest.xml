@@ -9,9 +9,13 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/rc7m</url>
   <depend package="roscpp"/>
-  <depend package="pluginlib"/>
+  <depend package="pluginlib"/>  
+  <depend package="actionlib"/>
+  
   <depend package="std_msgs"/>
-
+  <depend package="control_msgs"/>
+  <depend package="trajectory_msgs"/>
+  
   <depend package="hg_cpp"/>
   <depend package="bcap"/>
 
