@@ -123,8 +123,8 @@ Node::Node() :
   }
 
   //setup publisher
-  publisher_joint_state_ = node_handle_.advertise<sensor_msgs::JointState>("joint_states", 1);
-  publisher_diagnostic_ = node_handle_.advertise<diagnostic_msgs::DiagnosticArray>("diagnostics", 1);
+  publisher_joint_state_ = node_handle_.advertise<sensor_msgs::JointState>("/joint_states", 1);
+  publisher_diagnostic_ = node_handle_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1);
 }
 
 Node::~Node()
@@ -176,7 +176,8 @@ void Node::publish()
     for(it = joints_.begin(); it != joints_.end(); it++)
     {
       message.name.push_back((*it)->name_);
-      message.position.push_back((*it)->position_ + (*it)->position_offset_); // add URDF offset
+      //message.position.push_back((*it)->position_ + (*it)->position_offset_); // add URDF offset
+      message.position.push_back((*it)->position_); // add URDF offset
       message.velocity.push_back((*it)->velocity_);
     }
     publisher_joint_state_.publish(message);

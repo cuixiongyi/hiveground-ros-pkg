@@ -43,6 +43,7 @@ RC7MController::RC7MController() :
     bcap_(false), //do not need CRC check in network mode
     motor_on_(false),
     slave_mode_on_(false),
+    is_busy_(false),
     is_running_(false)
 {
   //ROS_INFO_STREAM(__FUNCTION__);
@@ -256,15 +257,19 @@ void RC7MController::startup()
       }
       slave_mode_on_ = true;
     }
-
-
-
-
   }
 
   //create control thread
   control_thread_ = boost::thread(&RC7MController::control, this);
   is_running_ = true;
+
+
+  //start action server
+  action_server_ = FollowJointTrajectoryActionServerPtr(
+      new FollowJointTrajectoryActionServer(node_->node_handle_, "follow_joint_trajectory",
+                                            boost::bind(&RC7MController::callbackAction, this, _1), false));
+  action_server_->start();
+
 
   ROS_INFO_STREAM(name_ + ": started");
 }
@@ -290,27 +295,26 @@ void RC7MController::control()
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
       command[i] = (*it)->interpolate(1.0 / rate_);
-      command_degree[i] = (command[i] * 180.0) / M_PI;
+
+      //check real robot <-> URDF joint offset
+       if((*it)->position_offset_ != 0.0)
+       {
+         command_degree[i] = ((command[i] - (*it)->position_offset_) * 180.0) / M_PI;
+       }
+       else
+       {
+         command_degree[i] = (command[i] * 180.0) / M_PI;
+       }
+
       i++;
     }
-
-//    ROS_INFO_STREAM("J1:" << command_degree[0]);
-//    ROS_INFO_STREAM_THROTTLE(0.1,
-//                             "J1:" << command_degree[0] <<
-//                             " J2:" << command_degree[1] <<
-//                             " J3:" << command_degree[2] <<
-//                             " J4:" << command_degree[3] <<
-//                             " J5:" << command_degree[4] <<
-//                             " J6:" << command_degree[5]);
 
     if (!node_->simulate_)
     {
       BCAP_HRESULT hr;
       if(motor_on_)
       {
-        //set next joint positions
-        //setJoint();
-
+        //set joint positions
         hr = bcap_.bCap_RobotExecute2(
             hRobot_,
             "slvMove",
@@ -496,6 +500,8 @@ BCAP_HRESULT RC7MController::getJointFeedback(bool set_desired_position_)
     return hr;
   }
 
+
+
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
   int i = 0;
   double radian = 0;
@@ -503,6 +509,14 @@ BCAP_HRESULT RC7MController::getJointFeedback(bool set_desired_position_)
   {
     //convert to radian
     radian = (angle_variables[i] * M_PI)/180.0;
+
+    //check real robot <-> URDF joint offset
+    if((*it)->position_offset_ != 0.0)
+    {
+      radian += (*it)->position_offset_;
+    }
+
+
     if(set_desired_position_)
     {
       (*it)->desired_position_ = radian;
@@ -515,3 +529,129 @@ BCAP_HRESULT RC7MController::getJointFeedback(bool set_desired_position_)
   return hr;
 }
 
+void RC7MController::callbackAction(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
+{
+  ROS_INFO_STREAM(name_  << __FUNCTION__);
+  action_goal_ = goal;
+
+  //get trajectory
+  trajectory_msgs::JointTrajectory trajectory = action_goal_->trajectory;
+
+  control_msgs::FollowJointTrajectoryResult result;
+
+  //check joint names
+  for (size_t i = 0; i < trajectory.joint_names.size(); i++)
+  {
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    bool found = false;
+    for (it = joints_.begin(); it != joints_.end(); it++)
+    {
+      if((*it)->name_ == trajectory.joint_names[i])
+      {
+        found = true;
+      }
+    }
+    if (!found)
+    {
+      //ROS_ERROR("Trajectory joint names do not match with controlled joints");
+      result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+      action_server_->setAborted(result, "Trajectory joint names do not match with controlled joints");
+      return;
+    }
+  }
+
+  //check points
+  if(trajectory.points.size() == 0)
+  {
+    //ROS_ERROR("Trajectory empty");
+    result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL ;
+    action_server_->setAborted(result, "Trajectory empty");
+    return;
+  }
+
+  ROS_INFO_STREAM("Trajectort points: " << trajectory.points.size());
+  for(size_t i = 0; i < trajectory.points.size(); i++)
+  {
+    trajectory_msgs::JointTrajectoryPoint point =  trajectory.points[i];
+    std::vector<double> target_positions = point.positions;
+    ros::Time end_time = ros::Time::now() + point.time_from_start;
+    ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+  }
+
+  ros::Time current_time = ros::Time::now();
+  ros::Time trajectory_start_time = trajectory.header.stamp;
+
+  ROS_INFO("%6.3f %6.3f", current_time.toSec(), trajectory_start_time.toSec());
+
+  std::vector<double> last_joint_positions;
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  for(it = joints_.begin(); it != joints_.end(); it++)
+  {
+    last_joint_positions.push_back((*it)->position_);
+    //ROS_INFO_STREAM( "last position of " << (*it)->name_ << ":" << (*it)->position_);
+  }
+
+  for (size_t i = 0; i < trajectory.points.size(); i++)
+  {
+    while ((ros::Time::now() + ros::Duration(0.01)) < trajectory_start_time)
+    {
+      //wait for time
+      ros::Duration(0.01).sleep();
+    }
+
+    trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
+    std::vector<double> target_positions = point.positions;
+    //for(size_t j = 0; j < target_positions.size(); j++)
+    //{
+      //ROS_INFO_STREAM("target joint[" << j << "]" <<  " position: " << target_positions[j]);
+    //}
+
+    ros::Time end_time = trajectory_start_time + point.time_from_start;
+    //ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+
+
+    std::vector<double> error, velocity;
+    error.resize(target_positions.size());
+    velocity.resize(target_positions.size());
+    double command;
+    ros::Rate rate(50.0);
+    while ((ros::Time::now() + ros::Duration(0.01)) < end_time)
+    {
+      std::vector<boost::shared_ptr<hg::Joint> >::iterator it = joints_.begin();
+      for (size_t k = 0; k < error.size(); k++, it++)
+      {
+        error[k] = target_positions[k] - last_joint_positions[k];
+        velocity[k] = fabs(error[k] / (50.0 * (end_time - ros::Time::now()).toSec()));
+        //ROS_INFO_THROTTLE(1, "v: %f", velocity[k]);
+
+        if (fabs(error[k]) > 0.001)
+        {
+          command = error[k];
+          if (command > velocity[k])
+          {
+            command = velocity[k];
+          }
+          else if (command > velocity[k])
+          {
+            command = -velocity[k];
+          }
+          last_joint_positions[k] += command;
+          //ROS_INFO_THROTTLE(1, "cmd: %f", last_positions[k]);
+          (*it)->setPosition(last_joint_positions[k]);
+        }
+        else
+        {
+          //reached
+          velocity[k] = 0;
+        }
+
+      }
+      rate.sleep();
+    }
+  }
+
+
+  ROS_INFO("Trajectory done!!!");
+  result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+  action_server_->setSucceeded(result, "Trajectory done!");
+}
