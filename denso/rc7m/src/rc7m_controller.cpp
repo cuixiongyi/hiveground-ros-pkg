@@ -39,7 +39,10 @@ PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_controller, hg_plugins::RC7MController, hg:
 using namespace hg_plugins;
 
 RC7MController::RC7MController() :
-    hg::Controller(), bcap_(false), //do not need CRC check in network mode
+    hg::Controller(),
+    bcap_(false), //do not need CRC check in network mode
+    motor_on_(false),
+    slave_mode_on_(false),
     is_running_(false)
 {
   //ROS_INFO_STREAM(__FUNCTION__);
@@ -197,20 +200,31 @@ void RC7MController::startup()
       ROS_BREAK();
     }
 
-    //read joint angle (position)
-    float angle_variables[8];
-    hr = bcap_.bCap_VariableGetValue(hAngleVariable, angle_variables);
+    //read and set joint angle (position)
+    hr = getJointFeedback(true);
     if (FAILED(hr))
     {
       bcap_.bCap_Close();
       ROS_BREAK();
     }
-    for(int i = 0; i < 8; i++)
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    for (it = joints_.begin(); it != joints_.end(); it++)
     {
-      ROS_INFO_STREAM(name_ + ": J" << i << " " << angle_variables[i] << " degree");
+      ROS_INFO_STREAM(name_ << ": " << (*it)->name_ << " position " << (*it)->position_);
+      ROS_INFO_STREAM(name_ << ": " << (*it)->name_ << " desired position_ " << (*it)->desired_position_);
     }
 
+    //read current joint position
 
+
+    //turn on motor
+    ROS_INFO_STREAM(name_ + ": turn on motor");
+    hr = setMotor(true);
+    if (FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
 
     {
       //set slave mode
@@ -240,8 +254,12 @@ void RC7MController::startup()
         bcap_.bCap_Close();
         ROS_BREAK();
       }
-
+      slave_mode_on_ = true;
     }
+
+
+
+
   }
 
   //create control thread
@@ -260,10 +278,12 @@ void RC7MController::control()
 {
   ros::Rate rate(rate_);
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-  double command[7], command_degree[7];
+  double command[7];
+  float command_degree[7], command_result[7];
+
   while (is_running_)
   {
-    ROS_INFO_STREAM_THROTTLE(1.0, name_ << " " << __FUNCTION__);
+    //ROS_INFO_STREAM_THROTTLE(1.0, name_ << " " << __FUNCTION__);
 
     //get position of each joint
     int i = 0;
@@ -274,20 +294,49 @@ void RC7MController::control()
       i++;
     }
 
+//    ROS_INFO_STREAM("J1:" << command_degree[0]);
+//    ROS_INFO_STREAM_THROTTLE(0.1,
+//                             "J1:" << command_degree[0] <<
+//                             " J2:" << command_degree[1] <<
+//                             " J3:" << command_degree[2] <<
+//                             " J4:" << command_degree[3] <<
+//                             " J5:" << command_degree[4] <<
+//                             " J6:" << command_degree[5]);
+
     if (!node_->simulate_)
     {
-      //set next joint positions
-      setJoint();
+      BCAP_HRESULT hr;
+      if(motor_on_)
+      {
+        //set next joint positions
+        //setJoint();
+
+        hr = bcap_.bCap_RobotExecute2(
+            hRobot_,
+            "slvMove",
+            VT_R4|VT_ARRAY,
+            7,
+            command_degree,
+            command_result);
+        if(FAILED(hr))
+        {
+          ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " slvMode fail!");
+        }
+      }
 
       //get feedback from robot's angle variable
-      getJointFeedback();
+      hr = getJointFeedback();
+      if(FAILED(hr))
+      {
+        ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " get joint feedback fail!");
+      }
     }
     else
     {
       int i = 0;
       for (it = joints_.begin(); it != joints_.end(); it++)
       {
-        (*it)->set_feedback_data(command[i]);
+        (*it)->setFeedbackData(command[i]);
         i++;
       }
     }
@@ -305,7 +354,7 @@ void RC7MController::shutdown()
   if (!node_->simulate_)
   {
     BCAP_HRESULT hr;
-    //turn off motor
+
 
     //go back to normal mode
     int mode = 0;
@@ -334,9 +383,19 @@ void RC7MController::shutdown()
       bcap_.bCap_Close();
       ROS_BREAK();
     }
+    slave_mode_on_ = false;
+
+    //turn off motor
+    ROS_INFO_STREAM(name_ + ": turn off motor");
+    hr = setMotor(false);
+    if (FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
 
     //release variables
-    ROS_INFO_STREAM(name_ + ": get robot variable handles");
+    ROS_INFO_STREAM(name_ + ": release robot variable handles");
     hr = bcap_.bCap_VariableRelease(hPositionVariable);
     if (FAILED(hr))
     {
@@ -404,55 +463,55 @@ bool RC7MController::active()
   return false;
 }
 
-bool RC7MController::setMotor(bool on_off)
+BCAP_HRESULT RC7MController::setMotor(bool on_off)
 {
   if (node_->simulate_)
-    return true;
+    return BCAP_S_OK;
 
   boost::unique_lock<boost::mutex> lock(control_mutex_);
 
-  BCAP_HRESULT hr;
+  BCAP_HRESULT hr = BCAP_E_FAIL;
   int mode = (on_off) ? 1 : 0;
   long result;
   hr = bcap_.bCap_RobotExecute2(hRobot_, "Motor", VT_I2, 1, &mode, &result);
-  if (FAILED(hr))
+  if(SUCCEEDED(hr))
   {
-    ROS_ERROR_STREAM(name_ + ": set motor fail");
-    return false;
+    ROS_INFO_STREAM(name_ + ": waiting for motor to turn on/off");
+    ros::Duration(5.0).sleep(); //waiting for motor to turn on/off
+    motor_on_ = on_off;
   }
-  else
-  {
-    if (on_off)
-      ROS_INFO_STREAM(name_ + ": set motor on");
-    else
-      ROS_INFO_STREAM(name_ + ": set motor off");
-    return true;
-  }
+  return hr;
 }
 
-void RC7MController::setJoint()
-{
-
-}
-
-void RC7MController::getJointFeedback()
+BCAP_HRESULT RC7MController::getJointFeedback(bool set_desired_position_)
 {
   float angle_variables[8];
-  BCAP_HRESULT hr;
+  BCAP_HRESULT hr = BCAP_E_FAIL;
+
+  boost::unique_lock<boost::mutex> lock(control_mutex_);
+
   hr = bcap_.bCap_VariableGetValue(hAngleVariable, angle_variables);
   if (FAILED(hr))
   {
-    bcap_.bCap_Close();
-    ROS_BREAK();
+    return hr;
   }
 
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
   int i = 0;
+  double radian = 0;
   for (it = joints_.begin(); it != joints_.end(); it++)
   {
     //convert to radian
-    (*it)->set_feedback_data((angle_variables[i] * M_PI)/180.0);
+    radian = (angle_variables[i] * M_PI)/180.0;
+    if(set_desired_position_)
+    {
+      (*it)->desired_position_ = radian;
+      (*it)->last_commanded_position_ = radian;
+    }
+    (*it)->setFeedbackData(radian);
     i++;
   }
+
+  return hr;
 }
 

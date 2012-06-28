@@ -64,7 +64,7 @@ public:
   /**
    * Load joint information from URDF.
    */
-  bool get_joint_info_urdf();
+  bool getJointInformationUrdf();
   /**
    * Interpolate joint position after dt.
    */
@@ -73,23 +73,25 @@ public:
   /**
    * Set feedback data from sensor (encoder, camera, ...).
    */
-  void set_feedback_data(double feedback);
+  void setFeedbackData(double feedback);
 
   /**
    * Set joint position.
    */
-  double set_position(double position);
+  double setPosition(double position);
 
   /**
    * Get a diagnostics message for this joint.
    */
-  diagnostic_msgs::DiagnosticStatus get_diagnostics();
+  diagnostic_msgs::DiagnosticStatus getDiagnostics();
 
   //callback
-  void callback_joint_position(const std_msgs::Float64& position);
-  void callback_joint_velocity(const std_msgs::Float64& velocity);
+  void callbackJointPosition(const std_msgs::Float64& position);
+  void callbackJointPositionDegree(const std_msgs::Float64& position);
+  void callbackJointVelocity(const std_msgs::Float64& velocity);
 
   ros::Subscriber subscriber_joint_position_;
+  ros::Subscriber subscriber_joint_position_degree_;
   ros::Subscriber subscriber_joint_velocity_;
 
 };
