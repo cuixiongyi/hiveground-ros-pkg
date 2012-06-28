@@ -90,9 +90,15 @@ public:
   bool active();
 
 private:
-  bool setMotor(bool on_off);
-  void setJoint();
-  void getJointFeedback();
+  /**
+   * Turn motor on/off.
+   */
+  BCAP_HRESULT setMotor(bool on_off);
+
+  /**
+   * Get feedback from robot and update joints.
+   */
+  BCAP_HRESULT getJointFeedback(bool set_desired_position_ = false);
 
 
 public:
@@ -104,6 +110,8 @@ public:
   uint32_t hRobot_;
   uint32_t hPositionVariable;
   uint32_t hAngleVariable;
+  bool motor_on_;
+  bool slave_mode_on_;
 
   bool is_running_;
   boost::thread control_thread_;

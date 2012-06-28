@@ -90,7 +90,7 @@ public:
   /**
    * Load joint information from URDF.
    */
-  virtual bool get_joint_info_urdf()
+  virtual bool getJointInformationUrdf()
   {
     return false;
   }
@@ -103,17 +103,17 @@ public:
   /**
    * Set feedback data from sensor (encoder, camera, ...).
    */
-  virtual void set_feedback_data(double feedback) = 0;
+  virtual void setFeedbackData(double feedback) = 0;
 
   /**
    * Set joint position.
    */
-  virtual double set_position(double position) = 0;
+  virtual double setPosition(double position) = 0;
 
   /**
    * Get a diagnostics message for this joint.
    */
-  virtual diagnostic_msgs::DiagnosticStatus get_diagnostics()
+  virtual diagnostic_msgs::DiagnosticStatus getDiagnostics()
   {
     diagnostic_msgs::DiagnosticStatus message;
     message.name = name_;
