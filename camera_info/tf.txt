@@ -1,0 +1,8 @@
+static_transform_publisher x y z yaw pitch roll frame_id child_frame_id period_in_ms
+
+opencv solvepnp rvec[rx, ry ,rz] -> [roll, pitch, yaw]
+
+
+20120629_2246.jpg
+rosrun tf static_transform_publisher -0.4691822525323973 -0192274727306325 1.717209377059442 0.5659148015796522 -0.244041642395362 3.382294198 /camera_rgb_optical_frame /plate 100
+
