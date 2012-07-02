@@ -37,17 +37,63 @@
 #include <sensor_msgs/Image.h>
 
 static const char WINDOW_NAME[] = "Workspace Calibrator";
-int x_size_;
-int y_size_;
+std::string MARKER_WINDOWS[4] =
+{
+  "marker0", "marker1", "marker2", "marker3"
+};
+std::string image_topic_;
+int x_step_;
+int y_step_;
 double size_;
-bool square_;
+double x_gap_;
+double y_gap_;
+
 cv::Mat camera_matrix_;
 cv::Mat camera_distortion_;
+std::vector<cv::Point3f> marker_points_;
 std::vector<cv::Point3f> object_points_;
+int state_ = 0;
+cv::Point markers_[4];
+
+void onMouse( int event, int x, int y, int, void* )
+{
+  switch (event)
+  {
+    case CV_EVENT_LBUTTONDOWN:
+    {
+      //put a box;
+      if(state_ < 4)
+      {
+        markers_[state_].x = x;
+        markers_[state_].y = y;
+        state_++;
+      }
+
+      break;
+    }
+    case CV_EVENT_MOUSEMOVE: break;
+
+  }
+}
+
+void onKey(int key)
+{
+  //ROS_INFO_STREAM("get key: " << (char)key);
+  switch(tolower((char)key))
+  {
+    case
+      'r': state_ = 0;
+      markers_[0] = markers_[1] = markers_[2] = markers_[3] = cv::Point();
+    break;
+  }
+}
 
 void imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
-  ROS_INFO_STREAM_THROTTLE(1.0, image->encoding);
+  //ROS_INFO_STREAM_THROTTLE(1.0, image->encoding);
+
+  int key = cv::waitKey(10);
+  onKey(key);
 
    // convert to cv image
   cv_bridge::CvImagePtr bridge;
@@ -61,6 +107,114 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
     return;
   }
 
+  //cv::imshow("input image", bridge->image);
+
+  cv::Mat input_image;
+  cv::cvtColor(bridge->image, input_image, CV_GRAY2RGB);
+
+
+  for(int i = 0; i < 4; i++)
+  {
+    cv::rectangle(input_image,
+                  cv::Point(markers_[i].x - 50, markers_[i].y - 50),
+                  cv::Point(markers_[i].x + 50, markers_[i].y + 50),
+                  cv::Scalar(255, 128, 0));
+    std::stringstream ss;
+    ss << i;
+    std::string text;
+    ss >> text;
+    cv::putText(input_image,
+                text,
+                cv::Point(markers_[i].x - 50, markers_[i].y - 50),
+                cv::FONT_HERSHEY_SIMPLEX,
+                1.0,
+                cv::Scalar(0, 0, 255));
+  }
+
+
+
+  if(state_ == 4)
+  {
+    std::vector<cv::Point2f> all_blobs;
+
+    for(int i = 0; i < 4; i++)
+    {
+
+
+      cv::Mat roi_image = cv::Mat(
+          bridge->image,
+          cv::Rect(markers_[i].x - 50, markers_[i].y - 50,
+                   100, 100));
+          //cv::Rect(10, 10, 100, 100));
+
+
+      cv::Size pattern_size(x_step_, y_step_);
+      std::vector<cv::Point2f> blobs;
+      bool pattern_found = false;
+      pattern_found = cv::findCirclesGrid(roi_image, pattern_size, blobs, cv::CALIB_CB_ASYMMETRIC_GRID);
+
+      if(pattern_found)
+      {
+        if(blobs.back().y < blobs.front().y)
+        {
+          std::reverse(blobs.begin(), blobs.end());
+        }
+
+
+        cv::Mat roi_image_draw;
+        cv::cvtColor(roi_image, roi_image_draw, CV_GRAY2BGR);
+        cv::drawChessboardCorners(roi_image_draw, pattern_size, cv::Mat(blobs), pattern_found);
+        cv::imshow(MARKER_WINDOWS[i], roi_image_draw);
+
+        for(std::vector<cv::Point2f>::iterator it = blobs.begin(); it != blobs.end(); it++)
+        {
+          it->x += (markers_[i].x - 50);
+          it->y += (markers_[i].y - 50);
+        }
+
+
+        all_blobs.insert(all_blobs.end(), blobs.begin(), blobs.end());
+
+/*
+        if(i==0)
+        {
+          for(int idx = 0; idx < blobs.size(); idx++)
+          {
+            ROS_INFO_STREAM(blobs[idx] << marker_points_[idx]);
+          }
+
+
+          cv::Mat rvec, tvec;
+          cv::solvePnP(marker_points_, blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
+          ROS_INFO_STREAM(rvec);
+          ROS_INFO_STREAM(tvec);
+        }
+*/
+      }
+    }
+
+
+    if(all_blobs.size() == object_points_.size())
+    {
+      ROS_INFO_THROTTLE(1.0, "got all blobs");
+      cv::Mat rvec, tvec;
+      cv::solvePnP(object_points_, all_blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
+      ROS_INFO_STREAM_THROTTLE(1.0, rvec);
+      ROS_INFO_STREAM_THROTTLE(1.0, tvec);
+
+    }
+
+
+
+
+  }
+
+
+
+
+
+
+#if 0
   //find chessboard
   cv::Size pattern_size(x_size_, y_size_);
   std::vector<cv::Point2f> corners;
@@ -110,7 +264,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
   // display
   cv::imshow(WINDOW_NAME, result);
 
-  cv::waitKey(3);
+#endif
+
+  cv::imshow(WINDOW_NAME, input_image);
+
+
 }
 
 int main(int argc, char* argv[])
@@ -119,10 +277,22 @@ int main(int argc, char* argv[])
   ros::NodeHandle n;
   ros::NodeHandle nh("~");
 
-  nh.param("x_size", x_size_, 2);
-  nh.param("y_size", y_size_, 7);
-  nh.param("size", size_, 0.10);
-  nh.param("square", square_, false);
+
+  nh.param("x_step", x_step_, 3);
+  nh.param("y_step", y_step_, 4);
+  nh.param("size", size_, 0.08);
+  nh.param("x_gap", x_gap_, 0.432 + (0.08*y_step_/2.0));
+  nh.param("y_gap", y_gap_, 0.892 + (0.08*x_step_));
+  ROS_INFO_STREAM("x step: " << x_step_);
+  ROS_INFO_STREAM("y step: " << y_step_);
+  ROS_INFO_STREAM("size: " << size_);
+  ROS_INFO_STREAM("x gap: " << x_gap_);
+  ROS_INFO_STREAM("y gap: " << y_gap_);
+
+
+  n.param("image_topic", image_topic_, std::string("/camera/rgb/image_mono"));
+  ROS_INFO_STREAM("image topic: " << image_topic_);
+
 
   ROS_INFO("read camera metrix");
   double camera_matrix[9] = {528.825665620759, 0, 313.756893528701, 0, 530.466279366652, 253.210556553393, 0, 0, 1};
@@ -131,6 +301,94 @@ int main(int argc, char* argv[])
   camera_distortion_ = cv::Mat(1,5, CV_64FC1, camera_distortion);
 
 
+  /*
+  for(int y = 0; y < y_step_; y++)
+  {
+    for(int x = 0; x < x_step_; x++)
+    {
+      if((y%2) == 0)
+      {
+        marker_points_.push_back(cv::Point3f(y*(size_/2.0), x*size_, 0));
+      }
+      else
+      {
+        marker_points_.push_back(cv::Point3f(y*(size_/2.0), (x*size_)+(size_/2.0), 0));
+      }
+      //ROS_INFO_STREAM(marker_points.back());
+    }
+    //ROS_INFO_STREAM("-----");
+  }
+  */
+
+  for(int y = 0; y < y_step_; y++)
+  {
+    for(int x = 0; x < x_step_; x++)
+    {
+      if ((y % 2) == 0)
+      {
+        //marker_points_.push_back(cv::Point3f(-(x * size_), -(y * (size_ / 2.0)), 0.0));
+        marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
+      }
+      else
+      {
+        //marker_points_.push_back(cv::Point3f(-((x * size_) + (size_ / 2.0)), -(y * (size_ / 2.0)), 0.0));
+        marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
+      }
+      ROS_INFO_STREAM(marker_points_.back());
+    }
+    ROS_INFO_STREAM("-----");
+  }
+
+
+  //object_points_
+  for(size_t i = 0; i < marker_points_.size(); i++)
+  {
+    cv::Point3f p(marker_points_[i]);
+    p.x -= 0;
+    p.y -= 0;
+    object_points_.push_back(p);
+    ROS_INFO_STREAM(object_points_.back());
+    if((i+1)%3==0) ROS_INFO_STREAM("-----");
+  }
+
+
+  for(size_t i = 0; i < marker_points_.size(); i++)
+  {
+    cv::Point3f p(marker_points_[i]);
+    p.x += 0;
+    p.y += x_gap_;
+    object_points_.push_back(p);
+    ROS_INFO_STREAM(object_points_.back());
+    if((i+1)%3==0) ROS_INFO_STREAM("-----");
+  }
+
+
+  for(size_t i = 0; i < marker_points_.size(); i++)
+  {
+    cv::Point3f p(marker_points_[i]);
+    p.x += y_gap_;
+    p.y += x_gap_;
+    object_points_.push_back(p);
+    ROS_INFO_STREAM(object_points_.back());
+    if((i+1)%3==0) ROS_INFO_STREAM("-----");
+  }
+
+  for(size_t i = 0; i < marker_points_.size(); i++)
+  {
+    cv::Point3f p(marker_points_[i]);
+    p.x += y_gap_;
+    p.y += 0;
+    object_points_.push_back(p);
+    ROS_INFO_STREAM(object_points_.back());
+    if((i+1)%3==0) ROS_INFO_STREAM("-----");
+  }
+
+  ROS_INFO_STREAM("total points: " << object_points_.size());
+
+
+
+
+/*
   ROS_INFO("setup object point");
   if(!square_)
   {
@@ -163,11 +421,12 @@ int main(int argc, char* argv[])
       }
     }
   }
-
+*/
 
   cv::namedWindow(WINDOW_NAME);
+  cv::setMouseCallback(WINDOW_NAME, onMouse, 0 );
 
   ROS_INFO("Subscribe to image topic");
-  ros::Subscriber sub = n.subscribe("/camera/rgb/image_mono", 3, &imageCallback);
+  ros::Subscriber sub = n.subscribe(image_topic_, 3, &imageCallback);
   ros::spin();
 }
