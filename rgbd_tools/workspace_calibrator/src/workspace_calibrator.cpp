@@ -88,6 +88,43 @@ void onKey(int key)
   }
 }
 
+int getQuaternion(const cv::Mat_<double> &rvec, cv::Mat_<double> &quat) {
+    cv::Mat_<double> R(3, 3);
+    cv::Rodrigues(rvec, R);
+
+    if ((quat.rows == 4) && (quat.cols == 1)) {
+        //Mat size OK
+    } else {
+        quat = cv::Mat_<double>::eye(4,1);
+    }
+    double   w;
+
+    w = R(0,0) + R(1,1)+ R(2,2) + 1;
+    if ( w < 0.0 ) return 1;
+
+    w = std::sqrt( w );
+    quat(0,0) = (R(2,1) - R(1,2)) / (w*2.0);
+    quat(1,0) = (R(0,2) - R(2,0)) / (w*2.0);
+    quat(2,0) = (R(1,0) - R(0,1)) / (w*2.0);
+    quat(3,0) = w / 2.0;
+    return 0;
+}
+
+cv::Mat_<double> getQuaternion(const cv::Point3d &vec, float angle)
+{
+  float sinAngle;
+  angle *= 0.5f;
+  cv::Mat_<double> quat = cv::Mat_<double>::eye(4, 1);
+
+  sinAngle = std::sin(angle);
+
+  quat(0, 0) = (vec.x * sinAngle);
+  quat(1, 0) = (vec.y * sinAngle);
+  quat(2, 0) = (vec.z * sinAngle);
+  quat(3, 0) = std::cos(angle);
+  return quat;
+}
+
 void imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
   //ROS_INFO_STREAM_THROTTLE(1.0, image->encoding);
@@ -197,10 +234,27 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
     if(all_blobs.size() == object_points_.size())
     {
       ROS_INFO_THROTTLE(1.0, "got all blobs");
-      cv::Mat rvec, tvec;
+      cv::Mat_<double> rvec, tvec, q, rotation_matrix;
       cv::solvePnP(object_points_, all_blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
-      ROS_INFO_STREAM_THROTTLE(1.0, rvec);
       ROS_INFO_STREAM_THROTTLE(1.0, tvec);
+      ROS_INFO_STREAM_THROTTLE(1.0, rvec);
+
+      //board -> camera
+      Rodrigues(rvec, rotation_matrix);
+
+      double* rptr = rotation_matrix.ptr<double>(0);
+      double* tptr = tvec.ptr<double>(0);
+      cv::Mat transformation_matrix =
+          (cv::Mat_<double>(4, 4) <<
+              rptr[0], rptr[1], rptr[2], tptr[0],
+              rptr[3], rptr[4], rptr[5], tptr[1],
+              rptr[6], rptr[7], rptr[8], tptr[2],
+              0, 0, 0, 1);
+      ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix);
+      ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix.inv());
+
+
+
 
     }
 
@@ -301,6 +355,9 @@ int main(int argc, char* argv[])
   camera_distortion_ = cv::Mat(1,5, CV_64FC1, camera_distortion);
 
 
+  cv::Mat q1 = getQuaternion(cv::Point3d(1.0, 0, 0), M_PI);
+  ROS_INFO_STREAM_THROTTLE(1.0, q1);
+
   /*
   for(int y = 0; y < y_step_; y++)
   {
@@ -327,11 +384,13 @@ int main(int argc, char* argv[])
       if ((y % 2) == 0)
       {
         //marker_points_.push_back(cv::Point3f(-(x * size_), -(y * (size_ / 2.0)), 0.0));
+        //marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
         marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
       }
       else
       {
         //marker_points_.push_back(cv::Point3f(-((x * size_) + (size_ / 2.0)), -(y * (size_ / 2.0)), 0.0));
+        //marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
         marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
       }
       ROS_INFO_STREAM(marker_points_.back());
@@ -382,6 +441,17 @@ int main(int argc, char* argv[])
     ROS_INFO_STREAM(object_points_.back());
     if((i+1)%3==0) ROS_INFO_STREAM("-----");
   }
+
+  /*
+  double tmp;
+  for(size_t i = 0; i < object_points_.size(); i++)
+  {
+    tmp = object_points_[i].x;
+    object_points_[i].x = object_points_[i].y;
+    object_points_[i].y = tmp;
+    ROS_INFO_STREAM(object_points_[i]);
+  }
+  */
 
   ROS_INFO_STREAM("total points: " << object_points_.size());
 
