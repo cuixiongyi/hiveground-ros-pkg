@@ -12,7 +12,7 @@ rosrun tf static_transform_publisher -0.4691822525323973 -0.192274727306325 1.71
 
 rosrun tf static_transform_publisher -0.8013312048757147 -0.4705600194028853 1.879842401563593 0.01930055897472364 0.07322015961780161 0.1685540438100298 /camera_rgb_optical_frame /plate 100
 
-rosrun tf static_transform_publisher -0.8013312048757147 -0.4705600194028853 1.879842401563593 1.580096886 -0.16322015961780161 3.210146698 /camera_rgb_optical_frame /plate 10
+rosrun tf static_transform_publisher -0.8013312048757147 -0.4705600194028853 1.879842401563593 1.580096886 -0.16322015961780161 3.210146698 /camera_rgb_optical_frame /plate 100
 
 rosrun tf static_transform_publisher 0.8013312048757147 0.4705600194028853 -1.879842401563593 -0.01930055897472364 -0.07322015961780161 -0.1685540438100298 /camera_rgb_optical_frame /plate 100
 
@@ -24,11 +24,6 @@ rostopic pub -1 /arm1/J2/command/position_degree std_msgs/Float64 -- -40.0420
 rostopic pub -1 /arm1/J3/command/position_degree std_msgs/Float64 -- 68.9266
 rostopic pub -1 /arm1/J4/command/position_degree std_msgs/Float64 -- 0
 rostopic pub -1 /arm1/J5/command/position_degree std_msgs/Float64 -- 61.1154 
-
-
-
-
-
 
 
 
