@@ -10,6 +10,15 @@
   <url>http://ros.org/wiki/prw</url>
   <depend package="roscpp"/>
   <depend package="std_msgs"/>
+  <depend package="move_arm_warehouse"/>
+  
+  <!-- Message -->
+  <depend package="std_msgs"/>
+  <depend package="diagnostic_msgs"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="kinematics_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="sensor_msgs"/>
 
 </package>
 

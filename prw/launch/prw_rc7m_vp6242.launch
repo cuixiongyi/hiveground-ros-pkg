@@ -12,7 +12,7 @@
     <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />    
   </node>
   
-  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" output="screen">
       <remap from="robot_description" to="/arm1/robot_description" />
       <!--remap from="joint_states" to="/arm1/joint_states" /-->
   </node>
@@ -24,8 +24,11 @@
     <remap from="robot_description" to="/arm1/robot_description" />
   </node >
   
+  <node pkg="prw" type="prw" name="prw" output="screen">    
+  </node>
+  
 	
-  <node pkg="rviz" type="rviz" name="rviz">
+  <node pkg="rviz" type="rviz" name="rviz" output="screen">
       <remap from="robot_description" to="/arm1/robot_description" />
   </node>
   
