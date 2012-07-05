@@ -3,6 +3,7 @@
 
 #include <QtGui/QApplication>
 
+#define DEG2RAD(x) (((x)*M_PI)/180.0)
 
 PRW::PRW(QWidget *parent, Qt::WFlags flags)
   : QMainWindow(parent, flags),
@@ -46,7 +47,7 @@ void PRW::on_ik_move_go_clicked()
   ps.pose.position.y = ui.ik_move_y->value();
   ps.pose.position.z = ui.ik_move_z->value();
 
-  tf::Quaternion q(ui.ik_move_yaw->value(), ui.ik_move_pitch->value(), ui.ik_move_roll->value());
+  tf::Quaternion q(DEG2RAD(ui.ik_move_yaw->value()), DEG2RAD(ui.ik_move_pitch->value()), DEG2RAD(ui.ik_move_roll->value()));
   ps.pose.orientation.x = q.x();
   ps.pose.orientation.y = q.y();
   ps.pose.orientation.z = q.z();
@@ -79,7 +80,6 @@ void PRW::on_ik_move_go_clicked()
   {
     if(respond.error_code.val == ::arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS)
     {
-      respond.solution.joint_state.position;
       for(size_t i = 0; i < respond.solution.joint_state.position.size(); i++)
       {
         ROS_INFO_STREAM(respond.solution.joint_state.position[i]);

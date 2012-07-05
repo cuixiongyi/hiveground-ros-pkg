@@ -18,18 +18,18 @@
     <item row="0" column="0">
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
-       <string>IK Move</string>
+       <string>IK Move (meter, degree)</string>
       </property>
       <property name="flat">
        <bool>false</bool>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>178</width>
-         <height>138</height>
+         <width>199</width>
+         <height>161</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout">
@@ -47,7 +47,17 @@
                </widget>
               </item>
               <item>
-               <widget class="QDoubleSpinBox" name="ik_move_x"/>
+               <widget class="QDoubleSpinBox" name="ik_move_x">
+                <property name="minimum">
+                 <double>-5.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>5.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.100000000000000</double>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -61,7 +71,17 @@
                </widget>
               </item>
               <item>
-               <widget class="QDoubleSpinBox" name="ik_move_y"/>
+               <widget class="QDoubleSpinBox" name="ik_move_y">
+                <property name="minimum">
+                 <double>-5.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>5.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.100000000000000</double>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -75,7 +95,17 @@
                </widget>
               </item>
               <item>
-               <widget class="QDoubleSpinBox" name="ik_move_z"/>
+               <widget class="QDoubleSpinBox" name="ik_move_z">
+                <property name="minimum">
+                 <double>-5.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>5.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.100000000000000</double>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -93,7 +123,17 @@
                </widget>
               </item>
               <item>
-               <widget class="QDoubleSpinBox" name="ik_move_roll"/>
+               <widget class="QDoubleSpinBox" name="ik_move_roll">
+                <property name="minimum">
+                 <double>-360.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>360.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.100000000000000</double>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -107,7 +147,17 @@
                </widget>
               </item>
               <item>
-               <widget class="QDoubleSpinBox" name="ik_move_pitch"/>
+               <widget class="QDoubleSpinBox" name="ik_move_pitch">
+                <property name="minimum">
+                 <double>-360.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>360.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.100000000000000</double>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -121,7 +171,17 @@
                </widget>
               </item>
               <item>
-               <widget class="QDoubleSpinBox" name="ik_move_yaw"/>
+               <widget class="QDoubleSpinBox" name="ik_move_yaw">
+                <property name="minimum">
+                 <double>-360.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>360.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.100000000000000</double>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -155,7 +215,7 @@
      <x>0</x>
      <y>0</y>
      <width>750</width>
-     <height>23</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
