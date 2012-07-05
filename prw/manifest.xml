@@ -19,6 +19,9 @@
   <depend package="kinematics_msgs"/>
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
+  
+  <!-- External -->
+  <depend package="arm_kinematics"/>
 
 </package>
 
