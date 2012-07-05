@@ -54,4 +54,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 rosbuild_add_executable(prw src/prw.cpp ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(prw ${QT_LIBRARIES})
+#target_link_libraries(prw ${QT_LIBRARIES} move_arm_utils)
+
 
