@@ -23,7 +23,7 @@ static const unsigned int CONTROL_SPEED = 10;
 
 PRW::PRW(QWidget *parent, Qt::WFlags flags)
   : QMainWindow(parent, flags),
-    node_handle_("~"),
+    //node_handle_("~"),
     quit_threads_(false)
 
 {
@@ -43,6 +43,7 @@ void PRW::initialize()
   //initialize collision model with robot model
   cm_ = new planning_environment::CollisionModels("robot_description");
 
+  /*
   while (!ros::service::waitForService("/arm_kinematics/get_ik", ros::Duration(1.0)))
   {
     ROS_INFO_STREAM("Waiting for planning scene service " << "/arm_kinematics/get_ik");
@@ -57,6 +58,7 @@ void PRW::initialize()
 
   ik_info_client_
     = node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("/arm_kinematics/get_ik_solver_info");
+  */
 
   while (!ros::service::waitForService(SET_PLANNING_SCENE_DIFF_NAME, ros::Duration(1.0)))
   {
@@ -82,6 +84,27 @@ void PRW::initialize()
   trajectory_filter_service_client_
     = node_handle_.serviceClient<arm_navigation_msgs::FilterJointTrajectoryWithConstraints>(TRAJECTORY_FILTER_SERVICE_NAME, true);
 
+
+  while (!ros::service::waitForService("vp6242_arm_kinematics/get_ik_solver_info", ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for trajectory filter service " << "vp6242_arm_kinematics/get_ik_solver_info");
+  }
+
+  ik_info_client_
+    = node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("vp6242_arm_kinematics/get_ik_solver_info");
+
+  while (!ros::service::waitForService("vp6242_arm_kinematics/get_ik", ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for trajectory filter service " << "vp6242_arm_kinematics/get_ik");
+  }
+
+  ik_client_
+    = node_handle_.serviceClient<kinematics_msgs::GetPositionIK>("vp6242_arm_kinematics/get_ik");
+
+
+  robot_state_ = new planning_models::KinematicState(cm_->getKinematicModel());
+  robot_state_->setKinematicStateToDefault();
+  sendPlanningScene();
 
 
 
@@ -110,7 +133,7 @@ void PRW::on_ik_move_go_clicked()
            ui.ik_move_pitch->value(),
            ui.ik_move_yaw->value());
   */
-
+  /*
   geometry_msgs::PoseStamped ps, pose;
   ps.header.frame_id = "/world";
   ps.pose.position.x = ui.ik_move_x->value();
@@ -172,6 +195,77 @@ void PRW::on_ik_move_go_clicked()
   {
     ROS_INFO("request error");
   }
+  */
+
+
+
+
+  // define the service messages
+  kinematics_msgs::GetKinematicSolverInfo::Request request;
+  kinematics_msgs::GetKinematicSolverInfo::Response response;
+  if(ik_info_client_.call(request,response))
+  {
+    for(unsigned int i=0; i< response.kinematic_solver_info.joint_names.size(); i++)
+    {
+      ROS_INFO("Joint: %d %s",i,response.kinematic_solver_info.joint_names[i].c_str());
+    }
+  }
+  else
+  {
+    ROS_ERROR("Could not call query service");
+    ros::shutdown();
+    exit(1);
+  }
+
+  // define the service messages
+  kinematics_msgs::GetPositionIK::Request  gpik_req;
+  kinematics_msgs::GetPositionIK::Response gpik_res;
+  gpik_req.timeout = ros::Duration(5.0);
+
+
+
+  gpik_req.ik_request.pose_stamped.header.frame_id = "base_link";
+  gpik_req.ik_request.ik_link_name = "link5";
+  //gpik_req.ik_request.pose_stamped.header.stamp = ros::Time::now();
+  gpik_req.ik_request.pose_stamped.pose.position.x = ui.ik_move_x->value();
+  gpik_req.ik_request.pose_stamped.pose.position.y = ui.ik_move_y->value();
+  gpik_req.ik_request.pose_stamped.pose.position.z = ui.ik_move_z->value();
+
+  tf::Quaternion q(DEG2RAD(ui.ik_move_yaw->value()), DEG2RAD(ui.ik_move_pitch->value()), DEG2RAD(ui.ik_move_roll->value()));
+  gpik_req.ik_request.pose_stamped.pose.orientation.x = q.x();
+  gpik_req.ik_request.pose_stamped.pose.orientation.y = q.y();
+  gpik_req.ik_request.pose_stamped.pose.orientation.z = q.z();
+  gpik_req.ik_request.pose_stamped.pose.orientation.w = q.w();
+
+  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(response.kinematic_solver_info.joint_names.size());
+  gpik_req.ik_request.ik_seed_state.joint_state.name = response.kinematic_solver_info.joint_names;
+  for (unsigned int i = 0; i < response.kinematic_solver_info.joint_names.size(); i++)
+  {
+    //gpik_req.ik_request.ik_seed_state.joint_state.position[i] = (response.kinematic_solver_info.limits[i].min_position
+      //  + response.kinematic_solver_info.limits[i].max_position) / 2.0;
+    gpik_req.ik_request.ik_seed_state.joint_state.position[i] = 0;
+
+    ROS_INFO_STREAM(gpik_req.ik_request.ik_seed_state.joint_state.position[i]);
+  }
+  if (ik_client_.call(gpik_req, gpik_res))
+  {
+    if (gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
+      for (unsigned int i = 0; i < gpik_res.solution.joint_state.name.size(); i++)
+      {
+        ROS_INFO(
+            "Joint: %s %f", gpik_res.solution.joint_state.name[i].c_str(), gpik_res.solution.joint_state.position[i]);
+        std_msgs::Float64 msg;
+        msg.data = gpik_res.solution.joint_state.position[i];
+        publisher_joints_[i].publish(msg);
+      }
+    else
+    {
+      ROS_ERROR("Inverse kinematics failed %d", gpik_res.error_code.val);
+    }
+  }
+  else
+    ROS_ERROR("Inverse kinematics service call failed");
+
 
 }
 
@@ -184,6 +278,66 @@ void PRW::on_ik_move_reset_clicked()
   ui.ik_move_pitch->setValue(0.0);
   ui.ik_move_yaw->setValue(0.0);
 }
+
+void PRW::sendPlanningScene()
+{
+  ROS_INFO("Sending Planning Scene....");
+
+  arm_navigation_msgs::SetPlanningSceneDiff::Request planning_scene_req;
+  arm_navigation_msgs::SetPlanningSceneDiff::Response planning_scene_res;
+
+
+  planning_environment::convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
+                                                          planning_scene_req.planning_scene_diff.robot_state);
+
+  /*
+  planning_models::KinematicState* startState = NULL;
+  planning_models::KinematicState* endState = NULL;
+  map<string, double> startStateValues;
+  map<string, double> endStateValues;
+
+  if (current_group_name_ != "")
+  {
+    startState = group_map_[current_group_name_].getState(StartPosition);
+    endState = group_map_[current_group_name_].getState(EndPosition);
+
+    if (startState != NULL)
+    {
+      startState->getKinematicStateValues(startStateValues);
+    }
+    if (endState != NULL)
+    {
+      endState->getKinematicStateValues(endStateValues);
+    }
+  }
+
+  deleteKinematicStates();
+  */
+
+  if (robot_state_ != NULL)
+  {
+    ROS_INFO("Reverting planning scene to default.");
+    cm_->revertPlanningScene(robot_state_);
+    robot_state_ = NULL;
+  }
+
+
+  if (!set_planning_scene_diff_client_.call(planning_scene_req, planning_scene_res))
+  {
+    ROS_WARN("Can't get planning scene");
+    return;
+  }
+
+  robot_state_ = cm_->setPlanningScene(planning_scene_res.planning_scene);
+
+  if (robot_state_ == NULL)
+  {
+    ROS_ERROR("Something wrong with planning scene");
+    return;
+  }
+  ROS_INFO("Planning scene sent.");
+}
+
 
 void PRW::closeEvent(QCloseEvent *event)
 {

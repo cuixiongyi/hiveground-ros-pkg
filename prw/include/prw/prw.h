@@ -57,6 +57,8 @@ public slots:
   void on_ik_move_go_clicked();
   void on_ik_move_reset_clicked();
 
+  void sendPlanningScene();
+
 
   void closeEvent(QCloseEvent *event);
 
@@ -83,6 +85,7 @@ public:
   ros::ServiceClient trajectory_filter_service_client_;
 
   planning_environment::CollisionModels* cm_;
+  planning_models::KinematicState* robot_state_;
 
 };
 
