@@ -1,7 +1,23 @@
+#include <termios.h>
+#include <signal.h>
+#include <cstdio>
+#include <cstdlib>
+#include <unistd.h>
+#include <math.h>
+
 #include <ros/ros.h>
 #include <prw/prw.h>
 
 #include <QtGui/QApplication>
+
+static const std::string VIS_TOPIC_NAME = "prw_visualizer";
+static const std::string SET_PLANNING_SCENE_DIFF_NAME = "/environment_server/set_planning_scene_diff";
+static const std::string PLANNER_SERVICE_NAME = "/ompl_planning/plan_kinematic_path";
+static const std::string TRAJECTORY_FILTER_SERVICE_NAME = "/trajectory_filter_server/filter_trajectory_with_constraints";
+
+//in 100 hz ticks
+static const unsigned int CONTROL_SPEED = 10;
+
 
 #define DEG2RAD(x) (((x)*M_PI)/180.0)
 
@@ -22,10 +38,54 @@ PRW::~PRW()
 
 void PRW::initialize()
 {
-  ros::service::waitForService("/arm_kinematics/get_ik");
-  ros::service::waitForService("/arm_kinematics/get_ik_solver_info");
+  ROS_INFO_STREAM("Initializing...");
+
+  //initialize collision model with robot model
+  cm_ = new planning_environment::CollisionModels("robot_description");
+
+  while (!ros::service::waitForService("/arm_kinematics/get_ik", ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for planning scene service " << "/arm_kinematics/get_ik");
+  }
+
   ik_client_ = node_handle_.serviceClient<kinematics_msgs::GetPositionIK>("/arm_kinematics/get_ik", true);
-  ik_info_client_ = node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("/arm_kinematics/get_ik_solver_info");
+
+  while (!ros::service::waitForService("/arm_kinematics/get_ik_solver_info", ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for planning scene service " << "/arm_kinematics/get_ik_solver_info");
+  }
+
+  ik_info_client_
+    = node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("/arm_kinematics/get_ik_solver_info");
+
+  while (!ros::service::waitForService(SET_PLANNING_SCENE_DIFF_NAME, ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for planning scene service " << SET_PLANNING_SCENE_DIFF_NAME);
+  }
+
+  set_planning_scene_diff_client_
+    = node_handle_.serviceClient<arm_navigation_msgs::SetPlanningSceneDiff>(SET_PLANNING_SCENE_DIFF_NAME);
+
+  while (!ros::service::waitForService(PLANNER_SERVICE_NAME, ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for planner service " << PLANNER_SERVICE_NAME);
+  }
+
+  planner_service_client_
+    = node_handle_.serviceClient<arm_navigation_msgs::GetMotionPlan>(PLANNER_SERVICE_NAME, true);
+
+  while (!ros::service::waitForService(TRAJECTORY_FILTER_SERVICE_NAME, ros::Duration(1.0)))
+  {
+    ROS_INFO_STREAM("Waiting for trajectory filter service " << TRAJECTORY_FILTER_SERVICE_NAME);
+  }
+
+  trajectory_filter_service_client_
+    = node_handle_.serviceClient<arm_navigation_msgs::FilterJointTrajectoryWithConstraints>(TRAJECTORY_FILTER_SERVICE_NAME, true);
+
+
+
+
+
   subscriber_joint_state_ = node_handle_.subscribe("/joint_states", 1, &PRW::callbackJointState, this);
 
   publisher_joints_[0] = node_handle_.advertise<std_msgs::Float64>("/arm1/J1/command/position", 1);
@@ -35,6 +95,8 @@ void PRW::initialize()
   publisher_joints_[4] = node_handle_.advertise<std_msgs::Float64>("/arm1/J5/command/position", 1);
   publisher_joints_[5] = node_handle_.advertise<std_msgs::Float64>("/arm1/J6/command/position", 1);
 
+
+  ROS_INFO_STREAM("Initialized");
 }
 
 void PRW::on_ik_move_go_clicked()
@@ -136,9 +198,6 @@ void PRW::callbackJointState(const sensor_msgs::JointState& message)
   //ROS_INFO_STREAM(message);
   joint_positions_ = message.position;
 }
-
-
-
 
 PRW* prw_ = NULL;
 bool initialized_ = false;
