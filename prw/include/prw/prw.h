@@ -57,13 +57,15 @@ public slots:
   void on_ik_move_go_clicked();
   void on_ik_move_reset_clicked();
 
+public:
   void sendPlanningScene();
-
-
-  void closeEvent(QCloseEvent *event);
-
+  void sendMarkers();
 
   void callbackJointState(const sensor_msgs::JointState& message);
+
+protected:
+  void closeEvent(QCloseEvent *event);
+
 
 
 public:
@@ -86,6 +88,10 @@ public:
 
   planning_environment::CollisionModels* cm_;
   planning_models::KinematicState* robot_state_;
+
+  ros::Publisher vis_marker_array_publisher_;
+  ros::Publisher vis_marker_publisher_;
+
 
 };
 
