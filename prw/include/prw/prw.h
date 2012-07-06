@@ -10,6 +10,7 @@
 #include <kinematics_msgs/GetKinematicSolverInfo.h>
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/Float64.h>
 
 #include <tf/transform_listener.h>
 
@@ -53,6 +54,7 @@ public:
 
 
   ros::Subscriber subscriber_joint_state_;
+  ros::Publisher publisher_joints_[6];
 
 };
 

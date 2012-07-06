@@ -28,10 +28,18 @@ void PRW::initialize()
   ik_info_client_ = node_handle_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("/arm_kinematics/get_ik_solver_info");
   subscriber_joint_state_ = node_handle_.subscribe("/joint_states", 1, &PRW::callbackJointState, this);
 
+  publisher_joints_[0] = node_handle_.advertise<std_msgs::Float64>("/arm1/J1/command/position", 1);
+  publisher_joints_[1] = node_handle_.advertise<std_msgs::Float64>("/arm1/J2/command/position", 1);
+  publisher_joints_[2] = node_handle_.advertise<std_msgs::Float64>("/arm1/J3/command/position", 1);
+  publisher_joints_[3] = node_handle_.advertise<std_msgs::Float64>("/arm1/J4/command/position", 1);
+  publisher_joints_[4] = node_handle_.advertise<std_msgs::Float64>("/arm1/J5/command/position", 1);
+  publisher_joints_[5] = node_handle_.advertise<std_msgs::Float64>("/arm1/J6/command/position", 1);
+
 }
 
 void PRW::on_ik_move_go_clicked()
 {
+  /*
   ROS_INFO("Go clicked! xyz(%4.2f, %4.2f %4.2f) ryp(%4.2f, %4.2f, %4.2f)",
            ui.ik_move_x->value(),
            ui.ik_move_y->value(),
@@ -39,10 +47,10 @@ void PRW::on_ik_move_go_clicked()
            ui.ik_move_roll->value(),
            ui.ik_move_pitch->value(),
            ui.ik_move_yaw->value());
+  */
 
-
-  geometry_msgs::PoseStamped ps;
-  ps.header.frame_id = "/base_link";
+  geometry_msgs::PoseStamped ps, pose;
+  ps.header.frame_id = "/world";
   ps.pose.position.x = ui.ik_move_x->value();
   ps.pose.position.y = ui.ik_move_y->value();
   ps.pose.position.z = ui.ik_move_z->value();
@@ -52,6 +60,11 @@ void PRW::on_ik_move_go_clicked()
   ps.pose.orientation.y = q.y();
   ps.pose.orientation.z = q.z();
   ps.pose.orientation.w = q.w();
+
+  //tf_listener_.transformPose("/base_link", ps, pose);
+  //ROS_INFO_STREAM(ps.pose);
+  //ROS_INFO_STREAM(pose.pose);
+
 
   kinematics_msgs::GetPositionIKRequest request;
   request.timeout = ros::Duration(5.0);
@@ -83,6 +96,9 @@ void PRW::on_ik_move_go_clicked()
       for(size_t i = 0; i < respond.solution.joint_state.position.size(); i++)
       {
         ROS_INFO_STREAM(respond.solution.joint_state.position[i]);
+        std_msgs::Float64 msg;
+        msg.data = respond.solution.joint_state.position[i];
+        publisher_joints_[i].publish(msg);
       }
     }
     else
