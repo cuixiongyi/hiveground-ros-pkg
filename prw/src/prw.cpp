@@ -42,6 +42,9 @@ void PRW::initialize()
 
   //initialize collision model with robot model
   cm_ = new planning_environment::CollisionModels("robot_description");
+  vis_marker_publisher_ = node_handle_.advertise<visualization_msgs::Marker> (VIS_TOPIC_NAME, 128);
+  vis_marker_array_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray> (VIS_TOPIC_NAME + "_array", 128);
+
 
   /*
   while (!ros::service::waitForService("/arm_kinematics/get_ik", ros::Duration(1.0)))
@@ -338,6 +341,114 @@ void PRW::sendPlanningScene()
   ROS_INFO("Planning scene sent.");
 }
 
+void PRW::sendMarkers()
+{
+  visualization_msgs::MarkerArray arr;
+
+  std_msgs::ColorRGBA stat_color_;
+  stat_color_.a = 1.0;
+  stat_color_.r = 0.1;
+  stat_color_.g = 0.8;
+  stat_color_.b = 0.3;
+
+  std_msgs::ColorRGBA attached_color_;
+  attached_color_.a = 1.0;
+  attached_color_.r = 0.6;
+  attached_color_.g = 0.4;
+  attached_color_.b = 0.3;
+
+  cm_->getAllCollisionSpaceObjectMarkers(*robot_state_, arr, "", stat_color_, attached_color_, ros::Duration(0.1));
+  //if (!current_group_name_.empty())
+  {
+    std_msgs::ColorRGBA group_color;
+    group_color.a = 0.3;
+    group_color.r = 0.5;
+    group_color.g = 0.9;
+    group_color.b = 0.5;
+
+    std_msgs::ColorRGBA updated_color;
+    updated_color.a = 0.3;
+    updated_color.r = 1.0;
+    updated_color.g = 0.5;
+    updated_color.b = 1.0;
+
+    std_msgs::ColorRGBA bad_color;
+    bad_color.a = 0.6;
+    bad_color.r = 1.0;
+    bad_color.g = 0.0;
+    bad_color.b = 0.0;
+
+    //GroupCollection& gc = group_map_[current_group_name_];
+    const planning_models::KinematicModel* kinematic_model = cm_->getKinematicModel();
+
+    /*
+    IKControlType otherState;
+    if (ik_control_type_ == EndPosition)
+    {
+      otherState = StartPosition;
+    }
+    else
+    {
+      otherState = EndPosition;
+    }
+
+    if (is_ik_control_active_)
+    {
+      if (gc.getState(otherState) != NULL)
+      {
+        cm_->getGroupAndUpdatedJointMarkersGivenState(*gc.getState(otherState), arr, current_group_name_, group_color,
+                                                      updated_color, ros::Duration(0.1));
+      }
+      else
+      {
+        ROS_ERROR("Other state invalid!");
+      }
+    }
+
+    if (!gc.good_ik_solution_ && gc.getState(ik_control_type_) != NULL)
+    {
+      vector < string > lnames = kinematic_model->getChildLinkModelNames(
+          kinematic_model->getLinkModel(gc.ik_link_name_));
+
+      cm_->getRobotMarkersGivenState(*gc.getState(ik_control_type_), arr, bad_color, current_group_name_,
+                                     ros::Duration(0.1), &lnames);
+      cm_->getAttachedCollisionObjectMarkers(*gc.getState(ik_control_type_), arr, current_group_name_, bad_color,
+                                             ros::Duration(.2));
+
+    }
+    for (map<string, StateTrajectoryDisplay>::iterator it = gc.state_trajectory_display_map_.begin();
+        it != gc.state_trajectory_display_map_.end(); it++)
+    {
+
+      if (it->second.play_joint_trajectory_)
+      {
+        moveThroughTrajectory(gc, it->first, 5);
+      }
+
+      if (it->second.show_joint_trajectory_)
+      {
+        const vector<const KinematicModel::LinkModel*>& updated_links =
+            kinematic_model->getModelGroup(gc.name_)->getUpdatedLinkModels();
+        vector < string > lnames;
+        lnames.resize(updated_links.size());
+        for (unsigned int i = 0; i < updated_links.size(); i++)
+        {
+          lnames[i] = updated_links[i]->getName();
+        }
+        cm_->getRobotMarkersGivenState(*(it->second.state_), arr, it->second.color_, it->first + "_trajectory",
+                                       ros::Duration(0.1), &lnames);
+
+        cm_->getAttachedCollisionObjectMarkers(*(it->second.state_), arr, it->first + "_trajectory", it->second.color_,
+                                               ros::Duration(0.1));
+      }
+    }
+    */
+  }
+  vis_marker_array_publisher_.publish(arr);
+
+
+}
+
 
 void PRW::closeEvent(QCloseEvent *event)
 {
@@ -352,6 +463,8 @@ void PRW::callbackJointState(const sensor_msgs::JointState& message)
   //ROS_INFO_STREAM(message);
   joint_positions_ = message.position;
 }
+
+#include "prw_marker.cpp"
 
 PRW* prw_ = NULL;
 bool initialized_ = false;
