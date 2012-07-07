@@ -123,6 +123,11 @@ public:
       end_state_ = NULL;
       good_ik_solution_ = false;
 
+      state_trajectory_display_map_["shadow"].color_.a = .5;
+      state_trajectory_display_map_["shadow"].color_.r = 0.5;
+      state_trajectory_display_map_["shadow"].color_.g = 0.5;
+      state_trajectory_display_map_["shadow"].color_.b = 0.5;
+
       state_trajectory_display_map_["planner"].color_.a = .6;
       state_trajectory_display_map_["planner"].color_.r = 1.0;
       state_trajectory_display_map_["planner"].color_.g = 1.0;
@@ -248,8 +253,15 @@ public:
                                  bool constrain_pitch_and_roll = false, double change_redundancy = 0.0);
 
 
+  bool planToEndEffectorState(PRW::GroupCollection& gc);
 
   void moveEndEffectorMarkers(double vx, double vy, double vz, double vr, double vp, double vw, bool coll_aware = true);
+
+  bool playTrajectory(PRW::GroupCollection& gc, const std::string& source_name,
+                      const trajectory_msgs::JointTrajectory& traj);
+  void moveThroughTrajectory(PRW::GroupCollection& gc, const std::string& source_name, int step);
+
+
 
   ////
   /// @brief Returns true if a selectable marker of the given name exists in the marker map.
@@ -381,6 +393,8 @@ public:
   bool is_ik_control_active_;
   bool is_joint_control_active_;
   std::string current_group_name_;
+  arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
+
 
 
   boost::recursive_mutex lock_;
@@ -390,6 +404,10 @@ public:
 
   /// Maps selectable marker names to a struct containing their information.
   SelectableMarkerMap selectable_markers_;
+
+  /// Maps end effector link names to their previously recorded poses.
+  std::map<std::string, geometry_msgs::Pose> last_ee_poses_;
+
 
 
   /// Boost function pointer to the main interactive feedback function.
