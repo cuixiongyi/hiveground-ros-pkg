@@ -479,7 +479,7 @@ void PRW::sendMarkers()
   attached_color_.b = 0.3;
 
   cm_->getAllCollisionSpaceObjectMarkers(*robot_state_, arr, "", stat_color_, attached_color_, ros::Duration(0.1));
-  //if (!current_group_name_.empty())
+  if (!current_group_name_.empty())
   {
     std_msgs::ColorRGBA group_color;
     group_color.a = 0.3;
@@ -538,7 +538,7 @@ void PRW::sendMarkers()
                                              ros::Duration(.2));
 
     }
-    /*
+
     for (std::map<std::string, StateTrajectoryDisplay>::iterator it = gc.state_trajectory_display_map_.begin();
         it != gc.state_trajectory_display_map_.end(); it++)
     {
@@ -550,9 +550,9 @@ void PRW::sendMarkers()
 
       if (it->second.show_joint_trajectory_)
       {
-        const vector<const KinematicModel::LinkModel*>& updated_links =
+        const std::vector<const planning_models::KinematicModel::LinkModel*>& updated_links =
             kinematic_model->getModelGroup(gc.name_)->getUpdatedLinkModels();
-        vector < string > lnames;
+        std::vector < std::string > lnames;
         lnames.resize(updated_links.size());
         for (unsigned int i = 0; i < updated_links.size(); i++)
         {
@@ -565,7 +565,7 @@ void PRW::sendMarkers()
                                                ros::Duration(0.1));
       }
     }
-    */
+
 
   }
   vis_marker_array_publisher_.publish(arr);
@@ -609,7 +609,11 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
     case visualization_msgs::InteractiveMarkerFeedback::MENU_SELECT:
     case visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK:
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
+      break;
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
+      ROS_INFO("mouse up");
+      planToEndEffectorState(gc, false);
+      filterPlannerTrajectory(gc);
       break;
   }
   interactive_marker_server_->applyChanges();
@@ -788,16 +792,69 @@ bool PRW::solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware, b
   return true;
 }
 
+/////
+/// @brief Sends the joint states of the given group collection to the robot state publisher.
+/// @param gc the group collection to publish the states for.
+/////
+void PRW::updateJointStates(PRW::GroupCollection& gc)
+{
+  sensor_msgs::JointState msg;
+  msg.header.frame_id =  cm_->getWorldFrameId();
+  msg.header.stamp = ros::Time::now();
 
-bool PRW::planToEndEffectorState(PRW::GroupCollection& gc)
+  std::vector<planning_models::KinematicState::JointState*> jointStates = gc.getState(ik_control_type_)->getJointStateVector();
+
+  std::map<std::string, double> stateMap;
+  gc.getState(ik_control_type_)->getKinematicStateValues(stateMap);
+  robot_state_->setKinematicState(stateMap);
+
+  for(size_t i = 0; i < jointStates.size(); i++)
+  {
+    planning_models::KinematicState::JointState* state = jointStates[i];
+    msg.name.push_back(state->getName());
+
+    // Assume that joints only have one value.
+    if(state->getJointStateValues().size() > 0)
+    {
+      msg.position.push_back(state->getJointStateValues()[0]);
+    }
+    else
+    {
+      msg.position.push_back(0.0f);
+    }
+  }
+
+  /*
+  if(cm_->getWorldFrameId() != cm_->getRobotFrameId())
+  {
+    geometry_msgs::TransformStamped trans;
+    trans.header.frame_id = cm_->getWorldFrameId();
+    trans.header.stamp = ros::Time::now();
+    trans.child_frame_id = cm_->getRobotFrameId();
+    trans.transform.rotation.w = 1.0;
+    transform_broadcaster_.sendTransform(trans);
+  }
+  */
+  /*
+  joint_state_lock_.lock();
+  last_joint_state_msg_ = msg;
+  joint_state_lock_.unlock();
+  */
+}
+
+
+bool PRW::planToEndEffectorState(PRW::GroupCollection& gc, bool play)
 {
   arm_navigation_msgs::MotionPlanRequest motion_plan_request;
   motion_plan_request.group_name = gc.name_;
   motion_plan_request.num_planning_attempts = 1;
   motion_plan_request.allowed_planning_time = PLANNING_DURATION;
 
+  //ROS_INFO("plan to end effector");
+
   if(!constrain_roll_pitch_)
   {
+    //ROS_INFO("no constrain");
     const planning_models::KinematicState::JointStateGroup* jsg = gc.getState(EndPosition)->getJointStateGroup(gc.name_);
     motion_plan_request.goal_constraints.joint_constraints.resize(jsg->getJointNames().size());
     std::vector<double> joint_values;
@@ -828,9 +885,65 @@ bool PRW::planToEndEffectorState(PRW::GroupCollection& gc)
     return false;
   }
 
+  if(gc.state_trajectory_display_map_.find("planner") != gc.state_trajectory_display_map_.end())
+  {
+    ROS_INFO("playing plan");
+    StateTrajectoryDisplay& disp = gc.state_trajectory_display_map_["planner"];
+    if(plan_res.error_code.val != plan_res.error_code.SUCCESS)
+    {
+      disp.trajectory_error_code_ = plan_res.error_code;
+      ROS_INFO_STREAM("Bad planning error code " << plan_res.error_code.val);
+      gc.state_trajectory_display_map_["planner"].reset();
+      return false;
+    }
+    last_motion_plan_request_ = motion_plan_request;
 
+    if(play)
+      playTrajectory(gc, "planner", plan_res.trajectory.joint_trajectory);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+
+}
+
+bool PRW::filterPlannerTrajectory(PRW::GroupCollection& gc, bool play)
+{
+  arm_navigation_msgs::FilterJointTrajectoryWithConstraints::Request filter_req;
+  arm_navigation_msgs::FilterJointTrajectoryWithConstraints::Response filter_res;
+
+  planning_environment::convertKinematicStateToRobotState(*gc.getState(StartPosition), ros::Time::now(),
+                                                          cm_->getWorldFrameId(), filter_req.start_state);
+  StateTrajectoryDisplay& planner_disp = gc.state_trajectory_display_map_["planner"];
+  filter_req.trajectory = planner_disp.joint_trajectory_;
+  filter_req.group_name = gc.name_;
+
+  filter_req.goal_constraints = last_motion_plan_request_.goal_constraints;
+  filter_req.path_constraints = last_motion_plan_request_.path_constraints;
+  filter_req.allowed_time = ros::Duration(2.0);
+
+  if(!trajectory_filter_service_client_.call(filter_req, filter_res))
+  {
+    ROS_INFO("Problem with trajectory filter");
+    gc.state_trajectory_display_map_["filter"].reset();
+    return false;
+  }
+  StateTrajectoryDisplay& filter_disp = gc.state_trajectory_display_map_["filter"];
+  if(filter_res.error_code.val != filter_res.error_code.SUCCESS)
+  {
+    filter_disp.trajectory_error_code_ = filter_res.error_code;
+    ROS_INFO_STREAM("Bad trajectory_filter error code " << filter_res.error_code.val);
+    gc.state_trajectory_display_map_["filter"].reset();
+    return false;
+  }
+
+  if(play)
+    playTrajectory(gc, "filter", filter_res.trajectory);
   return true;
 }
+
 
 bool PRW::playTrajectory(PRW::GroupCollection& gc, const std::string& source_name,
                          const trajectory_msgs::JointTrajectory& traj)
@@ -864,6 +977,7 @@ bool PRW::playTrajectory(PRW::GroupCollection& gc, const std::string& source_nam
     disp.trajectory_bad_point_ = -1;
   }
 
+  //ROS_INFO("playing plan");
   moveThroughTrajectory(gc, source_name, 0);
   lock_.unlock();
   return true;
@@ -893,6 +1007,7 @@ void PRW::moveThroughTrajectory(PRW::GroupCollection& gc, const std::string& sou
     disp.play_joint_trajectory_ = false;
     disp.show_joint_trajectory_ = false;
   }
+
   std::map<std::string, double> joint_values;
   for(unsigned int i = 0; i < disp.joint_trajectory_.joint_names.size(); i++)
   {
