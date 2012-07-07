@@ -251,9 +251,10 @@ public:
                                                arm_navigation_msgs::OrientationConstraint& path_constraint) const;
   bool solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware = true,
                                  bool constrain_pitch_and_roll = false, double change_redundancy = 0.0);
+  void updateJointStates(PRW::GroupCollection& gc);
 
-
-  bool planToEndEffectorState(PRW::GroupCollection& gc);
+  bool planToEndEffectorState(PRW::GroupCollection& gc, bool play = true);
+  bool filterPlannerTrajectory(PRW::GroupCollection& gc, bool play = true);
 
   void moveEndEffectorMarkers(double vx, double vy, double vz, double vr, double vp, double vw, bool coll_aware = true);
 
