@@ -612,7 +612,7 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
       break;
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
       ROS_INFO("mouse up");
-      planToEndEffectorState(gc, false);
+      planToEndEffectorState(gc);
       filterPlannerTrajectory(gc);
       break;
   }
