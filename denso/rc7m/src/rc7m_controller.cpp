@@ -575,13 +575,13 @@ void RC7MController::callbackAction(const control_msgs::FollowJointTrajectoryGoa
     trajectory_msgs::JointTrajectoryPoint point =  trajectory.points[i];
     std::vector<double> target_positions = point.positions;
     ros::Time end_time = ros::Time::now() + point.time_from_start;
-    ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
+    //ROS_INFO("Trajectory[%d]: end-time: %6.3f", i, end_time.toSec());
   }
 
   ros::Time current_time = ros::Time::now();
   ros::Time trajectory_start_time = trajectory.header.stamp;
 
-  ROS_INFO("%6.3f %6.3f", current_time.toSec(), trajectory_start_time.toSec());
+  //ROS_INFO("%6.3f %6.3f", current_time.toSec(), trajectory_start_time.toSec());
 
   std::vector<double> last_joint_positions;
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;

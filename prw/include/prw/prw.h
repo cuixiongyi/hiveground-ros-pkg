@@ -4,6 +4,8 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/simple_client_goal_state.h>
+
 #include <planning_environment/models/collision_models.h>
 #include <planning_environment/models/model_utils.h>
 #include <tf/transform_broadcaster.h>
@@ -32,6 +34,9 @@
 #include <arm_navigation_msgs/GetStateValidity.h>
 #include <arm_navigation_msgs/FilterJointTrajectoryWithConstraints.h>
 #include <arm_navigation_msgs/convert_messages.h>
+
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <control_msgs/FollowJointTrajectoryGoal.h>
 
 //rviz
 #include <interactive_markers/interactive_marker_server.h>
@@ -114,7 +119,7 @@ public:
   };
 
   typedef std::map<std::string, StateTrajectoryDisplay> StateTrajectoryDisplayMap;
-
+  typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > ArmController;
   struct GroupCollection
   {
     GroupCollection()
@@ -211,6 +216,7 @@ public:
     StateTrajectoryDisplayMap state_trajectory_display_map_;
     std::vector<std::string> joint_names_;
     tf::Transform last_good_state_;
+    ArmController arm_controller_;
   };
 
   typedef std::map<std::string, GroupCollection> GroupMap;
@@ -219,6 +225,8 @@ public:
   typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryMap;
   typedef std::map<std::string, MenuEntryMap> MenuMap;
   typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
+
+  typedef std::map<std::string, actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*> ArmControllerMap;
 
 public:
 
@@ -233,13 +241,14 @@ public slots:
 public:
 
   void deleteKinematicStates();
+  void refreshEnvironment();
   void sendPlanningScene();
   void selectPlanningGroup(unsigned int entry);
   void sendMarkers();
 
   GroupCollection* getPlanningGroup(unsigned int i);
 
-  void callbackJointState(const sensor_msgs::JointState& message);
+  void callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state);
 
 
   void processInteractiveFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
@@ -259,9 +268,16 @@ public:
   void moveEndEffectorMarkers(double vx, double vy, double vz, double vr, double vp, double vw, bool coll_aware = true);
 
   bool playTrajectory(PRW::GroupCollection& gc, const std::string& source_name,
-                      const trajectory_msgs::JointTrajectory& traj);
+                      const trajectory_msgs::JointTrajectory& traj, bool play = true);
   void moveThroughTrajectory(PRW::GroupCollection& gc, const std::string& source_name, int step);
 
+  /////
+  /// @brief Called when the robot monitor detects that the robot has stopped following a trajectory.
+  /// @param state the goal of the trajectory.
+  /// @param result what the controller did while executing the trajectory.
+  /////
+  void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
+                              const control_msgs::FollowJointTrajectoryResultConstPtr& result);
 
 
   ////
@@ -376,7 +392,7 @@ public:
   //Simple IK
   ros::ServiceClient ik_client_;
   ros::ServiceClient ik_info_client_;
-  tf::TransformListener tf_listener_;
+  tf::TransformListener transform_listener_;
   std::vector<double> joint_positions_;
   ros::Subscriber subscriber_joint_state_;
   ros::Publisher publisher_joints_[6];
@@ -387,6 +403,7 @@ public:
 
   planning_environment::CollisionModels* cm_;
   planning_models::KinematicState* robot_state_;
+  std::map<std::string, double> robot_state_joint_values_;
   IKControlType ik_control_type_;
   GroupMap group_map_;
   bool constrain_roll_pitch_;
