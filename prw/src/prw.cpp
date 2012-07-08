@@ -48,6 +48,11 @@ void PRW::initialize()
   collision_aware_ = true;
   is_ik_control_active_ = true;
   is_joint_control_active_ = false;
+  robot_state_ = NULL;
+
+  //subscribe to joint state
+  subscriber_joint_state_ = node_handle_.subscribe("joint_states", 1, &PRW::callbackJointState, this);
+
 
   vis_marker_publisher_ = node_handle_.advertise<visualization_msgs::Marker>(VIS_TOPIC_NAME, 128);
   vis_marker_array_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>(VIS_TOPIC_NAME + "_array", 128);
@@ -107,6 +112,7 @@ void PRW::initialize()
       std::string ik_service_name = cm_->getKinematicModel()->getRobotName() + "_" + it->first + "_kinematics/";
       std::string coll_aware_name = ik_service_name + "get_constraint_aware_ik";
       std::string non_coll_aware_name = ik_service_name + "get_ik";
+      std::string arm_controller = cm_->getKinematicModel()->getRobotName() + "/follow_joint_trajectory";
 
       while (!ros::service::waitForService(coll_aware_name, ros::Duration(1.0)))
       {
@@ -123,6 +129,11 @@ void PRW::initialize()
 
       group_map_[it->first].non_coll_aware_ik_service_
         = node_handle_.serviceClient<kinematics_msgs::GetPositionIK> (non_coll_aware_name, true);
+
+      //set arm controller;
+      group_map_[it->first].arm_controller_.reset(
+          new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller, true));
+
     }
 
   }
@@ -154,8 +165,6 @@ void PRW::initialize()
 
 
 
-  //subscribe to joint state
-  subscriber_joint_state_ = node_handle_.subscribe("joint_states", 1, &PRW::callbackJointState, this);
 
   //direct control of robot joints
   publisher_joints_[0] = node_handle_.advertise<std_msgs::Float64>("/arm1/J1/command/position", 1);
@@ -335,6 +344,19 @@ void PRW::deleteKinematicStates()
   }
 }
 
+/////
+/// @brief Sends all collision pole changes and changes to the robot state to the planning environment.
+////
+void PRW::refreshEnvironment()
+{
+  GroupCollection& gc = group_map_[current_group_name_];
+  sendPlanningScene();
+  moveEndEffectorMarkers(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false);
+
+  tf::Transform cur = toBulletTransform(last_ee_poses_[current_group_name_]);
+  setNewEndEffectorPosition(gc, cur, collision_aware_);
+}
+
 void PRW::sendPlanningScene()
 {
   ROS_INFO("Sending Planning Scene....");
@@ -350,6 +372,12 @@ void PRW::sendPlanningScene()
   std::map<std::string, double> startStateValues;
   std::map<std::string, double> endStateValues;
 
+  //if(params_.use_robot_data_) {
+     //just will get latest data from the monitor
+  //arm_navigation_msgs::RobotState emp;
+  //planning_scene_req.planning_scene_diff.robot_state = emp;
+  //}
+
   if (current_group_name_ != "")
   {
     startState = group_map_[current_group_name_].getState(StartPosition);
@@ -358,6 +386,7 @@ void PRW::sendPlanningScene()
     if (startState != NULL)
     {
       startState->getKinematicStateValues(startStateValues);
+      //startState = robot_state_joint_values_;
     }
     if (endState != NULL)
     {
@@ -378,6 +407,7 @@ void PRW::sendPlanningScene()
   if (!set_planning_scene_diff_client_.call(planning_scene_req, planning_scene_res))
   {
     ROS_WARN("Can't get planning scene");
+    lock_.unlock();
     return;
   }
 
@@ -386,10 +416,33 @@ void PRW::sendPlanningScene()
   if (robot_state_ == NULL)
   {
     ROS_ERROR("Something wrong with planning scene");
+    lock_.unlock();
     return;
   }
 
+  if (current_group_name_ != "")
+  {
+    ROS_INFO("Resetting state...");
+    group_map_[current_group_name_].setState(StartPosition, new planning_models::KinematicState(robot_state_->getKinematicModel()));
+    group_map_[current_group_name_].setState(EndPosition, new planning_models::KinematicState(robot_state_->getKinematicModel()));
+    startState = group_map_[current_group_name_].getState(StartPosition);
+    endState = group_map_[current_group_name_].getState(EndPosition);
+
+    if (startState != NULL)
+    {
+      ROS_INFO("Resetting start state.");
+      startState->setKinematicState(startStateValues);
+    }
+
+    if (endState != NULL)
+    {
+      ROS_INFO("Resetting end state.");
+      endState->setKinematicState(endStateValues);
+    }
+  }
+
   lock_.unlock();
+
   ROS_INFO("Planning scene sent.");
 }
 
@@ -545,11 +598,13 @@ void PRW::sendMarkers()
 
       if (it->second.play_joint_trajectory_)
       {
+        //ROS_INFO("a");
         moveThroughTrajectory(gc, it->first, 5);
       }
 
       if (it->second.show_joint_trajectory_)
       {
+        //ROS_INFO("b");
         const std::vector<const planning_models::KinematicModel::LinkModel*>& updated_links =
             kinematic_model->getModelGroup(gc.name_)->getUpdatedLinkModels();
         std::vector < std::string > lnames;
@@ -579,10 +634,91 @@ void PRW::closeEvent(QCloseEvent *event)
   event->accept();
 }
 
-void PRW::callbackJointState(const sensor_msgs::JointState& message)
+void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
 {
-  //ROS_INFO_STREAM(message);
-  joint_positions_ = message.position;
+  //ROS_INFO_STREAM_THROTTLE(1, *joint_state);
+  joint_positions_ = joint_state->position;
+
+  if(robot_state_ == NULL)
+  {
+    ROS_INFO_THROTTLE(1.0, "robot state null");
+    return;
+  }
+
+  std::map<std::string, double> joint_state_map;
+  std::map<std::string, double> joint_velocity_map;
+
+  //message already been validated in kmsm
+  if (joint_state->velocity.size() == joint_state->position.size())
+  {
+    for (unsigned int i = 0; i < joint_state->position.size(); ++i)
+    {
+      joint_state_map[joint_state->name[i]] = joint_state->position[i];
+      joint_velocity_map[joint_state->name[i]] = joint_state->velocity[i];
+    }
+  }
+  else
+  {
+    for(unsigned int i = 0; i < joint_state->position.size(); ++i)
+    {
+      joint_state_map[joint_state->name[i]] = joint_state->position[i];
+      joint_velocity_map[joint_state->name[i]] = 0.0;
+    }
+  }
+
+  lock_.lock();
+  //ROS_INFO_STREAM_THROTTLE(1, "update");
+  std::vector<planning_models::KinematicState::JointState*>& joint_state_vector = robot_state_->getJointStateVector();
+  for (std::vector<planning_models::KinematicState::JointState*>::iterator it = joint_state_vector.begin();
+      it != joint_state_vector.end(); it++)
+  {
+    bool tfSets = false;
+    //see if we need to update any transforms
+    std::string parent_frame_id = (*it)->getParentFrameId();
+    std::string child_frame_id = (*it)->getChildFrameId();
+    if (!parent_frame_id.empty() && !child_frame_id.empty())
+    {
+      std::string err;
+      ros::Time tm;
+      tf::StampedTransform transf;
+      bool ok = false;
+      if (transform_listener_.getLatestCommonTime(parent_frame_id, child_frame_id, tm, &err) == tf::NO_ERROR)
+      {
+        ok = true;
+        try
+        {
+          transform_listener_.lookupTransform(parent_frame_id, child_frame_id, tm, transf);
+        }
+        catch (tf::TransformException& ex)
+        {
+          ROS_ERROR(
+              "Unable to lookup transform from %s to %s.  Exception: %s", parent_frame_id.c_str(), child_frame_id.c_str(), ex.what());
+          ok = false;
+        }
+      }
+      else
+      {
+        ROS_INFO(
+            "Unable to lookup transform from %s to %s: no common time.", parent_frame_id.c_str(), child_frame_id.c_str());
+        ok = false;
+      }
+      if (ok)
+      {
+        tfSets = (*it)->setJointStateValues(transf);
+      }
+    }
+    (*it)->setJointStateValues(joint_state_map);
+  }
+  robot_state_->updateKinematicLinks();
+  robot_state_->getKinematicStateValues(robot_state_joint_values_);
+
+
+
+
+
+  lock_.unlock();
+
+
 }
 
 void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -612,8 +748,51 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
       break;
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
       ROS_INFO("mouse up");
-      planToEndEffectorState(gc);
-      filterPlannerTrajectory(gc);
+      //sendPlanningScene();
+      refreshEnvironment();
+      planToEndEffectorState(gc, false)
+      if(filterPlannerTrajectory(gc))
+      {
+        StateTrajectoryDisplay& disp = gc.state_trajectory_display_map_["filter"];
+        //if(disp.has_joint_trajectory_)
+        {
+          /*
+          ROS_INFO_STREAM(disp.joint_trajectory_.joint_names.size());
+          for(size_t i = 0; i < disp.joint_trajectory_.joint_names.size(); i++)
+          {
+            ROS_INFO_STREAM(disp.joint_trajectory_.joint_names[i]);
+          }
+          ROS_INFO_STREAM("point:" << disp.joint_trajectory_.points.size());
+          for(size_t i = 0; i < disp.joint_trajectory_.points.size(); i++)
+          {
+            ROS_INFO_STREAM(disp.joint_trajectory_.points[i]);
+          }
+          */
+
+          //SimpleActionClient<FollowJointTrajectoryAction>* controller = arm_controller_map_[trajectory.getGroupName()];
+          control_msgs::FollowJointTrajectoryGoal goal;
+          goal.trajectory = disp.joint_trajectory_;
+          goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(0.2);
+          gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+          /*
+          logged_group_name_ = trajectory.getGroupName();
+          logged_motion_plan_request_ = getMotionPlanRequestNameFromId(trajectory.getMotionPlanRequestId());
+          logged_trajectory_ = trajectory.getTrajectory();
+          logged_trajectory_.points.clear();
+          logged_trajectory_controller_error_.points.clear();
+          logged_trajectory_start_time_ = ros::Time::now() + ros::Duration(0.2);
+          monitor_status_ = Executing;
+          */
+          //sendPlanningScene();
+
+        }
+      }
+
+
+      //disp.joint_trajectory_.
+      //send trajectory command
+
+
       break;
   }
   interactive_marker_server_->applyChanges();
@@ -671,7 +850,9 @@ bool PRW::solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware, b
   ik_request.pose_stamped.header.stamp = ros::Time::now();
   tf::poseTFToMsg(gc.getState(ik_control_type_)->getLinkState(gc.ik_link_name_)->getGlobalLinkTransform(),
                   ik_request.pose_stamped.pose);
-  planning_environment::convertKinematicStateToRobotState(*gc.getState(ik_control_type_), ros::Time::now(), cm_->getWorldFrameId(),
+
+  //use current robot state
+  planning_environment::convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
                                     ik_request.robot_state);
   ik_request.ik_seed_state = ik_request.robot_state;
 
@@ -708,7 +889,8 @@ bool PRW::solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware, b
         return false;
       }
       ik_req.constraints = goal_constraints;
-    }
+    }//pitch_roll
+
     ik_req.ik_request = ik_request;
     ik_req.timeout = ros::Duration(0.2);
     if (!gc.coll_aware_ik_service_.call(ik_req, ik_res))
@@ -898,8 +1080,7 @@ bool PRW::planToEndEffectorState(PRW::GroupCollection& gc, bool play)
     }
     last_motion_plan_request_ = motion_plan_request;
 
-    if(play)
-      playTrajectory(gc, "planner", plan_res.trajectory.joint_trajectory);
+    playTrajectory(gc, "planner", plan_res.trajectory.joint_trajectory, play);
     return true;
   }
   else
@@ -939,14 +1120,14 @@ bool PRW::filterPlannerTrajectory(PRW::GroupCollection& gc, bool play)
     return false;
   }
 
-  if(play)
-    playTrajectory(gc, "filter", filter_res.trajectory);
+
+  playTrajectory(gc, "filter", filter_res.trajectory, play);
   return true;
 }
 
 
 bool PRW::playTrajectory(PRW::GroupCollection& gc, const std::string& source_name,
-                         const trajectory_msgs::JointTrajectory& traj)
+                         const trajectory_msgs::JointTrajectory& traj, bool play)
 {
   lock_.lock();
   if(gc.state_trajectory_display_map_.find(source_name) == gc.state_trajectory_display_map_.end())
@@ -959,8 +1140,8 @@ bool PRW::playTrajectory(PRW::GroupCollection& gc, const std::string& source_nam
   disp.reset();
   disp.joint_trajectory_ = traj;
   disp.has_joint_trajectory_ = true;
-  disp.show_joint_trajectory_ = true;
-  disp.play_joint_trajectory_ = true;
+  disp.show_joint_trajectory_ = play;
+  disp.play_joint_trajectory_ = play;
   disp.state_ = new planning_models::KinematicState(*robot_state_);
   std::vector<arm_navigation_msgs::ArmNavigationErrorCodes> trajectory_error_codes;
 
@@ -978,7 +1159,8 @@ bool PRW::playTrajectory(PRW::GroupCollection& gc, const std::string& source_nam
   }
 
   //ROS_INFO("playing plan");
-  moveThroughTrajectory(gc, source_name, 0);
+  if(play)
+    moveThroughTrajectory(gc, source_name, 0);
   lock_.unlock();
   return true;
 }
@@ -1016,6 +1198,38 @@ void PRW::moveThroughTrajectory(PRW::GroupCollection& gc, const std::string& sou
   }
   disp.state_->setKinematicState(joint_values);
   lock_.unlock();
+}
+
+void PRW::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
+                                 const control_msgs::FollowJointTrajectoryResultConstPtr& result)
+{
+  ROS_INFO("trajectory done!");
+  refreshEnvironment();
+  /*
+  MotionPlanRequestData& mpr = motion_plan_map_[logged_motion_plan_request_];
+  TrajectoryData logged(mpr.getNextTrajectoryId(), "Robot Monitor", logged_group_name_, logged_trajectory_);
+  logged.setTrajectoryError(logged_trajectory_controller_error_);
+  logged.setBadPoint(-1);
+  logged.setDuration(ros::Time::now() - logged_trajectory_start_time_);
+  logged.setTrajectoryRenderType(Temporal);
+  logged.setMotionPlanRequestId(mpr.getId());
+  logged.trajectory_error_code_.val = result->error_code;
+  mpr.addTrajectoryId(logged.getId());
+  trajectory_map_[mpr.getName()][logged.getName()] = logged;
+  logged_trajectory_.points.clear();
+  logged_trajectory_controller_error_.points.clear();
+  //logged_group_name_ = "";
+  //logged_motion_plan_request_ = "";
+  selected_trajectory_name_ = getTrajectoryNameFromId(logged.getId());
+  updateState();
+  ROS_INFO("CREATING TRAJECTORY %s", logged.getName().c_str());
+
+  // Keep recording a second trajectory to analize the overshoot
+  monitor_status_ = WaitingForStop;
+  time_of_controller_done_callback_ = ros::Time::now();
+  time_of_last_moving_notification_ = ros::Time::now();
+  logged_trajectory_start_time_ = ros::Time::now();
+  */
 }
 
 PRW::GroupCollection* PRW::getPlanningGroup(unsigned int i)
