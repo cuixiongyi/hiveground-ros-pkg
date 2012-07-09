@@ -195,6 +195,7 @@ void RC7MJoint::callbackJointPositionDegree(const std_msgs::Float64& position)
   //check controller status
   if(!controller_->active())
   {
+    ROS_INFO("start");
     setPosition((position.data * M_PI) / 180.0);
   }
 }

@@ -24,7 +24,8 @@ static const ros::Duration PLANNING_DURATION = ros::Duration(5.0);
 PRW::PRW(QWidget *parent, Qt::WFlags flags) :
     QMainWindow(parent, flags),
     //node_handle_("~"),
-    quit_threads_(false)
+    quit_threads_(false),
+    initialized_(false)
 
 {
   ui.setupUi(this);
@@ -49,9 +50,10 @@ void PRW::initialize()
   is_ik_control_active_ = true;
   is_joint_control_active_ = false;
   robot_state_ = NULL;
+  goal_is_active_ = false;
 
   //subscribe to joint state
-  subscriber_joint_state_ = node_handle_.subscribe("joint_states", 1, &PRW::callbackJointState, this);
+  subscriber_joint_state_ = node_handle_.subscribe("joint_states", 1, &PRW::jointStateCallback, this);
 
 
   vis_marker_publisher_ = node_handle_.advertise<visualization_msgs::Marker>(VIS_TOPIC_NAME, 128);
@@ -143,8 +145,13 @@ void PRW::initialize()
 
   }
 
+
+
   robot_state_ = new planning_models::KinematicState(cm_->getKinematicModel());
   robot_state_->setKinematicStateToDefault();
+
+  //waiting for robot state
+  ros::Duration(5.0).sleep();
 
   sendPlanningScene();
 
@@ -188,6 +195,7 @@ void PRW::initialize()
 
   refreshEnvironment();
 
+  initialized_ = true;
 
   ROS_INFO_STREAM("Initialized");
 }
@@ -444,7 +452,7 @@ void PRW::sendPlanningScene()
     if (startState != NULL)
     {
       ROS_INFO("Resetting start state.");
-      startState->setKinematicState(endStateValues);
+      startState->setKinematicState(robot_state_joint_values_);
     }
 
     if (endState != NULL)
@@ -648,7 +656,7 @@ void PRW::closeEvent(QCloseEvent *event)
   event->accept();
 }
 
-void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
+void PRW::jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state)
 {
   //ROS_INFO_STREAM_THROTTLE(1, *joint_state);
   joint_positions_ = joint_state->position;
@@ -741,8 +749,6 @@ void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
 
   lock_.unlock();
 
-  //refreshEnvironment();
-
 }
 
 void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -756,7 +762,7 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
     case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
       if(is_ik_control_active_)
       {
-        ROS_INFO_STREAM(feedback->pose);
+        //ROS_INFO_STREAM(feedback->pose);
         tf::Transform cur = toBulletTransform(feedback->pose);
         setNewEndEffectorPosition(gc, cur, collision_aware_);
         last_ee_poses_[current_group_name_] = feedback->pose;
@@ -770,11 +776,24 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
     case visualization_msgs::InteractiveMarkerFeedback::MENU_SELECT:
     case visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK:
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
+      //refreshEnvironment();
       break;
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
       ROS_INFO("mouse up");
+
+      if(goal_is_active_)
+      {
+        actionlib::SimpleClientGoalState state = gc.arm_controller_->getState();
+        if(state == actionlib::SimpleClientGoalState::ACTIVE)
+        {
+          gc.arm_controller_->cancelGoal();
+          refreshEnvironment();
+          goal_is_active_ = false;
+        }
+      }
+
+
       //sendPlanningScene();
-      //refreshEnvironment();
       planToEndEffectorState(gc, false);
       //if(planToEndEffectorState(gc))
       if(filterPlannerTrajectory(gc, false))
@@ -798,8 +817,9 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
           //SimpleActionClient<FollowJointTrajectoryAction>* controller = arm_controller_map_[trajectory.getGroupName()];
           control_msgs::FollowJointTrajectoryGoal goal;
           goal.trajectory = disp.joint_trajectory_;
-          goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(0.2);
+          goal.trajectory.header.stamp = ros::Time::now();// + ros::Duration(0.2);
           gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+          goal_is_active_ = true;
           /*
           logged_group_name_ = trajectory.getGroupName();
           logged_motion_plan_request_ = getMotionPlanRequestNameFromId(trajectory.getMotionPlanRequestId());
@@ -931,6 +951,7 @@ bool PRW::solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware, b
       ROS_DEBUG_STREAM("Call yields bad error code " << ik_res.error_code.val);
       return false;
     }
+    /*
     else
     {
       for (unsigned int i = 0; i < ik_res.solution.joint_state.name.size(); i++)
@@ -938,6 +959,7 @@ bool PRW::solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware, b
         ROS_INFO( "Joint: %s %f", ik_res.solution.joint_state.name[i].c_str(), ik_res.solution.joint_state.position[i]);
       }
     }
+    */
     joint_names = ik_res.solution.joint_state.name;
     gc.joint_names_.clear();
     gc.joint_names_ = joint_names;
@@ -1232,6 +1254,7 @@ void PRW::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                  const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
   ROS_INFO("trajectory done!");
+  goal_is_active_ = false;
   refreshEnvironment();
   /*
   MotionPlanRequestData& mpr = motion_plan_map_[logged_motion_plan_request_];

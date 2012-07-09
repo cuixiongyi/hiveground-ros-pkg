@@ -40,6 +40,12 @@
 #include <string.h>
 #include <stdint.h>
 #include <string>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
 
 /**
  * @enum BCAP_HRESULT
@@ -161,7 +167,7 @@ class BCap
 {
 
 public:
-  BCap(bool need_crc = true);
+  BCap(bool need_crc = false, bool udp = true);
   virtual ~BCap()
   {
   }
@@ -174,7 +180,6 @@ public:
   /* b-CAP Functions */
   BCAP_HRESULT bCap_Open(const std::string& pIPStr, int iPort);
   BCAP_HRESULT bCap_Close();
-
 
   BCAP_HRESULT bCap_ServiceStart();
   BCAP_HRESULT bCap_ServiceStop();
@@ -250,9 +255,11 @@ protected:
 
   //need CRC-CCITT for serial communication
   bool m_need_crc;
+  bool m_udp;
   bool m_show_debug_packet;
 
   //socket
+  struct sockaddr_in m_serverAddr; /* server's socket address */
   int m_sock_fd;
 };
 

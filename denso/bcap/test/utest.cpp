@@ -47,7 +47,7 @@ protected:
   // is empty.
 
   BCapTest()
-    : bcap_(false)
+    : bcap_(false, true)
   {
 
     // You can do set-up work for each test here.
@@ -85,6 +85,7 @@ TEST_F(BCapTest, bCap_Open)
 {
   ASSERT_EQ(BCAP_S_OK, bcap_.bCap_Open(CONTROLLER_IP, CONTROLLER_PORT));
 }
+
 
 TEST_F(BCapTest, bCap_ControllerConnect)
 {
@@ -186,7 +187,6 @@ TEST_F(BCapTest, bCap_ControllerGetRobot)
   //std::cout << "press any key to continue\n";
   //getchar();
 }
-
 
 TEST_F(BCapTest, Execute_SlaveGetMode)
 {
