@@ -133,6 +133,11 @@ void PRW::initialize()
       //set arm controller;
       group_map_[it->first].arm_controller_.reset(
           new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller, true));
+      while (!group_map_[it->first].arm_controller_->isServerConnected())
+      {
+        ROS_INFO_STREAM("Waiting for action " << arm_controller);
+        ros::Duration(1.0).sleep();
+      }
 
     }
 
@@ -142,6 +147,7 @@ void PRW::initialize()
   robot_state_->setKinematicStateToDefault();
 
   sendPlanningScene();
+
 
   // Create a new interactive marker server.
   interactive_marker_server_.reset(
@@ -175,10 +181,12 @@ void PRW::initialize()
   publisher_joints_[5] = node_handle_.advertise<std_msgs::Float64>("/arm1/J6/command/position", 1);
 
 
+
   selectPlanningGroup(0);
   solveIKForEndEffectorPose(*(getPlanningGroup(0)));
   //updateJointStates((*pcv->getPlanningGroup(i)));
 
+  refreshEnvironment();
 
 
   ROS_INFO_STREAM("Initialized");
@@ -717,6 +725,7 @@ void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
   }
   robot_state_->updateKinematicLinks();
   robot_state_->getKinematicStateValues(robot_state_joint_values_);
+
   /*
   for (std::map<std::string, double>::iterator it = robot_state_joint_values_.begin();
       it != robot_state_joint_values_.end(); it++)
@@ -732,8 +741,8 @@ void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
 
   lock_.unlock();
 
+  //refreshEnvironment();
 
-  sendPlanningScene
 }
 
 void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -751,6 +760,7 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
         tf::Transform cur = toBulletTransform(feedback->pose);
         setNewEndEffectorPosition(gc, cur, collision_aware_);
         last_ee_poses_[current_group_name_] = feedback->pose;
+        //sendPlanningScene();
       }
       else if(is_joint_control_active_)
       {
@@ -765,9 +775,9 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
       ROS_INFO("mouse up");
       //sendPlanningScene();
       //refreshEnvironment();
-      planToEndEffectorState(gc);
+      planToEndEffectorState(gc, false);
       //if(planToEndEffectorState(gc))
-      if(filterPlannerTrajectory(gc))
+      if(filterPlannerTrajectory(gc, false))
       {
         StateTrajectoryDisplay& disp = gc.state_trajectory_display_map_["filter"];
         //if(disp.has_joint_trajectory_)
