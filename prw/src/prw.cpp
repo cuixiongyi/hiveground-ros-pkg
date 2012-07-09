@@ -364,8 +364,12 @@ void PRW::sendPlanningScene()
   arm_navigation_msgs::SetPlanningSceneDiff::Request planning_scene_req;
   arm_navigation_msgs::SetPlanningSceneDiff::Response planning_scene_res;
 
+
   planning_environment::convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
-                                                          planning_scene_req.planning_scene_diff.robot_state);
+                                                         planning_scene_req.planning_scene_diff.robot_state);
+  //arm_navigation_msgs::RobotState emp;
+  //planning_scene_req.planning_scene_diff.robot_state = emp;
+
 
   planning_models::KinematicState* startState = NULL;
   planning_models::KinematicState* endState = NULL;
@@ -428,10 +432,11 @@ void PRW::sendPlanningScene()
     startState = group_map_[current_group_name_].getState(StartPosition);
     endState = group_map_[current_group_name_].getState(EndPosition);
 
+
     if (startState != NULL)
     {
       ROS_INFO("Resetting start state.");
-      startState->setKinematicState(startStateValues);
+      startState->setKinematicState(endStateValues);
     }
 
     if (endState != NULL)
@@ -439,6 +444,7 @@ void PRW::sendPlanningScene()
       ROS_INFO("Resetting end state.");
       endState->setKinematicState(endStateValues);
     }
+
   }
 
   lock_.unlock();
@@ -711,6 +717,14 @@ void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
   }
   robot_state_->updateKinematicLinks();
   robot_state_->getKinematicStateValues(robot_state_joint_values_);
+  /*
+  for (std::map<std::string, double>::iterator it = robot_state_joint_values_.begin();
+      it != robot_state_joint_values_.end(); it++)
+  {
+    ROS_INFO_STREAM(it->first << ":" << it->second);
+  }
+  */
+
 
 
 
@@ -719,6 +733,7 @@ void PRW::callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state)
   lock_.unlock();
 
 
+  sendPlanningScene
 }
 
 void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -749,8 +764,9 @@ void PRW::processInteractiveFeedback(const visualization_msgs::InteractiveMarker
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
       ROS_INFO("mouse up");
       //sendPlanningScene();
-      refreshEnvironment();
-      planToEndEffectorState(gc, false)
+      //refreshEnvironment();
+      planToEndEffectorState(gc);
+      //if(planToEndEffectorState(gc))
       if(filterPlannerTrajectory(gc))
       {
         StateTrajectoryDisplay& disp = gc.state_trajectory_display_map_["filter"];
@@ -851,8 +867,10 @@ bool PRW::solveIKForEndEffectorPose(PRW::GroupCollection& gc, bool coll_aware, b
   tf::poseTFToMsg(gc.getState(ik_control_type_)->getLinkState(gc.ik_link_name_)->getGlobalLinkTransform(),
                   ik_request.pose_stamped.pose);
 
+  //for(size_t i = 0; i < ik_request.pose_stamped.pose.position.)
+
   //use current robot state
-  planning_environment::convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
+  planning_environment::convertKinematicStateToRobotState(*gc.getState(ik_control_type_), ros::Time::now(), cm_->getWorldFrameId(),
                                     ik_request.robot_state);
   ik_request.ik_seed_state = ik_request.robot_state;
 
