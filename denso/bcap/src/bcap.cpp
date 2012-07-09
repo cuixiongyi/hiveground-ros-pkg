@@ -118,8 +118,13 @@
  b-Cap library public functions
  --------------------------------------------------------------------*/
 
-BCap::BCap(bool need_crc) :
-    m_lAllocCount(0), m_lAllocSize(0), m_iSerialNo(1), m_need_crc(need_crc), m_show_debug_packet(false)
+BCap::BCap(bool need_crc, bool udp) :
+    m_lAllocCount(0),
+    m_lAllocSize(0),
+    m_iSerialNo(1),
+    m_need_crc(need_crc),
+    m_udp(udp),
+    m_show_debug_packet(false)
 {
 
 }
@@ -134,8 +139,6 @@ BCap::BCap(bool need_crc) :
  */
 BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
 {
-
-  struct sockaddr_in serverAddr; /* server's socket address */
   int sockAddrSize; /* size of socket address structure */
 
   BCAP_HRESULT hr = BCAP_E_FAIL;
@@ -146,39 +149,66 @@ BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
 #endif
 
   sockAddrSize = sizeof(struct sockaddr_in);
-  memset((char *)&serverAddr, 0, sockAddrSize);
-  serverAddr.sin_family = AF_INET;
+  memset((char *)&m_serverAddr, 0, sockAddrSize);
+  m_serverAddr.sin_family = AF_INET;
 
-  serverAddr.sin_port = htons((short)iPort); /* SERVER_PORT_NUM */
+  m_serverAddr.sin_port = htons((short)iPort); /* SERVER_PORT_NUM */
 
 #ifdef WIN32
-  serverAddr.sin_addr.S_un.S_addr = inet_addr(pIPStr); /* SERVER_IP_ADDRESS */
+  m_serverAddr.sin_addr.S_un.S_addr = inet_addr(pIPStr); /* SERVER_IP_ADDRESS */
 #else
   //serverAddr.sin_len = (u_char)sockAddrSize;
-  inet_aton(pIPStr.c_str(), &(serverAddr.sin_addr));
+  inet_aton(pIPStr.c_str(), &(m_serverAddr.sin_addr));
 #endif
 
-  /* socket  */
-  if ((m_sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+  if(!m_udp)
   {
-    perror("Fail.. Function:socket() in bCap_Open()");
-    hr = BCAP_E_UNEXPECTED;
-  }
-  else
-  {
-    /* connect to server */
-    int iResult;
-    iResult = connect(m_sock_fd, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-
-    if (iResult == 0)
+    /* socket  */
+    if ((m_sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-      hr = BCAP_S_OK;
+      perror("Fail.. Function:socket() in bCap_Open()");
+      hr = BCAP_E_UNEXPECTED;
     }
     else
     {
+      /* connect to server */
+      int iResult;
+      iResult = connect(m_sock_fd, (struct sockaddr *)&m_serverAddr, sizeof(m_serverAddr));
+
+      if (iResult == 0)
+      {
+        hr = BCAP_S_OK;
+      }
+      else
+      {
+        hr = BCAP_E_UNEXPECTED;
+      }
+
+    }
+  }
+  else
+  {
+    /* UDP socket  */
+    if ((m_sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+    {
+      perror("Fail.. Function:socket() in bCap_Open()");
       hr = BCAP_E_UNEXPECTED;
     }
+    else
+    {
+      /* connect to server */
+      int iResult;
+      iResult = connect(m_sock_fd, (struct sockaddr *)&m_serverAddr, sizeof(m_serverAddr));
 
+      if (iResult == 0)
+      {
+        hr = BCAP_S_OK;
+      }
+      else
+      {
+        hr = BCAP_E_UNEXPECTED;
+      }
+    }
   }
 
   return hr;
@@ -1897,8 +1927,9 @@ BCAP_HRESULT BCap::bCapSendAndRec(BCAP_PACKET *pSndPacket, BCAP_PACKET *pRecPack
 
     if (Packet_Send(pSndPacket) == BCAP_S_OK)
     {
-#if 1
+      //printf("-----1\n");
       uint8_t *pRec = receivePacket(); /* Receive packet and alloc memory for storing received binary */
+      //printf("-----2\n");
       if (pRec != NULL)
       {
         hr = Packet_Deserialize(pRec, pRecPacket);
@@ -1914,7 +1945,7 @@ BCAP_HRESULT BCap::bCapSendAndRec(BCAP_PACKET *pSndPacket, BCAP_PACKET *pRecPack
         /* allocation error */
         hr = BCAP_E_UNEXPECTED;
       }
-#endif
+
     }
     else
     {
@@ -1954,74 +1985,123 @@ uint8_t *BCap::receivePacket()
   int lRecLen;
   uint32_t lHeaderLen;
 
+
   /* b-CAP header = 15 bytes, this should be received at first */
   lHeaderLen = BCAP_SIZE_SOH + BCAP_SIZE_LEN +
   BCAP_SIZE_SERIAL + BCAP_SIZE_RESERVE +
   BCAP_SIZE_FUNCID + BCAP_SIZE_ARGNUM;
 
-  /* Receive b-Cap header */
-  lRecvSize = 0;
-  while (lRecvSize < lHeaderLen)
+
+  if(!m_udp)
   {
-    lRecLen = recv(m_sock_fd, (char *)&(pRcvBuffer[lRecvSize]), lHeaderLen - lRecvSize, 0);
+    /* Receive b-Cap header */
+    lRecvSize = 0;
+    while (lRecvSize < lHeaderLen)
+    {
+      //TCP receive
+      lRecLen = recv(m_sock_fd, (char *)&(pRcvBuffer[lRecvSize]), lHeaderLen - lRecvSize, 0);
+      if(lRecLen <= 0)
+      { /* if sock error has detected, then exit  */
+        goto ExitPoint;
+      }
+      lRecvSize += lRecLen; /* add read bytes */
+
+      pTop = (uint8_t *)memchr((const void *)pRcvBuffer, BCAP_SOH, lRecvSize);
+      if (pTop == NULL)
+      { /* Is there SOH ? */
+        lRecvSize = 0; /* If No SOH, then all read data are discarded */
+      }
+      else
+      {
+        if (pTop != pRcvBuffer)
+        { /* if (pTop == pRcvBuffer) then SOH is already in the top. */
+          lRecvSize = lRecvSize - (pTop - pRcvBuffer); /* exclude before SOH  */
+          memmove (pRcvBuffer, pTop, lRecvSize);
+        }
+      }
+    }
+
+    /* Receive the left data of this packet */
+    {
+      uint32_t lPacketSize;
+      uint32_t lRemainSize;
+
+      copyValue(&lPacketSize, &(pRcvBuffer[1]), BCAP_SIZE_LEN);
+      lRemainSize = lPacketSize - lRecvSize;
+
+      pPacketBuff = (unsigned char *)bMalloc(lPacketSize);
+      if (pPacketBuff != NULL)
+      {
+        memcpy(pPacketBuff, pRcvBuffer, lRecvSize);
+        pRemainData = pPacketBuff + lRecvSize;
+      }
+      else
+      {
+        goto ExitPoint; /* out of memory */
+      }
+
+      lRecvSize = 0;
+      while (lRecvSize < lRemainSize)
+      {
+        lRecLen = recv(m_sock_fd, (char *)&(pRemainData[lRecvSize]), lRemainSize -lRecvSize , 0);
+        if(lRecLen <= 0)
+        { /* if sock errer has detected, then exit  */
+
+          goto ExitPoint;
+        }
+        lRecvSize += lRecLen; /* add read bytes */
+      }
+
+      /* Check Terminator EOT  */
+      if (pPacketBuff[lPacketSize - 1] != BCAP_EOT)
+      {
+        goto ExitPoint;
+      }
+
+    }
+  }
+  else
+  {
+    //UDP receive
+    uint32_t lPacketSize;
+    struct sockaddr_in from;
+    uint32_t from_length = sizeof(struct sockaddr_in);
+    lRecLen = recvfrom(m_sock_fd, (char *)&(pRcvBuffer[lRecvSize]), LOCALRECBUFFER_SZ, 0, (struct sockaddr *)&from,
+                       &from_length);
     if(lRecLen <= 0)
     { /* if sock error has detected, then exit  */
       goto ExitPoint;
     }
-    lRecvSize += lRecLen; /* add read bytes */
 
-    pTop = (uint8_t *)memchr((const void *)pRcvBuffer, BCAP_SOH, lRecvSize);
+    //printf("hdr %d get %d\n", lHeaderLen, lRecLen);
+
+
+    pTop = (uint8_t *)memchr((const void *)pRcvBuffer, BCAP_SOH, lRecLen);
     if (pTop == NULL)
     { /* Is there SOH ? */
-      lRecvSize = 0; /* If No SOH, then all read data are discarded */
+      lRecLen = 0; /* If No SOH, then all read data are discarded */
     }
     else
     {
       if (pTop != pRcvBuffer)
       { /* if (pTop == pRcvBuffer) then SOH is already in the top. */
-        lRecvSize = lRecvSize - (pTop - pRcvBuffer); /* exclude before SOH  */
-        memmove (pRcvBuffer, pTop, lRecvSize);
+        lRecLen = lRecLen - (pTop - pRcvBuffer); /* exclude before SOH  */
+        memmove (pRcvBuffer, pTop, lRecLen);
       }
     }
-  }
-
-  /* Receive the left data of this packet */
-  {
-    uint32_t lPacketSize;
-    uint32_t lRemainSize;
 
     copyValue(&lPacketSize, &(pRcvBuffer[1]), BCAP_SIZE_LEN);
-    lRemainSize = lPacketSize - lRecvSize;
+    //printf("get %d size %d\n", lPacketSize);
 
-    pPacketBuff = (unsigned char *)bMalloc(lPacketSize);
+    pPacketBuff = (unsigned char *)bMalloc(lRecLen);
     if (pPacketBuff != NULL)
     {
-      memcpy(pPacketBuff, pRcvBuffer, lRecvSize);
-      pRemainData = pPacketBuff + lRecvSize;
+      memcpy(pPacketBuff, pRcvBuffer, lRecLen);
     }
     else
     {
       goto ExitPoint; /* out of memory */
     }
-
-    lRecvSize = 0;
-    while (lRecvSize < lRemainSize)
-    {
-      lRecLen = recv(m_sock_fd, (char *)&(pRemainData[lRecvSize]), lRemainSize -lRecvSize , 0);
-      if(lRecLen <= 0)
-      { /* if sock errer has detected, then exit  */
-
-        goto ExitPoint;
-      }
-      lRecvSize += lRecLen; /* add read bytes */
-    }
-
-    /* Check Terminator EOT  */
-    if (pPacketBuff[lPacketSize - 1] != BCAP_EOT)
-    {
-      goto ExitPoint;
-    }
-
   }
 
   return pPacketBuff;
@@ -2053,12 +2133,16 @@ BCAP_HRESULT BCap::sendBinary(uint8_t *pBuff, uint32_t lSize)
   BCAP_HRESULT hr = BCAP_E_FAIL;
   int iLen;
   int iSent;
+  unsigned int length=sizeof(struct sockaddr_in);
 
   iLen = (int)lSize;
   if (iLen > 0)
   {
 
-    iSent = send(m_sock_fd, (char *)pBuff, iLen, 0);
+    if(!m_udp)
+      iSent = send(m_sock_fd, (char *)pBuff, iLen, 0);
+    else
+      iSent = sendto(m_sock_fd, (char *)pBuff, iLen, 0, (const struct sockaddr *)&m_serverAddr, length);
     if (iSent == iLen)
     {
       hr = BCAP_S_OK;

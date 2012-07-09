@@ -43,6 +43,7 @@
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 
 #include <boost/thread.hpp>
+#include <queue>
 
 #include <hg_cpp/hg_controller.h>
 #include <bcap/bcap.h>
@@ -110,7 +111,7 @@ private:
   BCAP_HRESULT getJointFeedback(bool set_desired_position_ = false);
 
   //action server
-  void callbackAction(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
+  void followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
 
 public:
   BCap bcap_;
@@ -133,6 +134,13 @@ public:
   typedef boost::shared_ptr<FollowJointTrajectoryActionServer> FollowJointTrajectoryActionServerPtr;
   FollowJointTrajectoryActionServerPtr action_server_;
   control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
+
+  boost::mutex queue_mutex_;
+  typedef std::queue<trajectory_msgs::JointTrajectory> JointTrajectoryQueue;
+  JointTrajectoryQueue joint_trajecgtory_queue_;
+  trajectory_msgs::JointTrajectory current_joint_trajecgtory_;
+  bool process_trajectory_;
+
 };
 
 }//hg_plugins

@@ -1,7 +1,7 @@
 Background\ ColorB=0
 Background\ ColorG=0
 Background\ ColorR=0
-Camera\ Config=0.259797 4.80859 2.28031 -0.0274399 0.398035 0.308588
+Camera\ Config=0.334797 5.13859 2.28031 -0.0274399 0.398035 0.308588
 Camera\ Type=rviz::OrbitViewController
 Endeffector.Enabled=1
 Endeffector.Length=0.2

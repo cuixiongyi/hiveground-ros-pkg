@@ -46,6 +46,8 @@
 
 #include <boost/thread.hpp>
 
+
+
 #include <QtGui>
 #include "ui_prw.h"
 
@@ -248,7 +250,7 @@ public:
 
   GroupCollection* getPlanningGroup(unsigned int i);
 
-  void callbackJointState(const sensor_msgs::JointStateConstPtr& joint_state);
+  void jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state);
 
 
   void processInteractiveFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
@@ -388,6 +390,7 @@ public:
   ros::NodeHandle node_handle_; //!< ROS node handle?
 
   bool quit_threads_;
+  bool initialized_;
 
   //Simple IK
   ros::ServiceClient ik_client_;
@@ -412,6 +415,7 @@ public:
   bool is_joint_control_active_;
   std::string current_group_name_;
   arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
+  bool goal_is_active_;
 
 
 
@@ -444,6 +448,7 @@ public:
 
   /// Maps MenuHandles to their names. Used to determine which menu entry is selected.
   MenuMap menu_entry_maps_;
+
 
 
 };
