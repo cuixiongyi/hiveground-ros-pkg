@@ -34,5 +34,13 @@
 #ifndef PRW_VISUALIZATION_H
 #define PRW_VISUALIZATION_H
 
+namespace hg
+{
+
+
+
+
+
+}
 
 #endif

@@ -153,10 +153,142 @@ enum TrajectoryRenderType
   Temporal,
 };
 
-typedef std::map<std::string, ros::ServiceClient> ServiceClientMap;
+/////
+/// Struct SelectableObject
+/// @brief Struct containing an interactive marker
+/// for 6DOF control, and another for selection.
+////
+struct SelectableObject
+{
+  SelectableObject() {
+    attach_ = false;
+    detach_ = false;
+    attached_collision_object_.object.operation.operation = arm_navigation_msgs::CollisionObjectOperation::REMOVE;
+    collision_object_.operation.operation = arm_navigation_msgs::CollisionObjectOperation::REMOVE;
+  }
 
-typedef std::map<std::string,
-    boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > > ArmControllerMap;
+  bool attach_;
+  bool detach_;
+  arm_navigation_msgs::AttachedCollisionObject attached_collision_object_;
+  arm_navigation_msgs::CollisionObject collision_object_;
+  visualization_msgs::InteractiveMarker selection_marker_;
+  visualization_msgs::InteractiveMarker control_marker_;
+  std_msgs::ColorRGBA color_;
+
+  std::string id_;
+};
+
+/////
+/// Struct IKController
+/// @brief Struct containing the start and end 6DOF controllers
+/// for a specific motion plan request.
+/////
+struct IKController
+{
+  unsigned int motion_plan_id_;
+  visualization_msgs::InteractiveMarker start_controller_;
+  visualization_msgs::InteractiveMarker end_controller_;
+};
+
+
+class PlanningSceneData
+{
+public:
+  std::string name_;
+  unsigned int id_;
+  std::string host_;
+  ros::Time timestamp_;
+  arm_navigation_msgs::PlanningScene planning_scene_;
+  std::vector<std::string> pipeline_stages_;
+  std::vector<arm_navigation_msgs::ArmNavigationErrorCodes> error_codes_;
+  std::set<unsigned int> motion_plan_requests_;
+
+};
+
+class MotionPlanRequestData
+{
+public:
+  std::string name_;
+  unsigned int id_;
+  std::string source_;
+  unsigned int planning_scene_id_;
+  std::string end_effector_link_;
+  std::string group_name_;
+  arm_navigation_msgs::MotionPlanRequest motion_plan_request_;
+  bool is_start_editable_;
+  bool is_goal_editable_;
+  bool is_start_visible_;
+  bool is_goal_visible_;
+  bool should_refresh_colors_;
+  bool has_refreshed_colors_;
+  bool has_path_constraints_;
+  bool has_good_goal_ik_solution_;
+  bool has_good_start_ik_solution_;
+  bool are_collisions_visible_;
+  bool has_state_changed_;
+  bool are_joint_controls_visible_;
+
+  double roll_tolerance_;
+  double pitch_tolerance_;
+  double yaw_tolerance_;
+
+  bool constrain_roll_;
+  bool constrain_pitch_;
+  bool constrain_yaw_;
+
+  std_msgs::ColorRGBA start_color_;
+  std_msgs::ColorRGBA goal_color_;
+  std::set<unsigned int> trajectories_;
+  planning_models::KinematicState* start_state_;
+  planning_models::KinematicState* goal_state_;
+  tf::Transform last_good_start_pose_;
+  tf::Transform last_good_goal_pose_;
+  visualization_msgs::MarkerArray collision_markers_;
+  RenderType render_type_;
+  unsigned int next_trajectory_id_;
+};
+
+class TrajectoryData
+{
+public:
+
+  enum MarkerType {
+    VISUAL,
+    COLLISION,
+    PADDED
+  };
+
+protected:
+  std::string name_;
+  unsigned int id_;
+  std::string source_;
+  std::string group_name_;
+  unsigned int planning_scene_id_;
+  unsigned int motion_plan_request_Id_;
+  trajectory_msgs::JointTrajectory trajectory_;
+  trajectory_msgs::JointTrajectory trajectory_error_;
+  bool is_visible_;
+  MarkerType marker_type_;
+  bool is_playing_;
+  ros::Time playback_start_time_;
+  bool collisions_visible_;
+  bool state_changed_;
+  std_msgs::ColorRGBA color_;
+  unsigned int current_trajectory_point_;
+  unsigned int trajectory_bad_point_;
+  planning_models::KinematicState* current_state_;
+  ros::Duration duration_;
+  bool should_refresh_colors_;
+  bool has_refreshed_colors_;
+  visualization_msgs::MarkerArray collision_markers_;
+  RenderType render_type_;
+  TrajectoryRenderType trajectory_render_type_;
+  ros::Duration time_to_stop_;
+};
+
+
+typedef std::map<std::string, ros::ServiceClient> ServiceClientMap;
+typedef std::map<std::string, boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > > ArmControllerMap;
 typedef boost::shared_ptr<ros::ServiceClient> ServiceClientPtr;
 typedef std::vector<std::string> StringVector;
 typedef std::map<std::string, ros::Subscriber> SubscriberMap;
@@ -209,7 +341,13 @@ protected:
   tf::TransformListener transform_listener_;
 
 
+  std::map<std::string, PlanningSceneData> planning_scene_map_;
+  std::map<std::string, MotionPlanRequestData> motion_plan_map_;
+  std::map<std::string, std::map<std::string, TrajectoryData> > trajectory_map_;
+  std::map<std::string, SelectableObject>* selectable_objects_;
+  std::map<std::string, IKController>* ik_controllers_;
 
+  interactive_markers::MenuHandler::FeedbackCallback ik_control_feedback_ptr_;
 
 
 
@@ -220,6 +358,14 @@ public:
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state);
   bool sendPlanningScene();
   void sendMarkers();
+  void getTrajectoryMarkers(visualization_msgs::MarkerArray& arr);
+  void getMotionPlanningMarkers(visualization_msgs::MarkerArray& arr);
+  void createIKController(MotionPlanRequestData& data, PositionType type, bool rePose);
+  void IKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+
+  void createNewPlanningScene();
+  void deleteCollisionObject(std::string& name);
+
 
 
 

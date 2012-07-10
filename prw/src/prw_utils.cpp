@@ -39,6 +39,7 @@ using namespace planning_environment;
 using namespace planning_models;
 using namespace kinematics_msgs;
 using namespace arm_navigation_msgs;
+using namespace visualization_msgs;
 
 
 WorkspaceEditor::WorkspaceEditor(hg::WorkspaceEditorParameters* parameters)
@@ -50,6 +51,8 @@ WorkspaceEditor::WorkspaceEditor(hg::WorkspaceEditorParameters* parameters)
   ROS_INFO_STREAM(robot_description_name);
 
   cm_.reset(new CollisionModels(robot_description_name));
+
+
   robot_state_ = new KinematicState(cm_->getKinematicModel());
   robot_state_->setKinematicStateToDefault();
 
@@ -57,6 +60,8 @@ WorkspaceEditor::WorkspaceEditor(hg::WorkspaceEditorParameters* parameters)
 
   interactive_marker_server_.reset(
       new interactive_markers::InteractiveMarkerServer("personal_robotic_workspace_control", "", false));
+
+  ik_control_feedback_ptr_ = boost::bind(&WorkspaceEditor::IKControllerCallback, this, _1);
 
 
   vis_marker_publisher_ = nh_.advertise<visualization_msgs::Marker>(parameters_->visualizer_topic_name_, 128);
@@ -216,10 +221,190 @@ bool WorkspaceEditor::sendPlanningScene()
 
 void WorkspaceEditor::sendMarkers()
 {
+  mutex_.lock();
+  visualization_msgs::MarkerArray arr;
 
 
 
 
+
+  vis_marker_array_publisher_.publish(arr);
+
+
+  mutex_.unlock();
+
+}
+
+void WorkspaceEditor::createIKController(MotionPlanRequestData& data, PositionType type, bool rePose)
+{
+  KinematicState* state = NULL;
+  std::string nametag = "";
+  if (type == StartPosition)
+  {
+    state = data.start_state_;
+    nametag = "_start_control";
+  }
+  else
+  {
+    state = data.goal_state_;
+    nametag = "_end_control";
+  }
+
+  tf::Transform transform = state->getLinkState(data.end_effector_link_)->getGlobalLinkTransform();
+  InteractiveMarker marker;
+
+  if (interactive_marker_server_->get(data.name_ + nametag, marker) && rePose)
+  {
+    geometry_msgs::Pose pose = toGeometryPose(transform);
+    interactive_marker_server_->setPose(data.name_ + nametag, pose);
+    return;
+  }
+
+  marker.header.frame_id = "/" + cm_->getWorldFrameId();
+  marker.pose.position.x = transform.getOrigin().x();
+  marker.pose.position.y = transform.getOrigin().y();
+  marker.pose.position.z = transform.getOrigin().z();
+  marker.pose.orientation.w = transform.getRotation().w();
+  marker.pose.orientation.x = transform.getRotation().x();
+  marker.pose.orientation.y = transform.getRotation().y();
+  marker.pose.orientation.z = transform.getRotation().z();
+  marker.scale = 0.225f;
+  marker.name = data.name_ + nametag;
+  marker.description = data.name_ + nametag;
+
+  InteractiveMarkerControl control;
+  control.always_visible = false;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+
+  marker.controls.push_back(control);
+
+  InteractiveMarkerControl control2;
+  control2.always_visible = false;
+  control2.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE;
+  control2.orientation.w = 1;
+  control2.orientation.x = 0;
+  control2.orientation.y = 1;
+  control2.orientation.z = 0;
+
+  Marker marker2;
+  marker2.type = Marker::CUBE;
+  marker2.scale.x = .2;
+  marker2.scale.y = .15;
+  marker2.scale.z = .002;
+  marker2.pose.position.x = .1;
+  marker2.color.r = 0;
+  marker2.color.g = 0;
+  marker2.color.b = 0.5;
+  marker2.color.a = 1;
+  control2.markers.push_back(marker2);
+  marker2.scale.x = .1;
+  marker2.scale.y = .35;
+  marker2.pose.position.x = 0;
+  control2.markers.push_back(marker2);
+
+  marker.controls.push_back(control2);
+
+  InteractiveMarkerControl control3;
+  control3.always_visible = false;
+  control3.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE;
+  control3.orientation.w = 1;
+  control3.orientation.x = 0;
+  control3.orientation.y = 0;
+  control3.orientation.z = 1;
+
+  Marker marker3;
+  marker3.type = Marker::CUBE;
+  marker3.scale.x = .2;
+  marker3.scale.y = .002;
+  marker3.scale.z = .15;
+  marker3.pose.position.x = .1;
+  marker3.color.r = 0;
+  marker3.color.g = .5;
+  marker3.color.b = 0;
+  marker3.color.a = 1;
+  control3.markers.push_back(marker3);
+  marker3.scale.x = .1;
+  marker3.scale.z = .35;
+  marker3.pose.position.x = 0;
+  control3.markers.push_back(marker3);
+
+  marker.controls.push_back(control3);
+
+  interactive_marker_server_->insert(marker, ik_control_feedback_ptr_);
+
+}
+
+void IKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+{
+
+}
+
+void WorkspaceEditor::createNewPlanningScene()
+{
+  mutex_.lock();
+  if(robot_state_ == NULL)
+  {
+    robot_state_ = new KinematicState(cm_->getKinematicModel());
+  }
+  else
+  {
+    if (robot_state_joint_values_.empty())
+    {
+      robot_state_->setKinematicStateToDefault();
+    }
+    else
+    {
+      robot_state_->setKinematicState(robot_state_joint_values_);
+    }
+  }
+
+  PlanningSceneData data;
+  data.timestamp_ = ros::Time(ros::WallTime::now().toSec());
+
+  convertKinematicStateToRobotState(*robot_state_, data.timestamp_, cm_->getWorldFrameId(),
+                                    data.planning_scene_.robot_state);
+
+
+  //add all previously added objects in the scene
+  std::vector<string> collisionObjects;
+  for (map<string, SelectableObject>::iterator it = selectable_objects_->begin(); it != selectable_objects_->end();
+      it++)
+  {
+    collisionObjects.push_back(it->first);
+  }
+
+  //this also does attached collision objects
+  for(size_t i = 0; i < collisionObjects.size(); i++)
+  {
+    deleteCollisionObject(collisionObjects[i]);
+  }
+
+  selectable_objects_->clear();
+
+  char hostname[256];
+  gethostname(hostname, 256);
+  data.host_ = string(hostname);
+
+  planning_scene_map_[data.name_] = data;
+
+
+
+  mutex_.unlock();
+}
+
+void WorkspaceEditor::deleteCollisionObject(std::string& name)
+{
+  (*selectable_objects_)[name].collision_object_.operation.operation
+      = arm_navigation_msgs::CollisionObjectOperation::REMOVE;
+  (*selectable_objects_)[name].attached_collision_object_.object.operation.operation
+      = arm_navigation_msgs::CollisionObjectOperation::REMOVE;
+  interactive_marker_server_->erase((*selectable_objects_)[name].selection_marker_.name);
+  interactive_marker_server_->erase((*selectable_objects_)[name].control_marker_.name);
+  interactive_marker_server_->applyChanges();
 }
 
 WorkspaceEditor::~WorkspaceEditor()
