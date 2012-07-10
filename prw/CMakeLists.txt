@@ -56,7 +56,13 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #target_link_libraries(prw ${QT_LIBRARIES})
 #target_link_libraries(prw ${QT_LIBRARIES} move_arm_utils)
 
-rosbuild_add_executable(personal_robotic_workspace src/prw.cpp src/prw_utils.cpp src/prw_visualization.cpp ${uis_h} ${qt_srcs} ${qt_moc_srcs})
+set(prw_srcs
+      src/prw.cpp 
+      src/prw_parameter_dialog.cpp
+      src/prw_utils.cpp 
+      src/prw_visualization.cpp)
+
+rosbuild_add_executable(personal_robotic_workspace ${prw_srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(personal_robotic_workspace ${QT_LIBRARIES})
 
 
