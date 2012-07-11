@@ -64,7 +64,7 @@ class PRW : public QMainWindow, public hg::WorkspaceEditor
   Q_OBJECT
 public:
 
-  PRW(hg::WorkspaceEditorParameters* parameters, QWidget *parent = 0, Qt::WFlags flags = 0);
+  PRW(const hg::WorkspaceEditorParameters& parameters, QWidget *parent = 0, Qt::WFlags flags = 0);
   ~PRW();
   void initialize();
 

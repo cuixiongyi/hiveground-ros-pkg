@@ -32,7 +32,13 @@
       <!--remap from="joint_states" to="/arm1/joint_states" /-->
   </node>
   
-  <node pkg="prw" type="prw" name="prw" output="screen">
+  <!-- fk/ik solver http://www.ros.org/wiki/arm_kinematics -->
+  <!--node pkg="arm_kinematics" type="arm_kinematics" name="arm_kinematics" output="screen">
+    <param name="root_name" value="base_link" />
+    <param name="tip_name" value="link5" />    
+  </node-->
+  
+  <node pkg="prw" type="personal_robotic_workspace" name="prw" output="screen">
     <!--remap from="robot_description" to="/arm1/robot_description" /-->    
   </node>
    
@@ -43,9 +49,22 @@
   args="0.10 0.67 0.00 0 0 0 world base_link 100" /-->
   
   	
-  <node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find prw)/cfg/prw.vcg">
-    <!--remap from="robot_description" to="/arm1/robot_description" /-->
+  <node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find prw)/cfg/prw.vcg">    
   </node>
+  
+  <param name="number_of_arm" value="2"/>  
+  <param name="arm_group_0" value="arm" />
+  <param name="arm_controller_0" value="/vp6242/follow_joint_trajectory" />
+  <param name="ik_link_0" value="link5" />
+  <param name="ik_name_0" value="/vp6242_arm_kinematics/get_constraint_aware_ik" />
+  <param name="non_collision_ik_name_0" value="/vp6242_arm_kinematics/get_ik" />
+  
+  <param name="planner_service_name" value="/ompl_planning/plan_kinematic_path" />
+  <param name="trajectory_filter_service_name" value="/trajectory_filter_server/filter_trajectory_with_constraints" />
+  <param name="set_planning_scene_diff_name" value="environment_server/set_planning_scene_diff"/>
+  <param name="visualizer_topic_name_" value="personal_robotic_workspace_visualizer_markers"/>
+  
+  
   
     
 </launch>
