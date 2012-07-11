@@ -31,6 +31,7 @@
  * Author: Mahisorn Wongphati
  */
 
+#include <unistd.h>
 
 #include <ros/ros.h>
 #include <prw/prw.h>
@@ -74,6 +75,26 @@ void PRW::on_ik_move_reset_clicked()
   ui.ik_move_yaw->setValue(0.0);
 }
 
+void PRW::on_new_scene_clicked()
+{
+  createNewPlanningScene("test", 0);
+}
+
+void PRW::on_new_mpr_clicked()
+{
+  unsigned int plan_id = 0;
+  unsigned int id;
+  createMotionPlanRequest(*robot_state_, *robot_state_,
+                          "arm", "link5", plan_id, true, id);
+
+}
+
+void PRW::on_plan_clicked()
+{
+
+}
+
+
 void PRW::closeEvent(QCloseEvent *event)
 {
   ROS_INFO("Close windows");
@@ -81,8 +102,38 @@ void PRW::closeEvent(QCloseEvent *event)
   event->accept();
 }
 
+#define CONTROL_SPEED 5
+
 PRW* prw_ = NULL;
 bool initialized_ = false;
+
+void marker_function()
+{
+  unsigned int counter = 0;
+  while(ros::ok())
+  {
+    if(initialized_)
+    {
+      if(counter % CONTROL_SPEED == 0)
+      {
+        counter = 1;
+        prw_->sendMarkers();
+      }
+      else
+      {
+        counter++;
+      }
+
+      if(prw_->quit_threads_)
+      {
+        break;
+      }
+    }
+    usleep(5000);
+  }
+}
+
+
 void spin_function()
 {
   ros::WallRate r(100.0);
@@ -103,6 +154,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "personal_robotic_workspace", ros::init_options::NoSigintHandler);
 
   boost::thread spin_thread(boost::bind(&spin_function));
+  boost::thread marker_thread(boost::bind(&marker_function));
 
   QApplication a(argc, argv);
 

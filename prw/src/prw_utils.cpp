@@ -41,6 +41,91 @@ using namespace kinematics_msgs;
 using namespace arm_navigation_msgs;
 using namespace visualization_msgs;
 
+std_msgs::ColorRGBA makeRandomColor(float brightness, float alpha)
+{
+  std_msgs::ColorRGBA toReturn;
+  toReturn.a = alpha;
+
+  toReturn.r = ((float)(random()) / (float)RAND_MAX) * (1.0f - brightness) + brightness;
+  toReturn.g = ((float)(random()) / (float)RAND_MAX) * (1.0f - brightness) + brightness;
+  toReturn.b = ((float)(random()) / (float)RAND_MAX) * (1.0f - brightness) + brightness;
+
+  toReturn.r = min(toReturn.r, 1.0f);
+  toReturn.g = min(toReturn.g, 1.0f);
+  toReturn.b = min(toReturn.b, 1.0f);
+
+  return toReturn;
+}
+
+MotionPlanRequestData::MotionPlanRequestData(const unsigned int& id,
+                                             const string& source,
+                                             const MotionPlanRequest& request,
+                                             const KinematicState* robot_state,
+                                             const std::string& end_effector_name)
+{
+  // Note: these must be registered as StateRegistry entries after this request has been created.
+  start_state_ = new KinematicState(*robot_state);
+  goal_state_ = new KinematicState(*robot_state);
+
+  id_ = id;
+  source_ = source;
+
+  end_effector_link_ = end_effector_name;
+  motion_plan_request_ = request;
+
+  start_color_ = makeRandomColor(0.3f, 0.6f);
+  goal_color_ = makeRandomColor(0.3f, 0.6f);
+
+  is_start_editable_ = true;
+  is_goal_editable_ = true;
+
+  setHasGoodIKSolution(true, StartPosition);
+  setHasGoodIKSolution(true, GoalPosition);
+
+  if(request.path_constraints.orientation_constraints.size() > 0) {
+    const OrientationConstraint& oc = request.path_constraints.orientation_constraints[0];
+    setPathConstraints(true);
+    if(oc.absolute_roll_tolerance < 3.0) {
+      setConstrainRoll(true);
+      setRollTolerance(oc.absolute_roll_tolerance);
+    } else {
+      setConstrainRoll(false);
+      setRollTolerance(0.05);
+    }
+    if(oc.absolute_pitch_tolerance < 3.0) {
+      setConstrainPitch(true);
+      setPitchTolerance(oc.absolute_pitch_tolerance);
+    } else {
+      setConstrainPitch(false);
+      setPitchTolerance(0.05);
+    }
+    if(oc.absolute_yaw_tolerance < 3.0) {
+      setConstrainYaw(true);
+      setYawTolerance(oc.absolute_yaw_tolerance);
+    } else {
+      setConstrainYaw(false);
+      setYawTolerance(0.05);
+    }
+  } else {
+    setPathConstraints(false);
+    setConstrainRoll(false);
+    setConstrainPitch(false);
+    setConstrainYaw(false);
+    setRollTolerance(.05);
+    setPitchTolerance(.05);
+    setYawTolerance(.05);
+  }
+  show();
+  showCollisions();
+
+  should_refresh_colors_ = false;
+  has_refreshed_colors_ = true;
+  refresh_timer_ = ros::Duration(0.0);
+  are_joint_controls_visible_ = false;
+
+  render_type_ = CollisionMesh;
+}
+
 
 WorkspaceEditor::WorkspaceEditor(hg::WorkspaceEditorParameters* parameters)
 {
@@ -115,7 +200,7 @@ WorkspaceEditor::WorkspaceEditor(hg::WorkspaceEditorParameters* parameters)
 
 
 
-  sendPlanningScene();
+  //sendPlanningScene();
 
   ROS_INFO("initialized");
 }
@@ -187,14 +272,30 @@ void WorkspaceEditor::jointStateCallback(const sensor_msgs::JointStateConstPtr& 
   mutex_.unlock();
 }
 
-bool WorkspaceEditor::sendPlanningScene()
+bool WorkspaceEditor::sendPlanningScene(PlanningSceneData& data)
 {
   SetPlanningSceneDiff::Request planning_scene_req;
   SetPlanningSceneDiff::Response planning_scene_res;
 
   mutex_.lock();
-  planning_environment::convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
-                                                          planning_scene_req.planning_scene_diff.robot_state);
+
+  planning_scene_req.planning_scene_diff = data.planning_scene_;
+
+  //just will get latest data from the monitor
+  arm_navigation_msgs::RobotState emp;
+  planning_scene_req.planning_scene_diff.robot_state = emp;
+
+
+  collision_space::EnvironmentModel::AllowedCollisionMatrix acm;
+  if(planning_scene_req.planning_scene_diff.allowed_collision_matrix.link_names.empty()) {
+    acm = cm_->getDefaultAllowedCollisionMatrix();
+  } else {
+    acm = planning_environment::convertFromACMMsgToACM(planning_scene_req.planning_scene_diff.allowed_collision_matrix);
+  }
+  planning_scene_req.planning_scene_diff.collision_objects = std::vector<CollisionObject>();
+  planning_scene_req.planning_scene_diff.attached_collision_objects = std::vector<AttachedCollisionObject>();
+
+  deleteKinematicStates();
 
 
   if (robot_state_ != NULL)
@@ -219,6 +320,54 @@ bool WorkspaceEditor::sendPlanningScene()
   return true;
 }
 
+void WorkspaceEditor::deleteKinematicStates()
+{
+  mutex_.lock();
+  std::vector<KinematicState*> removals;
+  for(map<string, map<string, TrajectoryData> >::iterator it = trajectory_map_.begin(); it != trajectory_map_.end(); it++)
+  {
+    for(map<string, TrajectoryData>::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+      removals.push_back(it2->second.current_state_);
+      it2->second.reset();
+    }
+  }
+
+  for(map<string, MotionPlanRequestData>::iterator it = motion_plan_map_.begin(); it != motion_plan_map_.end(); it++)
+  {
+    removals.push_back(it->second.start_state_);
+    removals.push_back(it->second.goal_state_);
+    it->second.reset();
+  }
+
+  /*
+  for(size_t i = 0; i < states_.size(); i++)
+  {
+    if(states_[i].state != NULL)
+    {
+      bool shouldBreak = false;
+      for(size_t j = 0; j < removals.size(); j++)
+      {
+        if(states_[i].state == removals[j])
+        {
+          shouldBreak = true;
+          break;
+        }
+      }
+
+      if(shouldBreak)
+      {
+        continue;
+      }
+      ROS_INFO("Missed a state from %s!", states_[i].source.c_str());
+      delete states_[i].state;
+      states_[i].state = NULL;
+    }
+  }
+  states_.clear();
+  */
+  mutex_.unlock();
+}
+
 void WorkspaceEditor::sendMarkers()
 {
   mutex_.lock();
@@ -234,6 +383,200 @@ void WorkspaceEditor::sendMarkers()
   mutex_.unlock();
 
 }
+
+void getTrajectoryMarkers(visualization_msgs::MarkerArray& arr)
+{
+
+}
+
+void WorkspaceEditor::getMotionPlanningMarkers(visualization_msgs::MarkerArray& arr)
+{
+  vector<string> removals;
+
+  // For each motion plan request ...
+  for (map<string, MotionPlanRequestData>::iterator it = motion_plan_map_.begin(); it != motion_plan_map_.end(); it++)
+  {
+    if (it->second.name_ == "")
+    {
+      ROS_WARN("Someone's making empty stuff");
+    }
+    MotionPlanRequestData& data = it->second;
+
+    // TODO: Find out why this happens.
+    if (motion_plan_map_.find(it->first) == motion_plan_map_.end() || data.getName() == "")
+    {
+      ROS_WARN("Attempting to publish non-existant motion plan request %s Erasing this request!", it->first.c_str());
+      removals.push_back(it->first);
+      continue;
+    }
+
+    // TODO: Find out why this happens.
+    if (data.start_state_ == NULL || data.goal_state_ == NULL)
+    {
+      return;
+    }
+
+    // When a motion plan request has its colors changed,
+    // we must wait a few milliseconds before rviz registers the change.
+    if (data.shouldRefreshColors())
+    {
+      data.refresh_timer_ += marker_dt_;
+
+      if (data.refresh_timer_.toSec() > MARKER_REFRESH_TIME + 0.05)
+      {
+        data.setHasRefreshedColors(true);
+        data.refresh_timer_ = ros::Duration(0.0);
+      }
+    }
+    else
+    {
+      std_msgs::ColorRGBA fail_color;
+      fail_color.a = 0.9;
+      fail_color.r = 1.0;
+      fail_color.g = 0.0;
+      fail_color.b = 0.0;
+
+      /////
+      /// Get markers for the start
+      /////
+      if (data.isStartVisible())
+      {
+        const vector<const KinematicModel::LinkModel*>& updated_links = cm_->getKinematicModel()->getModelGroup(
+            data.getMotionPlanRequest().group_name)->getUpdatedLinkModels();
+
+        vector<string> lnames;
+        lnames.resize(updated_links.size());
+        for (unsigned int i = 0; i < updated_links.size(); i++)
+        {
+          lnames[i] = updated_links[i]->getName();
+        }
+
+        // If we have a good ik solution, publish with the normal color
+        // else use bright red.
+        std_msgs::ColorRGBA col;
+        if (data.hasGoodIKSolution(StartPosition))
+        {
+          col = data.getStartColor();
+        }
+        else
+        {
+          col = fail_color;
+        }
+
+        switch (data.getRenderType())
+        {
+          case VisualMesh:
+            cm_->getRobotMarkersGivenState(*(data.getStartState()), arr, col, it->first + "_start",
+                                           ros::Duration(MARKER_REFRESH_TIME), &lnames, 1.0, false);
+            // Bodies held by robot
+            cm_->getAttachedCollisionObjectMarkers(*(data.getStartState()), arr, it->first + "_start", col,
+                                                   ros::Duration(MARKER_REFRESH_TIME), false, &lnames);
+
+            break;
+          case CollisionMesh:
+            cm_->getRobotMarkersGivenState(*(data.getStartState()), arr, col, it->first + "_start",
+                                           ros::Duration(MARKER_REFRESH_TIME), &lnames, 1.0, true);
+            cm_->getAttachedCollisionObjectMarkers(*(data.getStartState()), arr, it->first + "_start", col,
+                                                   ros::Duration(MARKER_REFRESH_TIME), false, &lnames);
+            break;
+          case PaddingMesh:
+            cm_->getRobotPaddedMarkersGivenState(*(data.getStartState()), arr, col, it->first + "_start",
+                                                 ros::Duration(MARKER_REFRESH_TIME), (const vector<string>*)&lnames);
+            cm_->getAttachedCollisionObjectMarkers(*(data.getStartState()), arr, it->first + "_start", col,
+                                                   ros::Duration(MARKER_REFRESH_TIME), true, &lnames);
+            break;
+        }
+      }
+
+      /////
+      /// Get markers for the end.
+      /////
+      if (data.isEndVisible())
+      {
+        const vector<const KinematicModel::LinkModel*>& updated_links = cm_->getKinematicModel()->getModelGroup(
+            data.getMotionPlanRequest().group_name)->getUpdatedLinkModels();
+
+        vector<string> lnames;
+        lnames.resize(updated_links.size());
+        for (unsigned int i = 0; i < updated_links.size(); i++)
+        {
+          lnames[i] = updated_links[i]->getName();
+        }
+
+        std_msgs::ColorRGBA col;
+        if (data.hasGoodIKSolution(GoalPosition))
+        {
+          col = data.getGoalColor();
+        }
+        else
+        {
+          col = fail_color;
+        }
+
+        switch (data.getRenderType())
+        {
+          case VisualMesh:
+            cm_->getRobotMarkersGivenState(*(data.getGoalState()), arr, col, it->first + "_Goal",
+                                           ros::Duration(MARKER_REFRESH_TIME), &lnames, 1.0, false);
+
+            // Bodies held by robot
+            cm_->getAttachedCollisionObjectMarkers(*(data.getGoalState()), arr, it->first + "_Goal", col,
+                                                   ros::Duration(MARKER_REFRESH_TIME), false, &lnames);
+
+            break;
+          case CollisionMesh:
+            cm_->getRobotMarkersGivenState(*(data.getGoalState()), arr, col, it->first + "_Goal",
+                                           ros::Duration(MARKER_REFRESH_TIME), &lnames, 1.0, true);
+            cm_->getAttachedCollisionObjectMarkers(*(data.getGoalState()), arr, it->first + "_Goal", col,
+                                                   ros::Duration(MARKER_REFRESH_TIME), false, &lnames);
+            break;
+          case PaddingMesh:
+            cm_->getRobotPaddedMarkersGivenState(*(data.getGoalState()), arr, col, it->first + "_Goal",
+                                                 ros::Duration(MARKER_REFRESH_TIME), (const vector<string>*)&lnames);
+            cm_->getAttachedCollisionObjectMarkers(*(data.getGoalState()), arr, it->first + "_Goal", col,
+                                                   ros::Duration(MARKER_REFRESH_TIME), true, &lnames);
+            break;
+        }
+      }
+    }
+
+    //////
+    /// Get collision markers for the start and end state.
+    /////
+    if (it->second.areCollisionsVisible() && (it->second.isStartVisible() || it->second.isEndVisible()))
+    {
+      // Update collision markers
+      if (it->second.hasStateChanged())
+      {
+        if (params_.proximity_space_validity_name_ == "none")
+        {
+          it->second.updateCollisionMarkers(cm_, NULL);
+        }
+        else
+        {
+          it->second.updateCollisionMarkers(cm_, &distance_state_validity_service_client_);
+        }
+        it->second.setStateChanged(false);
+      }
+
+      // Add them to the global array.
+      for (size_t i = 0; i < it->second.getCollisionMarkers().markers.size(); i++)
+      {
+        collision_markers_.markers.push_back(it->second.getCollisionMarkers().markers[i]);
+      }
+    }
+
+  }
+
+  /////
+  /// TODO: Figure out why motion plans are occasionally NULL
+  ////
+  for (size_t i = 0; i < removals.size(); i++)
+  {
+    motion_plan_map_.erase(removals[i]);
+  }
+}
+
 
 void WorkspaceEditor::createIKController(MotionPlanRequestData& data, PositionType type, bool rePose)
 {
@@ -335,15 +678,14 @@ void WorkspaceEditor::createIKController(MotionPlanRequestData& data, PositionTy
   marker.controls.push_back(control3);
 
   interactive_marker_server_->insert(marker, ik_control_feedback_ptr_);
-
 }
 
-void IKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+void WorkspaceEditor::IKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
-
+  ROS_INFO_THROTTLE(1.0, __FUNCTION__);
 }
 
-void WorkspaceEditor::createNewPlanningScene()
+void WorkspaceEditor::createNewPlanningScene(const std::string& name, unsigned int id)
 {
   mutex_.lock();
   if(robot_state_ == NULL)
@@ -363,6 +705,8 @@ void WorkspaceEditor::createNewPlanningScene()
   }
 
   PlanningSceneData data;
+  data.name_ = name;
+  data.id_ = id;
   data.timestamp_ = ros::Time(ros::WallTime::now().toSec());
 
   convertKinematicStateToRobotState(*robot_state_, data.timestamp_, cm_->getWorldFrameId(),
@@ -406,6 +750,102 @@ void WorkspaceEditor::deleteCollisionObject(std::string& name)
   interactive_marker_server_->erase((*selectable_objects_)[name].control_marker_.name);
   interactive_marker_server_->applyChanges();
 }
+
+void WorkspaceEditor::createIkControllersFromMotionPlanRequest(MotionPlanRequestData& data, bool rePose)
+{
+  if(data.is_start_editable_)
+  {
+    createIKController(data, StartPosition, rePose);
+  }
+
+  if(data.is_goal_editable_)
+  {
+    createIKController(data, GoalPosition, rePose);
+  }
+
+  interactive_marker_server_->applyChanges();
+}
+
+
+void WorkspaceEditor::createMotionPlanRequest(const planning_models::KinematicState& start_state,
+                                              const planning_models::KinematicState& end_state,
+                                              const std::string& group_name,
+                                              const std::string& end_effector_name,
+                                              const unsigned int& planning_scene_id,
+                                              const bool from_robot_state,
+                                              unsigned int& motion_plan_id_out)
+{
+  MotionPlanRequest motion_plan_request;
+  motion_plan_request.group_name = group_name;
+  motion_plan_request.num_planning_attempts = 1;
+  motion_plan_request.allowed_planning_time = ros::Duration(1);
+  const KinematicState::JointStateGroup* jsg = end_state.getJointStateGroup(group_name);
+  motion_plan_request.goal_constraints.joint_constraints.resize(jsg->getJointNames().size());
+
+  // Must convert kinematic state to robot state message.
+  vector<double> joint_values;
+  jsg->getKinematicStateValues(joint_values);
+  for (unsigned int i = 0; i < jsg->getJointNames().size(); i++)
+  {
+    motion_plan_request.goal_constraints.joint_constraints[i].joint_name = jsg->getJointNames()[i];
+    motion_plan_request.goal_constraints.joint_constraints[i].position = joint_values[i];
+    motion_plan_request.goal_constraints.joint_constraints[i].tolerance_above = 0.001;
+    motion_plan_request.goal_constraints.joint_constraints[i].tolerance_below = 0.001;
+  }
+
+  // Create start state from kinematic state passed in if robot data is being used
+  if (!from_robot_state)
+  {
+    convertKinematicStateToRobotState(start_state, ros::Time(ros::WallTime::now().toSec()), cm_->getWorldFrameId(),
+                                      motion_plan_request.start_state);
+  }
+  // Otherwise, use the current robot state.
+  else
+  {
+    convertKinematicStateToRobotState(*robot_state_, ros::Time(ros::WallTime::now().toSec()), cm_->getWorldFrameId(),
+                                      motion_plan_request.start_state);
+  }
+
+  if (planning_scene_map_.find(hg::getPlanningSceneNameFromId(planning_scene_id)) == planning_scene_map_.end())
+  {
+    ROS_WARN_STREAM("Creating new planning scene for motion plan request - bad!!");
+  }
+
+  PlanningSceneData& planningSceneData = planning_scene_map_[getPlanningSceneNameFromId(planning_scene_id)];
+
+  // Turn the motion plan request message into a MotionPlanData
+  unsigned int id = planningSceneData.getNextMotionPlanRequestId();
+  motion_plan_request.group_name = group_name;
+  MotionPlanRequestData data(id, "Planner", motion_plan_request, robot_state_, end_effector_name);
+  data.is_goal_editable_ = true;
+  if (from_robot_state)
+  {
+    data.is_start_editable_ = false;
+  }
+
+  /*
+  // Book keeping for kinematic state storage
+  StateRegistry start;
+  start.state = data.getStartState();
+  start.source = "Motion Plan Request Data Start create request";
+  StateRegistry end;
+  end.state = data.getGoalState();
+  end.source = "Motion Plan Request Data End from create request";
+  states_.push_back(start);
+  states_.push_back(end);
+  */
+
+  motion_plan_map_[getMotionPlanRequestNameFromId(id)] = data;
+  data.planning_scene_id_ = planning_scene_id;
+
+  // Add request to the planning scene
+  planningSceneData.addMotionPlanRequestId(id);
+
+  motion_plan_id_out = data.id_;
+  createIkControllersFromMotionPlanRequest(data, false);
+  sendPlanningScene(planningSceneData);
+}
+
 
 WorkspaceEditor::~WorkspaceEditor()
 {

@@ -96,6 +96,34 @@ inline static tf::Transform toBulletTransform(geometry_msgs::Pose pose)
   return tf::Transform(quat, vec);
 }
 
+inline static std::string getPlanningSceneNameFromId(const unsigned int id) {
+  std::stringstream ss;
+  ss << "Planning Scene " << id;
+  return ss.str();
+}
+
+inline static unsigned int getPlanningSceneIdFromName(const std::string& name) {
+  std::stringstream ss(name);
+  std::string temp;
+  ss >> temp;
+  ss >> temp;
+  unsigned int ret;
+  ss >> ret;
+  return ret;
+}
+
+inline static std::string getMotionPlanRequestNameFromId(const unsigned int id) {
+  std::stringstream ss;
+  ss << "MPR " << id;
+  return ss.str();
+}
+
+inline static std::string getTrajectoryNameFromId(const unsigned int id) {
+  std::stringstream ss;
+  ss << "Trajectory " << id;
+  return ss.str();
+}
+
 /**
   @brief Convert a control error code into a string value
   @param error_code The input error code
@@ -203,6 +231,18 @@ public:
   std::vector<arm_navigation_msgs::ArmNavigationErrorCodes> error_codes_;
   std::set<unsigned int> motion_plan_requests_;
 
+  unsigned int getNextMotionPlanRequestId() const {
+    if(motion_plan_requests_.empty()) {
+      return 0;
+    }
+    return (*motion_plan_requests_.rbegin())+1;
+  }
+
+  void addMotionPlanRequestId(unsigned int id)
+  {
+    motion_plan_requests_.insert(id);
+  }
+
 };
 
 class MotionPlanRequestData
@@ -246,6 +286,201 @@ public:
   visualization_msgs::MarkerArray collision_markers_;
   RenderType render_type_;
   unsigned int next_trajectory_id_;
+
+  /// @brief If the color of the motion plan request changes, this counter is incremented until it reaches
+  /// a value specified by the planning scene editor. This is done to allow the display markers time to disappear
+  /// before their colors are changed.
+  ros::Duration refresh_timer_;
+
+  MotionPlanRequestData() { }
+  MotionPlanRequestData(const unsigned int& id,
+                        const std::string& source,
+                        const arm_navigation_msgs::MotionPlanRequest& request,
+                        const planning_models::KinematicState* robot_state,
+                        const std::string& end_effector_name);
+
+  /// @brief Set whether or not an IK solution was found for the start or end of this request.
+  inline void setHasGoodIKSolution(const bool& solution, const PositionType& type)
+  {
+    if(type == StartPosition) {
+      has_good_start_ik_solution_ = solution;
+    } else {
+      has_good_goal_ik_solution_ = solution;
+    }
+  }
+
+  /// @brief Deletes the kinematic states associated with the motion plan request.
+  inline void reset()
+  {
+    if(start_state_ != NULL)
+    {
+      delete start_state_;
+      start_state_ = NULL;
+    }
+
+    if(goal_state_ != NULL)
+    {
+      delete goal_state_;
+      goal_state_ = NULL;
+    }
+  }
+
+  bool hasPathConstraints() const {
+    return has_path_constraints_;
+  }
+
+  void setPathConstraints(bool has) {
+    has_path_constraints_ = has;
+  }
+
+  bool getConstrainRoll() const {
+    return constrain_roll_;
+  }
+
+  void setConstrainRoll(bool s) {
+    constrain_roll_ = s;
+  }
+
+  bool getConstrainPitch() const {
+    return constrain_pitch_;
+  }
+
+  void setConstrainPitch(bool s) {
+    constrain_pitch_ = s;
+  }
+
+  bool getConstrainYaw() const {
+    return constrain_yaw_;
+  }
+
+  void setConstrainYaw(bool s) {
+    constrain_yaw_ = s;
+  }
+
+  double getRollTolerance() const {
+    return roll_tolerance_;
+  }
+
+  void setRollTolerance(double s) {
+    roll_tolerance_ = s;
+  }
+
+  double getPitchTolerance() const {
+    return pitch_tolerance_;
+  }
+
+  void setPitchTolerance(double s) {
+    pitch_tolerance_ = s;
+  }
+
+  double getYawTolerance() const {
+    return yaw_tolerance_;
+  }
+
+  void setYawTolerance(double s) {
+    yaw_tolerance_ = s;
+  }
+
+  /// @brief Returns true if the motion plan request's colors have changed, and false otherwise.
+  inline bool shouldRefreshColors() const
+  {
+    return should_refresh_colors_;
+  }
+
+  /// @brief Returns true if the refresh counter has been exhausted, and false otherwise.
+  inline bool hasRefreshedColors() const
+  {
+    return has_refreshed_colors_;
+  }
+
+  /// @brief See hasRefreshedColors
+  inline void setHasRefreshedColors(bool refresh)
+  {
+    has_refreshed_colors_ = refresh;
+
+    if (refresh)
+    {
+      should_refresh_colors_ = false;
+    }
+  }
+
+  /// @brief Tell the planning scene editor to stop publishing markers for a while
+  /// so that the colors of the motion plan request can be changed.
+  inline void refreshColors()
+  {
+    should_refresh_colors_ = true;
+    has_refreshed_colors_ = false;
+    refresh_timer_ = ros::Duration(0.0);
+  }
+
+  /// @brief Either show or hide the red spheres corresponding to collision points.
+  inline void setCollisionsVisible(bool visible)
+  {
+    are_collisions_visible_ = visible;
+  }
+
+  /// @brief Convenience shorthand for setCollisionsVisible(true)
+  inline void showCollisions()
+  {
+    setCollisionsVisible(true);
+  }
+
+  /// @brief Convenience shorthand for setCollisionsVisible(false)
+  inline void hideCollisions()
+  {
+    setCollisionsVisible(false);
+  }
+
+  /// @brief see isStartVisible
+  inline void setStartVisible(bool visible)
+  {
+    is_start_visible_ = visible;
+  }
+
+  /// @brief see isEndVisible
+  inline void setEndVisible(bool visible)
+  {
+    is_goal_visible_ = visible;
+  }
+
+  /// @brief Sets both the start and end positions to be published.
+  inline void show()
+  {
+    setStartVisible(true);
+    setEndVisible(true);
+  }
+
+  /// @brief Sets both the start and end positions to invisible.
+  inline void hide()
+  {
+    setStartVisible(false);
+    setEndVisible(false);
+  }
+
+  /// @brief Shorthand for setStartVisible(true)
+  inline void showStart()
+  {
+    setStartVisible(true);
+  }
+
+  /// @brief Shorthand for setEndVisible(true)
+  inline void showGoal()
+  {
+    setEndVisible(true);
+  }
+
+  /// @brief Shorthand for setStartVisible(false)
+  inline void hideStart()
+  {
+    setStartVisible(false);
+  }
+
+  /// @brief Shorthand for setEndVisible(false)
+  inline void hideGoal()
+  {
+    setEndVisible(false);
+  }
+
 };
 
 class TrajectoryData
@@ -258,7 +493,7 @@ public:
     PADDED
   };
 
-protected:
+
   std::string name_;
   unsigned int id_;
   std::string source_;
@@ -284,6 +519,22 @@ protected:
   RenderType render_type_;
   TrajectoryRenderType trajectory_render_type_;
   ros::Duration time_to_stop_;
+
+  /// @brief Deletes the kinematic states associated with the trajectory.
+  inline void reset()
+  {
+
+   if(current_state_ != NULL)
+   {
+     delete current_state_;
+     current_state_ = NULL;
+   }
+
+   is_playing_ = false;
+   is_visible_ = false;
+   current_trajectory_point_ = 0;
+   state_changed_ = false;
+  }
 };
 
 
@@ -356,15 +607,26 @@ public:
 
 
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state);
-  bool sendPlanningScene();
+  bool sendPlanningScene(PlanningSceneData& data);
+  void deleteKinematicStates();
   void sendMarkers();
   void getTrajectoryMarkers(visualization_msgs::MarkerArray& arr);
   void getMotionPlanningMarkers(visualization_msgs::MarkerArray& arr);
   void createIKController(MotionPlanRequestData& data, PositionType type, bool rePose);
   void IKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
-  void createNewPlanningScene();
+  void createNewPlanningScene(const std::string& name, unsigned int id);
   void deleteCollisionObject(std::string& name);
+
+  void createIkControllersFromMotionPlanRequest(MotionPlanRequestData& data, bool rePose = true);
+  void createMotionPlanRequest(const planning_models::KinematicState& start_state,
+                               const planning_models::KinematicState& end_state,
+                               const std::string& group_name,
+                               const std::string& end_effector_name,
+                               const unsigned int& planning_scene_id,
+                               const bool from_robot_state,
+                               unsigned int& motion_plan_id_out);
+
 
 
 
