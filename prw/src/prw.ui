@@ -205,6 +205,45 @@
         </item>
        </layout>
       </widget>
+      <widget class="QPushButton" name="new_scene">
+       <property name="geometry">
+        <rect>
+         <x>300</x>
+         <y>40</y>
+         <width>93</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>New Scene</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="new_mpr">
+       <property name="geometry">
+        <rect>
+         <x>300</x>
+         <y>70</y>
+         <width>93</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>New MPR</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="plan">
+       <property name="geometry">
+        <rect>
+         <x>300</x>
+         <y>100</y>
+         <width>93</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Plan</string>
+       </property>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -215,7 +254,7 @@
      <x>0</x>
      <y>0</y>
      <width>750</width>
-     <height>25</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -229,7 +268,16 @@
      <string>Help</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuPlanning">
+    <property name="title">
+     <string>Planning</string>
+    </property>
+    <addaction name="actionNew_Scene"/>
+    <addaction name="actionNew_Request"/>
+    <addaction name="actionNew_Trajectory"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuPlanning"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -239,6 +287,21 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionNew_Scene">
+   <property name="text">
+    <string>New Scene</string>
+   </property>
+  </action>
+  <action name="actionNew_Request">
+   <property name="text">
+    <string>New Request</string>
+   </property>
+  </action>
+  <action name="actionNew_Trajectory">
+   <property name="text">
+    <string>New Trajectory</string>
    </property>
   </action>
  </widget>

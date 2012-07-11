@@ -49,8 +49,9 @@
   args="0.10 0.67 0.00 0 0 0 world base_link 100" /-->
   
   	
-  <!--node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find prw)/cfg/prw.vcg">    
-  </node-->
+  <node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find prw)/cfg/prw.vcg">    
+  </node>
+  
   <param name="number_of_arm" value="2"/>  
   <param name="arm_group_0" value="arm" />
   <param name="arm_controller_0" value="/vp6242/follow_joint_trajectory" />
