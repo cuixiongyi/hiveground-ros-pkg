@@ -36,11 +36,12 @@
 #include <ros/ros.h>
 #include <prw/prw.h>
 #include <QtGui/QApplication>
+#include <QDebug>
 
 using namespace ros::param;
 using namespace std;
 
-PRW::PRW(hg::WorkspaceEditorParameters* parameters, QWidget *parent, Qt::WFlags flags) :
+PRW::PRW(const hg::WorkspaceEditorParameters& parameters, QWidget *parent, Qt::WFlags flags) :
     QMainWindow(parent, flags),
     WorkspaceEditor(parameters),
     quit_threads_(false)
@@ -62,11 +63,12 @@ void PRW::initialize()
 
 void PRW::on_ik_move_go_clicked()
 {
-
+  qDebug() << __FUNCTION__;
 }
 
 void PRW::on_ik_move_reset_clicked()
 {
+  qDebug() << __FUNCTION__;
   ui.ik_move_x->setValue(0.0);
   ui.ik_move_y->setValue(0.0);
   ui.ik_move_z->setValue(0.0);
@@ -77,20 +79,23 @@ void PRW::on_ik_move_reset_clicked()
 
 void PRW::on_new_scene_clicked()
 {
-  createNewPlanningScene("test", 0);
+  qDebug() << __FUNCTION__;
+  //createNewPlanningScene("test", 0);
 }
 
 void PRW::on_new_mpr_clicked()
 {
+  qDebug() << __FUNCTION__;
   unsigned int plan_id = 0;
   unsigned int id;
-  createMotionPlanRequest(*robot_state_, *robot_state_,
-                          "arm", "link5", plan_id, true, id);
+  //createMotionPlanRequest(*robot_state_, *robot_state_,
+    //                      "arm", "link5", plan_id, true, id);
 
 }
 
 void PRW::on_plan_clicked()
 {
+  qDebug() << __FUNCTION__;
 
 }
 
@@ -160,61 +165,7 @@ int main(int argc, char** argv)
 
   hg::WorkspaceEditorParameters parameters;
 
-
-  param<int>("number_of_arm", parameters.number_of_arm_, 1);
-  stringstream ss;
-  string value;
-  string label;
-  for(int i = 0; i < parameters.number_of_arm_; i++)
-  {
-    ss.clear();
-    ss << "arm_group_" << i;
-    ss >> label;
-    param<std::string>(label, value, "none");
-    parameters.arm_group_.push_back(value);
-
-    ss.clear();
-    ss << "arm_controller_" << i;
-    ss >> label;
-    param<std::string>(label, value, "none");
-    parameters.arm_controller_.push_back(value);
-
-    ss.clear();
-    ss << "ik_name_" << i;
-    ss >> label;
-    param<std::string>(label, value, "none");
-    parameters.ik_name_.push_back(value);
-
-    ss.clear();
-    ss << "ik_link_" << i;
-    ss >> label;
-    param<std::string>(label, value, "none");
-    parameters.ik_link_.push_back(value);
-
-    ss.clear();
-    ss << "non_collision_ik_name_" << i;
-    ss >> label;
-    param<std::string>(label, value, "none");
-    parameters.non_collision_ik_name_.push_back(value);
-  }
-
-  //ROS_INFO_STREAM(parameters.arm_group_);
-  param<std::string>("planner_service_name", parameters.planner_service_name_, "none");
-  param<std::string>("trajectory_filter_service_name", parameters.trajectory_filter_service_name_, "none");
-  param<std::string>("set_planning_scene_diff_name", parameters.set_planning_scene_diff_name_, "none");
-  param<std::string>("visualizer_topic_name", parameters.visualizer_topic_name_, "none");
-
-
-  //ParameterDialog dialog(parameters);
-  //dialog.exec();
-
-  //GET_ROS_PARAM("arm_group_0", parameters.arm_group_[0])
-  //ros::param::param<std::string>()
-
-  //ros::param::param<std::string>()
-
-
-  PRW w(&parameters);
+  PRW w(parameters);
   w.initialize();
   prw_ = &w;
   w.show();
