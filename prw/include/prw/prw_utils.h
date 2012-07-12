@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * Author: Mahisorn Wongphati
- * A lot of copy & paste code from arm_navigation_experiment
+ * A lot of copy & paste from arm_navigatio and arm_navigation_experiment package
  */
 
 
@@ -103,6 +103,11 @@ public:
     EndEffectorControl, JointControl, CollisionObject
   };
 
+  enum CollisionObjectType
+  {
+    Pole, Box, Sphere
+  };
+
   /// Contains data for selectable markers. Stored in a large map.
   struct SelectableMarker
   {
@@ -117,6 +122,11 @@ public:
 
     /// Text above the control.
     std::string controlDescription_;
+
+    CollisionObjectType collision_object_type_;
+    double a_, b_, c_;
+    std_msgs::ColorRGBA color_;
+    geometry_msgs::Pose pose_;
   };
 
   struct TrajectoryData
@@ -250,7 +260,7 @@ public:
   };
 
   typedef std::map<std::string, PlanningGroupData> PlanningGroupDataMap;
-
+  typedef std::map<std::string, arm_navigation_msgs::CollisionObject> CollisionObjectMap;
 
 protected:
   ros::NodeHandle nh_;
@@ -282,6 +292,9 @@ protected:
   /// Maps selectable marker names to a struct containing their information.
   std::map<std::string, SelectableMarker> selectable_markers_;
 
+  /// Map of collision objects names to messages sent to ROS.
+  CollisionObjectMap collision_objects_;
+  int last_collision_objects_id_;
 
 
   tf::TransformBroadcaster transform_broadcaster_;
@@ -292,6 +305,7 @@ protected:
   boost::shared_ptr<interactive_markers::InteractiveMarkerServer> interactive_marker_server_;
   interactive_markers::MenuHandler::FeedbackCallback process_ik_controller_feedback_ptr_;
   interactive_markers::MenuHandler::FeedbackCallback process_menu_feedback_ptr_;
+  interactive_markers::MenuHandler::FeedbackCallback process_marker_feedback_ptr_;
 
   /// Maps strings to menu handlers. This is used for convenience and extensibility.
   MenuHandlerMap menu_handler_map_;
@@ -335,14 +349,64 @@ protected:
   bool filterPlannerTrajectory(PlanningGroupData& gc, bool show = false, bool play = false);
   void moveThroughTrajectory(PlanningGroupData& gc, const std::string& source_name, int step);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
-                                const control_msgs::FollowJointTrajectoryResultConstPtr& result);
+                              const control_msgs::FollowJointTrajectoryResultConstPtr& result);
 
+  void makeCollisionObjectContextMenu(tf::Transform transform, const std::string& name, const std::string& description,
+                                      float scale = 1.0f);
+  void createCollisionPole(int id, geometry_msgs::Pose pose, double diameter = 0.05, double length = 1.0);
 
   void makeTopLevelMenu();
-  void makeIKControllerMarker(tf::Transform transform, std::string name, std::string description, bool selectable,
-                              float scale = 1.0, bool publish = true);
+  void makeIKControllerMarker(tf::Transform transform, const std::string& name, const std::string& description,
+                              bool selectable, float scale = 1.0, bool publish = true);
+  void makeSelectableMarker(InteractiveMarkerType type, tf::Transform transform, const std::string& name,
+                            const std::string& description, float scale = 1.0f, bool publish = true);
+  visualization_msgs::Marker makeMarkerCylinder(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::Marker makeMarkerBox(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  void makeInteractive6DOFMarker(bool fixed, tf::Transform transform, const std::string& name,
+                                 const std::string& description, float scale = 1.0f, bool object = false);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveBoxControl(visualization_msgs::InteractiveMarker &msg,
+                                                                          float alpha = 1.0f);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveCylinderControl(
+      visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+
+  /**
+   * Pole
+   *    a - radius
+   *    b - length
+   * Box
+   *    a - width
+   *    b - length
+   *    c - height
+   * Sphere
+   *    a - radius
+   */
+  int getNextCollisionObjectId();
+  void createCollisionObject(geometry_msgs::Pose pose,
+                             CollisionObjectType type,
+                             std_msgs::ColorRGBA color,
+                             double a = 0.1,
+                             double b = 0.0,
+                             double c = 0.0,
+                             bool selectable = true);
+  visualization_msgs::Marker createCollisionObjectMarker(CollisionObjectType type,
+                                                   double a,
+                                                   double b,
+                                                   double c,
+                                                   std_msgs::ColorRGBA color);
+  void makeSelectableCollisionObjectMarker(tf::Transform transform,
+                                           CollisionObjectType type,
+                                           const std::string& name,
+                                           std_msgs::ColorRGBA color,
+                                           double a,
+                                           double b,
+                                           double c,
+                                           bool publish = true);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveCollisionObjectControl(
+      visualization_msgs::InteractiveMarker &msg);
+
   void processIKControllerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
   void processMenuFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+  void processMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
 
 
@@ -367,7 +431,7 @@ protected:
     return group_map_.find(name) != group_map_.end();
   }
 
-  bool selectableMarkerExists(std::string name)
+  bool selectableMarkerExists(const std::string& name)
   {
     return selectable_markers_.find(name) != selectable_markers_.end();
   }
