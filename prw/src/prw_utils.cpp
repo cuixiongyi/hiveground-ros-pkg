@@ -42,6 +42,7 @@ using namespace arm_navigation_msgs;
 using namespace visualization_msgs;
 using namespace interactive_markers;
 using namespace control_msgs;
+using namespace geometry_msgs;
 
 static const string SET_PLANNING_SCENE_DIFF_NAME = "/environment_server/set_planning_scene_diff";
 static const string PLANNER_SERVICE_NAME = "/ompl_planning/plan_kinematic_path";
@@ -61,6 +62,7 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   constrain_rp_ = false;
   is_joint_control_active_ = false;
   is_ik_control_active_ = true;
+  last_collision_objects_id_ = 0;
 
   string robot_description_name = nh_.resolveName("robot_description", true);
   cm_ = new CollisionModels("robot_description");
@@ -68,6 +70,7 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   marker_array_publisher_ = nh_.advertise<MarkerArray>("prw_workspace_editor_array", 128);
   process_ik_controller_feedback_ptr_ = boost::bind(&WorkspaceEditor::processIKControllerFeedback, this, _1);
   process_menu_feedback_ptr_ = boost::bind(&WorkspaceEditor::processMenuFeedback, this, _1);
+  process_marker_feedback_ptr_ = boost::bind(&WorkspaceEditor::processMarkerFeedback, this, _1);
 
   //Subscribers
   joint_state_subscriber_ = nh_.subscribe("joint_states", 25, &WorkspaceEditor::jointStateCallback, this);
@@ -161,6 +164,34 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   selectPlanningGroup(0);
   solveIKForEndEffectorPose(*getPlanningGroup(0));
 
+
+  Pose pose;
+  pose.position.x = 2.0f;
+  pose.position.z = 1.0f;
+  pose.position.y = 0.0f;
+  pose.orientation.x = 0.0f;
+  pose.orientation.y = 0.0f;
+  pose.orientation.z = 0.0f;
+  pose.orientation.w = 1.0f;
+  std_msgs::ColorRGBA color;
+  color.a = 0.5;
+  color.r = 1.0;
+  color.g = 0.0;
+  color.b = 0.0;
+
+  //createCollisionPole(0, polePose);
+  createCollisionObject(pose, Pole, color, 0.05, 1.0, 0, true);
+  pose.position.y = 1.0;
+  color.g = 1.0;
+  createCollisionObject(pose, Box, color, 0.1, 0.1, 0.1, true);
+  pose.position.y = -1.0;
+  color.g = 0.0;
+  color.b = 1.0;
+  createCollisionObject(pose, Sphere, color, 0.1, 0.0, 0.0, true);
+
+  sendPlanningScene();
+
+
   ROS_INFO_STREAM(__FUNCTION__ << " Initialized");
 }
 
@@ -244,6 +275,33 @@ void WorkspaceEditor::sendPlanningScene()
 
   arm_navigation_msgs::GetPlanningScene::Request planning_scene_req;
   arm_navigation_msgs::GetPlanningScene::Response planning_scene_res;
+
+  vector<string> removals;
+  // Handle additions and removals of planning scene objects.
+  for (CollisionObjectMap::const_iterator it = collision_objects_.begin();
+      it != collision_objects_.end(); it++)
+  {
+    string name = it->first;
+    arm_navigation_msgs::CollisionObject object = it->second;
+
+    // Add or remove objects.
+    if (object.operation.operation != arm_navigation_msgs::CollisionObjectOperation::REMOVE)
+    {
+      ROS_INFO("Adding Collision Object %s", object.id.c_str());
+      planning_scene_req.planning_scene_diff.collision_objects.push_back(object);
+    }
+    else
+    {
+      removals.push_back(it->first);
+    }
+  }
+
+  // Delete collision poles from the map which were removed.
+  for (size_t i = 0; i < removals.size(); i++)
+  {
+    collision_objects_.erase(removals[i]);
+  }
+
 
   //get current robot state
   convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
@@ -788,7 +846,7 @@ void WorkspaceEditor::sendMarkers()
   MarkerArray arr;
 
   std_msgs::ColorRGBA stat_color_;
-  stat_color_.a = 1.0;
+  stat_color_.a = 0.6;
   stat_color_.r = 0.1;
   stat_color_.g = 0.8;
   stat_color_.b = 0.3;
@@ -818,23 +876,27 @@ void WorkspaceEditor::sendMarkers()
     PlanningGroupData& gc = group_map_[current_group_name_];
     const KinematicModel* kinematic_model = cm_->getKinematicModel();
 
-    //end state
-    if (gc.end_state_ != NULL)
+
+    if(is_ik_control_active_)
     {
-      if (gc.good_ik_solution_)
+      if (gc.end_state_ != NULL)
       {
         cm_->getGroupAndUpdatedJointMarkersGivenState(*gc.end_state_, arr, current_group_name_, gc.end_color_,
-                                                      gc.start_color_, ros::Duration(0.1));
+                                                     gc.start_color_, ros::Duration(0.1));
       }
       else
       {
-        cm_->getGroupAndUpdatedJointMarkersGivenState(*gc.end_state_, arr, current_group_name_, bad_color, bad_color,
-                                                      ros::Duration(0.1));
-        cm_->getAttachedCollisionObjectMarkers(*gc.end_state_, arr, current_group_name_, collision_color,
-                                               ros::Duration(.2));
+        ROS_ERROR("End state invalid!");
       }
     }
 
+    if (!gc.good_ik_solution_ && gc.end_state_ != NULL)
+    {
+      vector<string> lnames =
+                    kinematic_model->getChildLinkModelNames(kinematic_model->getLinkModel(gc.ik_link_name_));
+      cm_->getRobotMarkersGivenState(*gc.end_state_, arr, bad_color, current_group_name_, ros::Duration(0.2), &lnames);
+      cm_->getAllCollisionPointMarkers(*gc.end_state_, arr, bad_color, ros::Duration(.2));
+    }
 
 
     for (TrajectoryDataMap::iterator it = gc.trajectory_data_map_.begin(); it != gc.trajectory_data_map_.end(); it++)
@@ -856,11 +918,13 @@ void WorkspaceEditor::sendMarkers()
         {
           lnames[i] = updated_links[i]->getName();
         }
-        cm_->getRobotMarkersGivenState(*(it->second.state_), arr, it->second.color_, it->first + "_trajectory",
-                                       ros::Duration(0.1), &lnames);
 
         cm_->getAttachedCollisionObjectMarkers(*(it->second.state_), arr, it->first + "_trajectory", it->second.color_,
                                                ros::Duration(0.1));
+
+        cm_->getRobotMarkersGivenState(*(it->second.state_), arr, it->second.color_, it->first + "_trajectory",
+                                       ros::Duration(0.1), &lnames);
+
       }
     }
 
