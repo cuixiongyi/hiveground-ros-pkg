@@ -329,14 +329,14 @@ int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "workspace_calibrator");
   ros::NodeHandle n;
-  ros::NodeHandle nh("~");
+  //ros::NodeHandle nh("~");
 
 
-  nh.param("x_step", x_step_, 3);
-  nh.param("y_step", y_step_, 4);
-  nh.param("size", size_, 0.08);
-  nh.param("x_gap", x_gap_, 0.432 + (0.08*y_step_/2.0));
-  nh.param("y_gap", y_gap_, 0.892 + (0.08*x_step_));
+  n.param("x_step", x_step_, 3);
+  n.param("y_step", y_step_, 4);
+  n.param("size", size_, 0.08);
+  n.param("x_gap", x_gap_, 0.432 + (0.08*y_step_/2.0));
+  n.param("y_gap", y_gap_, 0.892 + (0.08*x_step_));
   ROS_INFO_STREAM("x step: " << x_step_);
   ROS_INFO_STREAM("y step: " << y_step_);
   ROS_INFO_STREAM("size: " << size_);
