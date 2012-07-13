@@ -740,7 +740,6 @@ void WorkspaceEditor::processMarkerFeedback(const visualization_msgs::Interactiv
               }
               it++;
             }
-
           }
         }
       }
