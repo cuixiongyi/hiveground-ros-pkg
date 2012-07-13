@@ -895,7 +895,7 @@ void WorkspaceEditor::sendMarkers()
       vector<string> lnames =
                     kinematic_model->getChildLinkModelNames(kinematic_model->getLinkModel(gc.ik_link_name_));
       cm_->getRobotMarkersGivenState(*gc.end_state_, arr, bad_color, current_group_name_, ros::Duration(0.2), &lnames);
-      cm_->getAllCollisionPointMarkers(*gc.end_state_, arr, bad_color, ros::Duration(.2));
+      cm_->getAllCollisionPointMarkers(*robot_state_, arr, bad_color, ros::Duration(.2));
     }
 
 
