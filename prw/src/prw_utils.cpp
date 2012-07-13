@@ -265,6 +265,11 @@ void WorkspaceEditor::jointStateCallback(const sensor_msgs::JointStateConstPtr& 
   }
   robot_state_->updateKinematicLinks();
   robot_state_->getKinematicStateValues(robot_state_joint_values_);
+
+  //TODO
+  //Add collision check here
+
+
   unlockScene();
 }
 
