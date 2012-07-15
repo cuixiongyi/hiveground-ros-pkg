@@ -264,10 +264,12 @@ class DEFAULT
         (*i)->getValue(config, val);
 
         if("output_image"==(*i)->name){output_image = boost::any_cast<bool>(val);}
+        if("output_cloud"==(*i)->name){output_cloud = boost::any_cast<bool>(val);}
       }
     }
 
     bool output_image;
+bool output_cloud;
 
     bool state;
     std::string name;
@@ -279,6 +281,8 @@ class DEFAULT
 
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
       bool output_image;
+//#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
+      bool output_cloud;
 //#line 255 "/opt/ros/fuerte/stacks/dynamic_reconfigure/templates/ConfigType.h"
 
     bool __fromMessage__(dynamic_reconfigure::Config &msg)
@@ -424,6 +428,16 @@ object_detectorConfig::GroupDescription<object_detectorConfig::DEFAULT, object_d
       Default.abstract_parameters.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<bool>("output_image", "bool", 0, "Turn on this setting to output the color image with graphical result.", "", &object_detectorConfig::output_image)));
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
       __param_descriptions__.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<bool>("output_image", "bool", 0, "Turn on this setting to output the color image with graphical result.", "", &object_detectorConfig::output_image)));
+//#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
+      __min__.output_cloud = 0;
+//#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
+      __max__.output_cloud = 1;
+//#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
+      __default__.output_cloud = 1;
+//#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
+      Default.abstract_parameters.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<bool>("output_cloud", "bool", 0, "Turn on this setting to output the tranformed cloud.", "", &object_detectorConfig::output_cloud)));
+//#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
+      __param_descriptions__.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<bool>("output_cloud", "bool", 0, "Turn on this setting to output the tranformed cloud.", "", &object_detectorConfig::output_cloud)));
 //#line 228 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
       Default.convertParams();
 //#line 228 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"

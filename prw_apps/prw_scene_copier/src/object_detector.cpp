@@ -1,5 +1,6 @@
 #include <ros/ros.h>
-
+#include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <cv_bridge/cv_bridge.h>
@@ -22,6 +23,16 @@
 
 using namespace std;
 
+//[ INFO] [1342151263.036519507]: [-0.8082887505081064; -0.4723549093709118; 1.87841526005252]
+//[ INFO] [1342151263.036554068]: [0.1718112088724865; 0.07161661170882727; 0.018879656723713]
+
+int key_;
+tf::Transform tf_;
+Eigen::Matrix4f tf_matrix_;
+
+static const string WINDOW_INPUT = "Input Image";
+
+
 class ObjectDetector
 {
 public:
@@ -40,7 +51,7 @@ public:
 
     //subscriber
     cloud_subscriber_ = nh_.subscribe("/camera/depth_registered/points", 1, &ObjectDetector::cameraCallback, this);
-    //cloud_publisher_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZ> >("cloud", 1);
+    cloud_publisher_ = nh_.advertise<sensor_msgs::PointCloud2>("cloud", 1);
 
 
 
@@ -48,6 +59,24 @@ public:
     // initialize dynamic reconfigure
     reconfigure_server_.reset (new ReconfigureServer (reconfigure_mutex_, nh_));
     reconfigure_server_->setCallback (boost::bind (&ObjectDetector::configCallback, this, _1, _2));
+
+    tf::Quaternion qt = tf::createQuaternionFromRPY(0.1718112088724865, 0.07161661170882727, 0.018879656723713);
+    tf::Vector3 vec(-0.8082887505081064, -0.4723549093709118, 1.87841526005252);
+    qt *= tf::createQuaternionFromRPY(M_PI, 0, M_PI/2.0);
+    tf_ = tf::Transform(qt, vec);
+    tf_ = tf_.inverse();
+
+    ROS_INFO_STREAM(tf_.getOrigin() << ":" << tf_.getRotation());
+
+
+    //tf_.setRotation(tf::createQuaternionFromRPY(0, 0, 0));
+
+
+
+    pcl_ros::transformAsMatrix(tf_, tf_matrix_);
+
+
+
   }
 
 
@@ -58,19 +87,24 @@ public:
 
   void cameraCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
   {
-    sensor_msgs::ImagePtr image_msg(new sensor_msgs::Image);
+    //int key = cv::waitKey(3);
+
+    sensor_msgs::Image image;
+    sensor_msgs::PointCloud2 msg_transformed_;
+
+    pcl_ros::transformPointCloud(tf_matrix_, *msg, msg_transformed_);
 
     // convert cloud to PCL
     pcl::PointCloud <pcl::PointXYZRGB> cloud;
-    pcl::fromROSMsg(*msg, cloud);
+    pcl::fromROSMsg(msg_transformed_, cloud);
 
     // get an OpenCV image from the cloud
-    pcl::toROSMsg(cloud, *image_msg);
+    pcl::toROSMsg(cloud, image);
 
     try
     {
-      bridge_ = cv_bridge::toCvCopy(image_msg, image_msg->encoding);
-      ROS_INFO_THROTTLE(1.0, "New depth_registered/cloud.");
+      bridge_ = cv_bridge::toCvCopy(image, image.encoding);
+      ROS_INFO_STREAM_THROTTLE(10.0, "New depth_registered/cloud." << " " << image.encoding);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -79,8 +113,11 @@ public:
     }
 
     //get
-    cv::Mat image_gray;
-    cv::cvtColor(bridge_->image, image_gray, CV_BGR2GRAY);
+    //cv::Mat image_gray;
+    //cv::cvtColor(bridge_->image, image_gray, CV_BGR2GRAY);
+
+
+    //cv::imshow(WINDOW_INPUT, image_gray);
 
 
 
@@ -101,6 +138,11 @@ public:
       image_publisher_.publish( bridge_->toImageMsg() );
     }
 
+    if(cfg_output_cloud_)
+    {
+      cloud_publisher_.publish(msg_transformed_);
+    }
+
 
   }
 
@@ -108,6 +150,7 @@ public:
   {
     boost::recursive_mutex::scoped_lock lock(reconfigure_mutex_);
     cfg_output_image_  = config.output_image;
+    cfg_output_cloud_  = config.output_cloud;
 
     ROS_INFO_STREAM("output_image_: " << cfg_output_image_);
 
@@ -131,10 +174,16 @@ protected:
   boost::recursive_mutex reconfigure_mutex_;
 
   bool cfg_output_image_;
+  bool cfg_output_cloud_;
 
 
 };
 
+void mouseCallback( int event, int x, int y, int, void* ptr)
+{
+  ObjectDetector* detector = (ObjectDetector*)ptr;
+
+}
 
 
 
@@ -143,6 +192,23 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "prw_object_detector");
   ros::NodeHandle nh;
   ObjectDetector detector(nh);
-  ros::spin();
+
+  cv::namedWindow(WINDOW_INPUT);
+  cv::setMouseCallback(WINDOW_INPUT, mouseCallback, &detector);
+
+  ros::Rate rate(10.0);
+  while(ros::ok())
+  {
+
+    rate.sleep();
+    ros::spinOnce();
+    key_ = cv::waitKey(3);
+  }
+
+
+
+
+
+
   return 0;
 }
