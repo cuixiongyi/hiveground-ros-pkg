@@ -1,7 +1,7 @@
 \subsubsection usage Usage
 \verbatim
-<node name="prw_scene_copier" pkg="prw_scene_copier" type="prw_scene_copier">
-  <param name="test" type="int" value="1" />
+<node name="object_detector" pkg="prw_scene_copier" type="object_detector">
+  <param name="output_image" type="bool" value="True" />
 </node>
 \endverbatim
 
