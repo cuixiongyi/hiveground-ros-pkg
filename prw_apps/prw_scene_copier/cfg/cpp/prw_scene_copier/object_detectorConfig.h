@@ -263,11 +263,11 @@ class DEFAULT
         boost::any val;
         (*i)->getValue(config, val);
 
-        if("test"==(*i)->name){test = boost::any_cast<int>(val);}
+        if("output_image"==(*i)->name){output_image = boost::any_cast<bool>(val);}
       }
     }
 
-    int test;
+    bool output_image;
 
     bool state;
     std::string name;
@@ -278,7 +278,7 @@ class DEFAULT
 
 
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
-      int test;
+      bool output_image;
 //#line 255 "/opt/ros/fuerte/stacks/dynamic_reconfigure/templates/ConfigType.h"
 
     bool __fromMessage__(dynamic_reconfigure::Config &msg)
@@ -415,15 +415,15 @@ class DEFAULT
     {
 object_detectorConfig::GroupDescription<object_detectorConfig::DEFAULT, object_detectorConfig> Default("Default", "", 0, 0, true, &object_detectorConfig::groups);
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
-      __min__.test = 1;
+      __min__.output_image = 0;
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
-      __max__.test = 5;
+      __max__.output_image = 1;
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
-      __default__.test = 1;
+      __default__.output_image = 1;
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
-      Default.abstract_parameters.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<int>("test", "int", 0, "Test variable.", "", &object_detectorConfig::test)));
+      Default.abstract_parameters.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<bool>("output_image", "bool", 0, "Turn on this setting to output the color image with graphical result.", "", &object_detectorConfig::output_image)));
 //#line 254 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
-      __param_descriptions__.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<int>("test", "int", 0, "Test variable.", "", &object_detectorConfig::test)));
+      __param_descriptions__.push_back(object_detectorConfig::AbstractParamDescriptionConstPtr(new object_detectorConfig::ParamDescription<bool>("output_image", "bool", 0, "Turn on this setting to output the color image with graphical result.", "", &object_detectorConfig::output_image)));
 //#line 228 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"
       Default.convertParams();
 //#line 228 "/opt/ros/fuerte/stacks/dynamic_reconfigure/src/dynamic_reconfigure/parameter_generator.py"

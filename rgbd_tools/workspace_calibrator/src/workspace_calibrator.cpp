@@ -42,6 +42,7 @@ std::string MARKER_WINDOWS[4] =
   "marker0", "marker1", "marker2", "marker3"
 };
 std::string image_topic_;
+bool chessboard_;
 int x_step_;
 int y_step_;
 double size_;
@@ -144,125 +145,117 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
     return;
   }
 
-  //cv::imshow("input image", bridge->image);
+  cv::imshow("input image", bridge->image);
+
+  return;
 
   cv::Mat input_image;
   cv::cvtColor(bridge->image, input_image, CV_GRAY2RGB);
 
 
-  for(int i = 0; i < 4; i++)
+  if(!chessboard_)
   {
-    cv::rectangle(input_image,
-                  cv::Point(markers_[i].x - 50, markers_[i].y - 50),
-                  cv::Point(markers_[i].x + 50, markers_[i].y + 50),
-                  cv::Scalar(255, 128, 0));
-    std::stringstream ss;
-    ss << i;
-    std::string text;
-    ss >> text;
-    cv::putText(input_image,
-                text,
-                cv::Point(markers_[i].x - 50, markers_[i].y - 50),
-                cv::FONT_HERSHEY_SIMPLEX,
-                1.0,
-                cv::Scalar(0, 0, 255));
-  }
-
-
-
-  if(state_ == 4)
-  {
-    std::vector<cv::Point2f> all_blobs;
-
-    for(int i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
     {
+      cv::rectangle(input_image, cv::Point(markers_[i].x - 50, markers_[i].y - 50),
+                    cv::Point(markers_[i].x + 50, markers_[i].y + 50), cv::Scalar(255, 128, 0));
+      std::stringstream ss;
+      ss << i;
+      std::string text;
+      ss >> text;
+      cv::putText(input_image, text, cv::Point(markers_[i].x - 50, markers_[i].y - 50), cv::FONT_HERSHEY_SIMPLEX, 1.0,
+                  cv::Scalar(0, 0, 255));
+    }
 
+    if (state_ == 4)
+    {
+      std::vector<cv::Point2f> all_blobs;
 
-      cv::Mat roi_image = cv::Mat(
-          bridge->image,
-          cv::Rect(markers_[i].x - 50, markers_[i].y - 50,
-                   100, 100));
-          //cv::Rect(10, 10, 100, 100));
-
-
-      cv::Size pattern_size(x_step_, y_step_);
-      std::vector<cv::Point2f> blobs;
-      bool pattern_found = false;
-      pattern_found = cv::findCirclesGrid(roi_image, pattern_size, blobs, cv::CALIB_CB_ASYMMETRIC_GRID);
-
-      if(pattern_found)
+      for (int i = 0; i < 4; i++)
       {
-        if(blobs.back().y < blobs.front().y)
+
+        cv::Mat roi_image = cv::Mat(bridge->image, cv::Rect(markers_[i].x - 50, markers_[i].y - 50, 100, 100));
+        //cv::Rect(10, 10, 100, 100));
+
+        cv::Size pattern_size(x_step_, y_step_);
+        std::vector<cv::Point2f> blobs;
+        bool pattern_found = false;
+        pattern_found = cv::findCirclesGrid(roi_image, pattern_size, blobs, cv::CALIB_CB_ASYMMETRIC_GRID);
+
+        if (pattern_found)
         {
-          std::reverse(blobs.begin(), blobs.end());
-        }
-
-
-        cv::Mat roi_image_draw;
-        cv::cvtColor(roi_image, roi_image_draw, CV_GRAY2BGR);
-        cv::drawChessboardCorners(roi_image_draw, pattern_size, cv::Mat(blobs), pattern_found);
-        cv::imshow(MARKER_WINDOWS[i], roi_image_draw);
-
-        for(std::vector<cv::Point2f>::iterator it = blobs.begin(); it != blobs.end(); it++)
-        {
-          it->x += (markers_[i].x - 50);
-          it->y += (markers_[i].y - 50);
-        }
-
-
-        all_blobs.insert(all_blobs.end(), blobs.begin(), blobs.end());
-
-/*
-        if(i==0)
-        {
-          for(int idx = 0; idx < blobs.size(); idx++)
+          if (blobs.back().y < blobs.front().y)
           {
-            ROS_INFO_STREAM(blobs[idx] << marker_points_[idx]);
+            std::reverse(blobs.begin(), blobs.end());
           }
 
+          cv::Mat roi_image_draw;
+          cv::cvtColor(roi_image, roi_image_draw, CV_GRAY2BGR);
+          cv::drawChessboardCorners(roi_image_draw, pattern_size, cv::Mat(blobs), pattern_found);
+          cv::imshow(MARKER_WINDOWS[i], roi_image_draw);
 
-          cv::Mat rvec, tvec;
-          cv::solvePnP(marker_points_, blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
-          ROS_INFO_STREAM(rvec);
-          ROS_INFO_STREAM(tvec);
+          for (std::vector<cv::Point2f>::iterator it = blobs.begin(); it != blobs.end(); it++)
+          {
+            it->x += (markers_[i].x - 50);
+            it->y += (markers_[i].y - 50);
+          }
+
+          all_blobs.insert(all_blobs.end(), blobs.begin(), blobs.end());
+
         }
-*/
       }
-    }
 
+      if (all_blobs.size() == object_points_.size())
+      {
+        ROS_INFO_THROTTLE(1.0, "got all blobs");
+        cv::Mat_<double> rvec, tvec, q, rotation_matrix;
+        cv::solvePnP(object_points_, all_blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
+        ROS_INFO_STREAM_THROTTLE(1.0, tvec);
+        ROS_INFO_STREAM_THROTTLE(1.0, rvec);
 
-    if(all_blobs.size() == object_points_.size())
+        //board -> camera
+        Rodrigues(rvec, rotation_matrix);
+
+        double* rptr = rotation_matrix.ptr<double>(0);
+        double* tptr = tvec.ptr<double>(0);
+        cv::Mat transformation_matrix =
+            (cv::Mat_<double>(4, 4) << rptr[0], rptr[1], rptr[2], tptr[0], rptr[3], rptr[4], rptr[5], tptr[1], rptr[6], rptr[7], rptr[8], tptr[2], 0, 0, 0, 1);
+        ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix);
+        ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix.inv());
+      }//if all blob
+    }//if state == 4
+  }//if chessboard
+  else
+  {
+    cv::Size pattern_size(x_step_, y_step_);
+    std::vector<cv::Point2f> corners;
+    bool pattern_found = false;
+
+    pattern_found = cv::findChessboardCorners(
+        bridge->image, pattern_size, corners,
+        cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
+
+    if (pattern_found)
     {
-      ROS_INFO_THROTTLE(1.0, "got all blobs");
-      cv::Mat_<double> rvec, tvec, q, rotation_matrix;
-      cv::solvePnP(object_points_, all_blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
-      ROS_INFO_STREAM_THROTTLE(1.0, tvec);
+      cv::cornerSubPix(bridge->image, corners, cv::Size(11, 11), cv::Size(-1, -1),
+                       cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+
+
+      cv::drawChessboardCorners(input_image, pattern_size, cv::Mat(corners), pattern_found);
+
+      cv::circle(input_image, cv::Point(corners[0].x, corners[0].y), 10, cv::Scalar(255, 128, 0), 2);
+      cv::circle(input_image, cv::Point(corners[1].x, corners[1].y), 10, cv::Scalar(128, 128, 0), 2);
+
+      cv::Mat rvec, tvec;
+      cv::solvePnP(object_points_, corners, camera_matrix_, camera_distortion_, rvec, tvec, false);
+
       ROS_INFO_STREAM_THROTTLE(1.0, rvec);
+      ROS_INFO_STREAM_THROTTLE(1.0, tvec);
 
-      //board -> camera
-      Rodrigues(rvec, rotation_matrix);
-
-      double* rptr = rotation_matrix.ptr<double>(0);
-      double* tptr = tvec.ptr<double>(0);
-      cv::Mat transformation_matrix =
-          (cv::Mat_<double>(4, 4) <<
-              rptr[0], rptr[1], rptr[2], tptr[0],
-              rptr[3], rptr[4], rptr[5], tptr[1],
-              rptr[6], rptr[7], rptr[8], tptr[2],
-              0, 0, 0, 1);
-      ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix);
-      ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix.inv());
-
-
-
-
+      cv::Mat rotation_matrix;
+      cv::Rodrigues(rvec, rotation_matrix);
     }
-
-
-
-
   }
-
 
 
 
@@ -270,9 +263,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 #if 0
   //find chessboard
-  cv::Size pattern_size(x_size_, y_size_);
-  std::vector<cv::Point2f> corners;
-  bool pattern_found = false;
 
   if(square_)
   {
@@ -328,24 +318,31 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "workspace_calibrator");
-  ros::NodeHandle n;
+  ros::NodeHandle n("~");
+
   //ros::NodeHandle nh("~");
 
 
+  n.param("image", image_topic_, std::string("/camera/rgb/image_mono"));
+  n.param("chessboard", chessboard_, false);
   n.param("x_step", x_step_, 3);
   n.param("y_step", y_step_, 4);
   n.param("size", size_, 0.08);
   n.param("x_gap", x_gap_, 0.432 + (0.08*y_step_/2.0));
   n.param("y_gap", y_gap_, 0.892 + (0.08*x_step_));
+  ROS_INFO_STREAM("image topic: " << image_topic_);
+  ROS_INFO_STREAM("chessboard: " << chessboard_);
   ROS_INFO_STREAM("x step: " << x_step_);
   ROS_INFO_STREAM("y step: " << y_step_);
   ROS_INFO_STREAM("size: " << size_);
-  ROS_INFO_STREAM("x gap: " << x_gap_);
-  ROS_INFO_STREAM("y gap: " << y_gap_);
+
+  if(!chessboard_)
+  {
+    ROS_INFO_STREAM("x gap: " << x_gap_);
+    ROS_INFO_STREAM("y gap: " << y_gap_);
+  }
 
 
-  n.param("image_topic", image_topic_, std::string("/camera/rgb/image_mono"));
-  ROS_INFO_STREAM("image topic: " << image_topic_);
 
 
   ROS_INFO("read camera metrix");
@@ -354,144 +351,89 @@ int main(int argc, char* argv[])
   double camera_distortion[5] = {0.151330528573397, -0.221085177820244, 0.0044050794554637, -0.0039290742571273, 0};
   camera_distortion_ = cv::Mat(1,5, CV_64FC1, camera_distortion);
 
-
-  cv::Mat q1 = getQuaternion(cv::Point3d(1.0, 0, 0), M_PI);
-  ROS_INFO_STREAM_THROTTLE(1.0, q1);
-
-  /*
-  for(int y = 0; y < y_step_; y++)
+  if(!chessboard_)
   {
-    for(int x = 0; x < x_step_; x++)
+    for(int y = 0; y < y_step_; y++)
     {
-      if((y%2) == 0)
+      for(int x = 0; x < x_step_; x++)
       {
-        marker_points_.push_back(cv::Point3f(y*(size_/2.0), x*size_, 0));
-      }
-      else
-      {
-        marker_points_.push_back(cv::Point3f(y*(size_/2.0), (x*size_)+(size_/2.0), 0));
-      }
-      //ROS_INFO_STREAM(marker_points.back());
-    }
-    //ROS_INFO_STREAM("-----");
-  }
-  */
-
-  for(int y = 0; y < y_step_; y++)
-  {
-    for(int x = 0; x < x_step_; x++)
-    {
-      if ((y % 2) == 0)
-      {
-        //marker_points_.push_back(cv::Point3f(-(x * size_), -(y * (size_ / 2.0)), 0.0));
-        //marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
-        marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
-      }
-      else
-      {
-        //marker_points_.push_back(cv::Point3f(-((x * size_) + (size_ / 2.0)), -(y * (size_ / 2.0)), 0.0));
-        //marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
-        marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
-      }
-      ROS_INFO_STREAM(marker_points_.back());
-    }
-    ROS_INFO_STREAM("-----");
-  }
-
-
-  //object_points_
-  for(size_t i = 0; i < marker_points_.size(); i++)
-  {
-    cv::Point3f p(marker_points_[i]);
-    p.x -= 0;
-    p.y -= 0;
-    object_points_.push_back(p);
-    ROS_INFO_STREAM(object_points_.back());
-    if((i+1)%3==0) ROS_INFO_STREAM("-----");
-  }
-
-
-  for(size_t i = 0; i < marker_points_.size(); i++)
-  {
-    cv::Point3f p(marker_points_[i]);
-    p.x += 0;
-    p.y += x_gap_;
-    object_points_.push_back(p);
-    ROS_INFO_STREAM(object_points_.back());
-    if((i+1)%3==0) ROS_INFO_STREAM("-----");
-  }
-
-
-  for(size_t i = 0; i < marker_points_.size(); i++)
-  {
-    cv::Point3f p(marker_points_[i]);
-    p.x += y_gap_;
-    p.y += x_gap_;
-    object_points_.push_back(p);
-    ROS_INFO_STREAM(object_points_.back());
-    if((i+1)%3==0) ROS_INFO_STREAM("-----");
-  }
-
-  for(size_t i = 0; i < marker_points_.size(); i++)
-  {
-    cv::Point3f p(marker_points_[i]);
-    p.x += y_gap_;
-    p.y += 0;
-    object_points_.push_back(p);
-    ROS_INFO_STREAM(object_points_.back());
-    if((i+1)%3==0) ROS_INFO_STREAM("-----");
-  }
-
-  /*
-  double tmp;
-  for(size_t i = 0; i < object_points_.size(); i++)
-  {
-    tmp = object_points_[i].x;
-    object_points_[i].x = object_points_[i].y;
-    object_points_[i].y = tmp;
-    ROS_INFO_STREAM(object_points_[i]);
-  }
-  */
-
-  ROS_INFO_STREAM("total points: " << object_points_.size());
-
-
-
-
-/*
-  ROS_INFO("setup object point");
-  if(!square_)
-  {
-    for(int y = 0; y < y_size_; y++)
-    {
-      for(int x = 0; x < x_size_; x++)
-      {
-        if((y%2) == 0)
+        if ((y % 2) == 0)
         {
-          object_points_.push_back(cv::Point3f(x*size_, y*(size_/2.0), 0.0));
+          //marker_points_.push_back(cv::Point3f(-(x * size_), -(y * (size_ / 2.0)), 0.0));
+          //marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
+          marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
         }
         else
         {
-          object_points_.push_back(cv::Point3f((x*size_)+(size_/2.0), y*(size_/2.0), 0.0));
+          //marker_points_.push_back(cv::Point3f(-((x * size_) + (size_ / 2.0)), -(y * (size_ / 2.0)), 0.0));
+          //marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
+          marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
         }
-        ROS_INFO_STREAM(object_points_.back());
+        ROS_INFO_STREAM(marker_points_.back());
       }
       ROS_INFO_STREAM("-----");
     }
 
+
+    //object_points_
+    for(size_t i = 0; i < marker_points_.size(); i++)
+    {
+      cv::Point3f p(marker_points_[i]);
+      p.x -= 0;
+      p.y -= 0;
+      object_points_.push_back(p);
+      ROS_INFO_STREAM(object_points_.back());
+      if((i+1)%3==0) ROS_INFO_STREAM("-----");
+    }
+
+
+    for(size_t i = 0; i < marker_points_.size(); i++)
+    {
+      cv::Point3f p(marker_points_[i]);
+      p.x += 0;
+      p.y += x_gap_;
+      object_points_.push_back(p);
+      ROS_INFO_STREAM(object_points_.back());
+      if((i+1)%3==0) ROS_INFO_STREAM("-----");
+    }
+
+
+    for(size_t i = 0; i < marker_points_.size(); i++)
+    {
+      cv::Point3f p(marker_points_[i]);
+      p.x += y_gap_;
+      p.y += x_gap_;
+      object_points_.push_back(p);
+      ROS_INFO_STREAM(object_points_.back());
+      if((i+1)%3==0) ROS_INFO_STREAM("-----");
+    }
+
+    for(size_t i = 0; i < marker_points_.size(); i++)
+    {
+      cv::Point3f p(marker_points_[i]);
+      p.x += y_gap_;
+      p.y += 0;
+      object_points_.push_back(p);
+      ROS_INFO_STREAM(object_points_.back());
+      if((i+1)%3==0) ROS_INFO_STREAM("-----");
+    }
+
+    ROS_INFO_STREAM("total points: " << object_points_.size());
   }
   else
   {
-    for(int y = 0; y < y_size_; y++)
+    ROS_INFO("setup object point");
+    for (int y = 0; y < y_step_; y++)
     {
-      for(int x = 0; x < x_size_; x++)
+      for (int x = 0; x < x_step_; x++)
       {
-        object_points_.push_back(cv::Point3f((x*size_), y*size_, 0.0));
+        object_points_.push_back(cv::Point3f((x * size_), y * size_, 0.0));
         ROS_INFO_STREAM(object_points_.back());
       }
     }
-  }
-*/
+
+
+  }//chessboard check
 
   cv::namedWindow(WINDOW_NAME);
   cv::setMouseCallback(WINDOW_NAME, onMouse, 0 );
