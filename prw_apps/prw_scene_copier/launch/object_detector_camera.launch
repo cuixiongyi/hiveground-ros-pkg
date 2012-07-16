@@ -7,9 +7,9 @@
   </include>
   
   <!-- PCL pipe line-->
-  <!--
+  
   <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
-
+  
   <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">    
     <remap from="~input" to="/kinect7051A/depth_registered/points" />
     <rosparam>
@@ -20,6 +20,12 @@
       leaf_size: 0.01
     </rosparam>
   </node>
-  --> 
+
+  <node pkg="nodelet" type="nodelet" name="point_transformer" args="load hg_pcl/PointCloundTransformer pcl_manager" output="screen">
+    <remap from="~input" to="/voxel_grid/output" />      
+    <rosparam>
+    </rosparam>
+  </node>
+
 </launch>  
   

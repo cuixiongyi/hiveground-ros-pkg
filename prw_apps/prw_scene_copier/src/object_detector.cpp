@@ -79,14 +79,6 @@ public:
     qt *= tf::createQuaternionFromRPY(M_PI, 0, M_PI/2.0);
     tf_ = tf::Transform(qt, vec);
     tf_ = tf_.inverse();
-
-    ROS_INFO_STREAM(tf_.getOrigin() << ":" << tf_.getRotation());
-
-
-    //tf_.setRotation(tf::createQuaternionFromRPY(0, 0, 0));
-
-
-
     pcl_ros::transformAsMatrix(tf_, tf_matrix_);
 
 
