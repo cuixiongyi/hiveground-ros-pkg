@@ -20,6 +20,9 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/passthrough.h>
+
+
 
 #include <dynamic_reconfigure/server.h>
 #include <prw_scene_copier/ObjectDetectorConfig.h>
@@ -39,6 +42,7 @@ tf::Transform tf_;
 Eigen::Matrix4f tf_matrix_;
 
 static const string WINDOW_INPUT = "Input Image";
+
 
 
 class ObjectDetector
@@ -69,8 +73,6 @@ public:
     dynamic_reconfigure::Server<prw_scene_copier::ObjectDetectorConfig>::CallbackType f
     =  boost::bind (&ObjectDetector::configCallback, this, _1, _2);
     reconfigure_server_->setCallback (f);
-    //reconfigure_server_.reset (new ReconfigureServer (reconfigure_mutex_, nh_));
-    //reconfigure_server_->setCallback (boost::bind (&ObjectDetector::configCallback, this, _1, _2));
 
     tf::Quaternion qt = tf::createQuaternionFromRPY(rpy_[0], rpy_[1], rpy_[2]);
     tf::Vector3 vec(xyz_[0], xyz_[1], xyz_[2]);
@@ -102,7 +104,7 @@ public:
     boost::mutex::scoped_lock lock(mutex_);
     //int key = cv::waitKey(3);
 
-
+    //ROS_INFO_STREAM_THROTTLE(1.0, msg->header.frame_id);
     sensor_msgs::Image image;
 
     sensor_msgs::PointCloud2::Ptr cloud_transformed (new sensor_msgs::PointCloud2 ());
@@ -129,7 +131,7 @@ public:
     try
     {
       bridge_ = cv_bridge::toCvCopy(image, image.encoding);
-      ROS_INFO_STREAM_THROTTLE(10.0, "New depth_registered/cloud." << " " << image.encoding);
+      //ROS_INFO_STREAM_THROTTLE(10.0, "New depth_registered/cloud." << " " << image.encoding);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -138,8 +140,8 @@ public:
     }
 
     //get
-    //cv::Mat image_gray;
-    //cv::cvtColor(bridge_->image, image_gray, CV_BGR2GRAY);
+    cv::Mat image_hsv;
+    cv::cvtColor(bridge_->image, image_hsv, CV_BGR2HSV);
 
 
 
@@ -157,7 +159,9 @@ public:
 
 
 
-    cv::imshow(WINDOW_INPUT, bridge_->image);
+
+
+    cv::imshow(WINDOW_INPUT, image_hsv);
 
     if(cfg_output_image_)
     {
@@ -245,6 +249,8 @@ protected:
 
   //Filter
   pcl::VoxelGrid<sensor_msgs::PointCloud2> voxel_grid_filter_;
+  //pcl::PassThrough<sensor_msgs::PointCloud2> passthrough_filter_x_;
+  //pcl::PassThrough<sensor_msgs::PointCloud2> passthrough_filter_y_;
   pcl::StatisticalOutlierRemoval<sensor_msgs::PointCloud2> sor_filter_;
 
 
