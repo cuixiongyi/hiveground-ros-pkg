@@ -145,10 +145,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
     return;
   }
 
-  cv::imshow("input image", bridge->image);
-
-  return;
-
   cv::Mat input_image;
   cv::cvtColor(bridge->image, input_image, CV_GRAY2RGB);
 
