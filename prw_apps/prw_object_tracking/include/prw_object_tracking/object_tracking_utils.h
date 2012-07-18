@@ -77,33 +77,6 @@ public:
 
 
 
-class ObjectTrackingUtils
-{
-public:
-  ObjectTrackingUtils(ros::NodeHandle & nh);
-
-
-
-  void cameraCallback(const sensor_msgs::PointCloud2ConstPtr& message);
-
-  //void addObjectTracker(ObjectTrackerPtr tracker);
-
-
-
-  virtual ~ObjectTrackingUtils();
-
-protected:
-  ros::NodeHandle& nh_;
-  ros::Subscriber cloud_subscriber_;
-  image_transport::Publisher image_publisher_;
-  tf::TransformBroadcaster tf_broadcaster_;
-  tf::TransformListener tf_listener_;
-
-  std::vector<ObjectTrackerPtr> object_trakers_;
-
-
-
-};
 
 
 

@@ -6,9 +6,11 @@
 
 #include <velib/view.h>
 #include <velib/scene.h>
+#include <velib/opencv_image.h>
 
 #include <qmutex.h>
 #include <qtimer.h>
+#include <qcolordialog.h>
 
 #include <boost/circular_buffer.hpp>
 
@@ -29,11 +31,11 @@ public:
 
 
 public slots:
+  void onImageUpdate();
 
-  void onImageUpdated();
 
 signals:
-  void imageUpdated();
+
 
 protected:
   //Qt
@@ -52,7 +54,7 @@ protected:
   tf::TransformListener tf_listener_;
   cv_bridge::CvImagePtr bridge_;
 
-  std::vector<ObjectTrackerPtr> object_trakers_;
+  std::vector<ObjectTrackerPtr> object_trackers_;
 
 
 public:
@@ -62,10 +64,11 @@ public:
 
   ve::View* view_;
   ve::Scene* scene_;
-  QGraphicsPixmapItem* scene_image_pixmap_;
+  ve::OpenCVImage* scene_image_;
   boost::circular_buffer<cv::Mat> image_buffer_;
   QTimer *image_timer_;
 
+  QColorDialog* color_dialog_;
 
 };
 

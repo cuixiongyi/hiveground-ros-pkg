@@ -18,11 +18,11 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
     QMainWindow(parent, flags),
     nh_(nh),
     quit_threads_(false),
-    image_buffer_(3)
+    image_buffer_(2)
 
 {
   ui.setupUi(this);
-  scene_image_pixmap_ = 0;
+
 
   view_ = new ve::View(this);
   ui.gridLayoutMain->addWidget(view_, 0, 0);
@@ -31,14 +31,21 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
   scene_->setSceneRect(0, 0, 640, 480);
   view_->setScene(scene_);
   scene_->set_mode(ve::Scene::MODE_CURSOR);
+  scene_image_ = new ve::OpenCVImage();
+  scene_->addItem(scene_image_);
   view_->ensureVisible(scene_->itemsBoundingRect());
 
   image_publisher_ = image_transport::ImageTransport(nh_).advertise("image", 1);
   cloud_subscriber_ = nh_.subscribe("input", 1, &ObjectTracking::cameraCallback, this);
 
   image_timer_ = new QTimer(this);
-  connect(image_timer_, SIGNAL(timeout()), this, SLOT(onImageUpdated()));
-  image_timer_->start(50);
+  connect(image_timer_, SIGNAL(timeout()), this, SLOT(onImageUpdate()));
+  image_timer_->start(10);
+
+  color_dialog_ = new QColorDialog(this);
+  color_dialog_->setOptions(QColorDialog::NoButtons);
+  color_dialog_->show();
+  //ui.gridLayoutMain->addWidget(color_dialog_, 0, 1);
 
 }
 
@@ -46,28 +53,24 @@ ObjectTracking::~ObjectTracking()
 {
 }
 
-
-void ObjectTracking::onImageUpdated()
+void ObjectTracking::onImageUpdate()
 {
-  ui_mutex_.lock();
-  if(!image_buffer_.empty())
+  QMutexLocker lock(&ui_mutex_);
+  if(image_buffer_.full())
   {
-    QImage image = QImage(image_buffer_.front().data,
-                          image_buffer_.front().cols,
-                          image_buffer_.front().rows,
-                          image_buffer_.front().step, QImage::Format_RGB888);
-
-    if (scene_image_pixmap_)
+    if (!scene_image_)
     {
-      scene_->removeItem(scene_image_pixmap_);
-      scene_image_pixmap_ = 0;
+      scene_image_ = new ve::OpenCVImage(image_buffer_.front());
+      scene_->addItem(scene_image_);
     }
-
-    scene_image_pixmap_ = scene_->addPixmap(QPixmap::fromImage(image));
+    else
+    {
+      scene_image_->updateImage(image_buffer_.front());
+    }
+    image_buffer_.pop_front();
   }
-    //image_buffer_.pop_front();
-  ui_mutex_.unlock();
 }
+
 
 void ObjectTracking::closeEvent(QCloseEvent *event)
 {
@@ -104,7 +107,7 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
   cv::cvtColor(bridge_->image, image_rgb, CV_BGR2RGB);
 
   ui_mutex_.lock();
-    image_buffer_.push_back(image_rgb);
+  image_buffer_.push_back(bridge_->image);
   ui_mutex_.unlock();
 
 
