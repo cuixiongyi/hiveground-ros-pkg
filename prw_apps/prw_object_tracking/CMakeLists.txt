@@ -27,14 +27,39 @@ include(${QT_USE_FILE})
 #ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
 #The reason is the define I added for QT_NO_KEYWORDS. Either remove that or replace slots with Q_SLOTS, etc.
 
+set(velib_srcs
+	src/velib/link.cpp
+	src/velib/node.cpp
+	src/velib/scene.cpp
+	src/velib/velib.cpp
+	src/velib/view.cpp	
+)
+set(velib_hdrs
+	include/velib/link.h
+	include/velib/node.h
+	include/velib/scene.h
+	include/velib/velib.h
+	include/velib/view.h	
+)
+
 set(qt_srcs
-      src/object_tracking.cpp)
+    src/object_tracking.cpp
+    ${velib_srcs}
+)
+
 set(qt_hdrs
-      include/prw_object_tracking/object_tracking.h)
+    include/prw_object_tracking/object_tracking.h
+    ${velib_hdrs}
+)
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
 QT4_WRAP_UI(uis_h src/object_tracking.ui)
+
+
+#qt4_automoc(${velib_srcs})
+#QT4_WRAP_CPP(qt_moc_srcs ${velib_hdrs})
+
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -52,9 +77,13 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
+rosbuild_add_library(prwve ${velib_srcs} ${qt_moc_srcs})
+target_link_libraries(prwve ${QT_LIBRARIES})
+
 set(srcs
       src/object_tracking.cpp 
-      src/object_tracking_utils.cpp)
+      src/object_tracking_utils.cpp
+      src/simple_color_object_tracker.cpp)
 
 rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
-target_link_libraries(object_tracking ${QT_LIBRARIES})
+target_link_libraries(object_tracking prwve ${QT_LIBRARIES})
