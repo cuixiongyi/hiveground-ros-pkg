@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />      
+    <rosparam>
+    </rosparam>
+  </node>
+</launch>  
+  

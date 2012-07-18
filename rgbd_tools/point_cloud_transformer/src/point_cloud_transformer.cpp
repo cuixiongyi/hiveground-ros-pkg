@@ -66,7 +66,27 @@ void hg_pcl::PointCloundTransformer::onInit()
   tf::Vector3 vec(xyz_[0], xyz_[1], xyz_[2]);
   qt *= tf::createQuaternionFromRPY(M_PI, 0, M_PI/2.0);
   tf_ = tf::Transform(qt, vec);
+
+  ROS_INFO("%f %f %f : %f %f %f %f\n",
+             tf_.getOrigin().x(),
+             tf_.getOrigin().y(),
+             tf_.getOrigin().z(),
+             tf_.getRotation().x(),
+             tf_.getRotation().y(),
+             tf_.getRotation().z(),
+             tf_.getRotation().w());
+
   tf_ = tf_.inverse();
+
+  ROS_INFO("%f %f %f : %f %f %f %f\n",
+           tf_.getOrigin().x(),
+           tf_.getOrigin().y(),
+           tf_.getOrigin().z(),
+           tf_.getRotation().x(),
+           tf_.getRotation().y(),
+           tf_.getRotation().z(),
+           tf_.getRotation().w());
+
   pcl_ros::transformAsMatrix(tf_, tf_matrix_);
 }
 
