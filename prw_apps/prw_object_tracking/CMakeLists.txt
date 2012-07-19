@@ -35,6 +35,7 @@ set(qt_srcs
   src/velib/velib.cpp
   src/velib/view.cpp
   src/velib/opencv_image.cpp
+  src/velib/color_selector.cpp
 )
 
 set(qt_hdrs
@@ -46,13 +47,17 @@ set(qt_hdrs
   include/velib/velib_global.h
   include/velib/view.h
   include/velib/opencv_image.h
+  include/velib/color_selector.h
 )
 
 
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
-QT4_WRAP_UI(uis_h src/object_tracking.ui)
+QT4_WRAP_UI(uis_h 
+	src/object_tracking.ui
+	src/color_picker.ui
+)
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -80,3 +85,4 @@ set(srcs
 
 rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(object_tracking ${QT_LIBRARIES})
+

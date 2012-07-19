@@ -5,7 +5,8 @@ using namespace ve;
 OpenCVImage::OpenCVImage()
   : has_image_(false)
 {
-
+  setFlags(ItemIsMovable|ItemIsSelectable|ItemIsFocusable|ItemSendsGeometryChanges);
+  prepareGeometryChange();
 }
 
 OpenCVImage::OpenCVImage(const cv::Mat& image)
@@ -16,22 +17,25 @@ OpenCVImage::OpenCVImage(const cv::Mat& image)
                     image_.rows,
                     image_.step, QImage::Format_RGB888);
   has_image_ = true;
+  prepareGeometryChange();
 }
 
 void OpenCVImage::updateImage(const cv::Mat& image)
 {
   image_= image;
+  prepareGeometryChange();
   q_image_ = QImage(image_.data,
                     image_.cols,
                     image_.rows,
                     image_.step, QImage::Format_RGB888);
+
   has_image_ = true;
   update();
 }
 
 QRectF OpenCVImage::boundingRect() const
 {
-  return QRect(0, 0, image_.cols, image_.rows);
+  return q_image_.rect();
 }
 
 QPainterPath OpenCVImage::shape() const
@@ -49,5 +53,10 @@ void OpenCVImage::paint(QPainter *painter, const QStyleOptionGraphicsItem *item,
 
 void OpenCVImage::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-  qDebug() << __FUNCTION__;
+  //qDebug() << event->pos();
+  //QGraphicsItem::mousePressEvent(event);
+  QColor pixel(q_image_.pixel(event->pos().toPoint()));
+  //qDebug() << pixel;
+  emit mouseClicked(event->pos(), q_image_.pixel(event->pos().toPoint()));
+
 }
