@@ -56,7 +56,7 @@ QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
 QT4_WRAP_UI(uis_h 
 	src/object_tracking.ui
-	src/color_picker.ui
+	src/color_object_selector.ui
 )
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

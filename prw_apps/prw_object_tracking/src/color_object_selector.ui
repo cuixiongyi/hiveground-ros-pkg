@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ColorPicker</class>
- <widget class="QDialog" name="ColorPicker">
+ <class>ColorObjectSelector</class>
+ <widget class="QDialog" name="ColorObjectSelector">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Color Picker</string>
+   <string>Color Object Selector</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <item row="0" column="1">
@@ -159,7 +159,7 @@
       </widget>
      </item>
      <item row="4" column="1">
-      <widget class="QSpinBox" name="spinBox">
+      <widget class="QSpinBox" name="spinBoxMinArea">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -172,7 +172,7 @@
       </widget>
      </item>
      <item row="4" column="3">
-      <widget class="QSpinBox" name="spinBox_2">
+      <widget class="QSpinBox" name="spinBoxMaxArea">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -199,7 +199,7 @@
       </widget>
      </item>
      <item row="5" column="0" colspan="2">
-      <widget class="QSlider" name="horizontalSlider">
+      <widget class="QSlider" name="horizontalSliderMinArea">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -212,7 +212,7 @@
       </widget>
      </item>
      <item row="5" column="2" colspan="2">
-      <widget class="QSlider" name="horizontalSlider_2">
+      <widget class="QSlider" name="horizontalSliderMaxArea">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -300,9 +300,9 @@
  <resources/>
  <connections>
   <connection>
-   <sender>spinBox</sender>
+   <sender>spinBoxMinArea</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>horizontalSlider</receiver>
+   <receiver>horizontalSliderMinArea</receiver>
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -316,9 +316,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>spinBox_2</sender>
+   <sender>spinBoxMaxArea</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>horizontalSlider_2</receiver>
+   <receiver>horizontalSliderMaxArea</receiver>
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -332,9 +332,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>horizontalSlider</sender>
+   <sender>horizontalSliderMinArea</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>spinBox</receiver>
+   <receiver>spinBoxMinArea</receiver>
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -348,9 +348,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>horizontalSlider_2</sender>
+   <sender>horizontalSliderMaxArea</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>spinBox_2</receiver>
+   <receiver>spinBoxMaxArea</receiver>
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
