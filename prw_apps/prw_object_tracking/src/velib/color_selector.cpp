@@ -100,8 +100,10 @@ void ColorPicker::updateColorRange(const QString& name, int h, int s)
         s_min = s;
       }
     }
-    color_range_map_[name].max_ = QColor::fromHsv(h_max, s_max, 255);
-    color_range_map_[name].min_ = QColor::fromHsv(h_min, s_min, 0);
+    int v_max = color_range_map_[name].max_.value();
+    int v_min = color_range_map_[name].min_.value();
+    color_range_map_[name].max_ = QColor::fromHsv(h_max, s_max, v_max);
+    color_range_map_[name].min_ = QColor::fromHsv(h_min, s_min, v_min);
   }
   update();
 }
@@ -115,12 +117,6 @@ void ColorPicker::updateColorRange(const QString& name, int h_max, int h_min, in
   range.max_ = QColor::fromHsv(h_max, s_max, v_max);
   range.min_ = QColor::fromHsv(h_min, s_min, v_min);
   color_range_map_[name] = range;
-  update();
-}
-
-void ColorPicker::removeColorRange(const QString& name)
-{
-  color_range_map_.remove(name);
   update();
 }
 
@@ -275,6 +271,8 @@ ColorLuminancePicker::ColorLuminancePicker(QWidget* parent) :
 {
   hue = 100;
   val = 100;
+  val_min = 0;
+  val_max = 255;
   sat = 100;
   pix = 0;
   //    setAttribute(WA_NoErase, true);
@@ -287,11 +285,43 @@ ColorLuminancePicker::~ColorLuminancePicker()
 
 void ColorLuminancePicker::mouseMoveEvent(QMouseEvent *m)
 {
-  setVal(y2val(m->y()));
+  handleMouse(m);
 }
 void ColorLuminancePicker::mousePressEvent(QMouseEvent *m)
 {
-  setVal(y2val(m->y()));
+  handleMouse(m);
+}
+
+void ColorLuminancePicker::handleMouse(QMouseEvent *m)
+{
+  if (m->x() > (width() - 5))
+  {
+    int dmax = abs(val2y(val_max) - m->y());
+    int dmin = abs(val2y(val_min) - m->y());
+    int v_max = val_max;
+    int v_min = val_min;
+    if (dmax < dmin)
+    {
+      v_max = y2val(m->y());
+    }
+    else
+    {
+      v_min = y2val(m->y());
+    }
+
+    if(v_min > v_max)
+    {
+      int tmp = v_max;
+      v_max = v_min;
+      v_min = tmp;
+    }
+
+    setRange(v_min, v_max);
+  }
+  else
+  {
+    setVal(y2val(m->y()));
+  }
 }
 
 void ColorLuminancePicker::setVal(int v)
@@ -309,6 +339,16 @@ void ColorLuminancePicker::setVal(int v)
 void ColorLuminancePicker::setCol(int h, int s)
 {
   setCol(h, s, val);
+}
+
+void ColorLuminancePicker::setRange(int v_min, int v_max)
+{
+  if(v_min == val_min && v_max == val_max)
+    return;
+  val_min = qMax(0, qMin(v_min, 255));
+  val_max = qMax(0, qMin(v_max, 255));
+  repaint();
+  emit newRange(val_min, val_max);
 }
 
 void ColorLuminancePicker::paintEvent(QPaintEvent *)
@@ -343,10 +383,24 @@ void ColorLuminancePicker::paintEvent(QPaintEvent *)
   qDrawShadePanel(&p, r, g, true);
   p.setPen(g.foreground().color());
   p.setBrush(g.foreground());
+
+  //val
   QPolygon a;
   int y = val2y(val);
   a.setPoints(3, w, y, w + 5, y + 5, w + 5, y - 5);
   p.eraseRect(w, 0, 5, height());
+  p.drawPolygon(a);
+
+  //val min
+  p.setBrush(Qt::green);
+  y = val2y(val_min);
+  a.setPoints(3, w, y, w + 5, y + 5, w + 5, y - 5);
+  p.drawPolygon(a);
+
+  //val max
+  p.setBrush(Qt::red);
+  y = val2y(val_max);
+  a.setPoints(3, w, y, w + 5, y + 5, w + 5, y - 5);
   p.drawPolygon(a);
 }
 

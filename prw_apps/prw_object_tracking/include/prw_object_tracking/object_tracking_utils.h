@@ -48,7 +48,7 @@ public:
   {}
 
   cv::Scalar hsv_max_;
-  cv::Scalar hav_min_;
+  cv::Scalar hsv_min_;
   int max_size_;
   int min_size_;
 };
@@ -68,11 +68,17 @@ public:
   bool load(const std::string& file);
   bool save(const std::string& file);
 
-  void setColor(const cv::Scalar& hsv_max, const cv::Scalar& hsv_min);
-  void setSize(int max_size, int min_size);
+  void setColor(const cv::Scalar& hsv_min, const cv::Scalar& hsv_max);
+  void setSize( int min_size, int max_size);
 
-public:
+protected:
   ColorObject model_;
+  cv::Rect tracking_windows_;
+  cv::Point last_position_;
+  cv::Mat current_image_;
+  cv::Mat last_image_;
+  cv::Mat mask_;
+  bool found_in_last_image_;
 };
 
 

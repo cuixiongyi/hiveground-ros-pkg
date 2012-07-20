@@ -73,17 +73,22 @@ public:
 public slots:
     void setCol(int h, int s, int v);
     void setCol(int h, int s);
+    void setRange(int v_min, int v_max);
+
 signals:
     void newHsv(int h, int s, int v);
+    void newRange(int v_min, int v_max);
 
 protected:
     void paintEvent(QPaintEvent*);
     void mouseMoveEvent(QMouseEvent *);
     void mousePressEvent(QMouseEvent *);
 
+    void handleMouse(QMouseEvent *);
+
 private:
     enum { foff = 3, coff = 4 }; //frame and contents offset
-    int val;
+    int val, val_min, val_max;
     int hue;
     int sat;
 

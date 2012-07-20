@@ -3,7 +3,7 @@
 
 #include <prw_object_tracking/object_tracking_utils.h>
 #include "ui_object_tracking.h"
-#include "ui_color_picker.h"
+#include "ui_color_object_selector.h"
 
 #include <velib/view.h>
 #include <velib/scene.h>
@@ -39,6 +39,7 @@ public slots:
   void onColorPickerAdd();
   void onColorListClicked(QListWidgetItem * item);
   void onColorPickerSelected(int h, int s, int v);
+  void onLuminanceRangeUpdate(int v_min, int v_max);
   void onRangeUpdate();
 
 
@@ -59,7 +60,7 @@ protected:
 
 
 
-protected:
+public:
   ros::NodeHandle& nh_;
   ros::Subscriber cloud_subscriber_;
   image_transport::Publisher image_publisher_;
@@ -68,11 +69,12 @@ protected:
   cv_bridge::CvImagePtr bridge_;
 
   std::vector<ObjectTrackerPtr> object_trackers_;
+  QMap<QString, SimpleColorObjectTracker> color_object_maps_;
 
 
-public:
+
   Ui::ObjectTracking ui;
-  Ui::ColorPicker ui_color_picker_;
+  Ui::ColorObjectSelector ui_color_object_;
   bool quit_threads_;
   QMutex ui_mutex_;
 
@@ -87,7 +89,7 @@ public:
   //QColorDialog* color_dialog_;
   ve::ColorPicker* color_picker_;
   ve::ColorLuminancePicker* color_luminance_picker_;
-  QDialog* color_picker_dialog_;
+  QDialog* color_object_selector_;
 
 };
 
