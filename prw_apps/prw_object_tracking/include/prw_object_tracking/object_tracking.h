@@ -41,6 +41,7 @@ public slots:
   void onColorPickerSelected(int h, int s, int v);
   void onLuminanceRangeUpdate(int v_min, int v_max);
   void onRangeUpdate();
+  void onSizeUpdate();
 
 
 signals:
@@ -48,7 +49,8 @@ signals:
 
 protected:
   //UI
-  void updateColorPickerRange(const ve::ColorRange range);
+  void updateColorPickerRange(const ve::ColorRange& range);
+  void updateColorObjectTracker(const QString& name, const ve::ColorRange& range);
 
 
   //Qt
@@ -69,7 +71,11 @@ public:
   cv_bridge::CvImagePtr bridge_;
 
   std::vector<ObjectTrackerPtr> object_trackers_;
-  QMap<QString, SimpleColorObjectTracker> color_object_maps_;
+
+  typedef QMap<QString, SimpleColorObjectTracker> SimpleColorObjectMap;
+  SimpleColorObjectMap color_object_maps_;
+  QMutex color_object_mutex_;
+
 
 
 
@@ -80,6 +86,7 @@ public:
 
   ve::View* view_;
   ve::Scene* scene_;
+  QVector<QGraphicsItem*> added_graphics_items_;
   //QGraphicsView* view_;
   //QGraphicsScene* scene_;
   ve::OpenCVImage* scene_image_;

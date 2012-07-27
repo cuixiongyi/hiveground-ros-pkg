@@ -77,6 +77,10 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
   ui_color_object_.horizontalSliderMinArea->setValue(ui_color_object_.spinBoxMinArea->value());
   ui_color_object_.horizontalSliderMaxArea->setValue(ui_color_object_.spinBoxMaxArea->value());
 
+  QObject::connect(ui_color_object_.spinBoxMaxArea, SIGNAL(valueChanged(int)), this, SLOT(onSizeUpdate()));
+  QObject::connect(ui_color_object_.spinBoxMinArea, SIGNAL(valueChanged(int)), this, SLOT(onSizeUpdate()));
+
+
   /*
   cv::Scalar hsv_max_(78/2, 255, 255);
   cv::Scalar hsv_min_(37/2, 113, 128);
@@ -94,7 +98,9 @@ void ObjectTracking::onImageUpdate()
   QMutexLocker lock(&ui_mutex_);
   if(image_buffer_.full())
   {
+    cv::Mat hsv;
     cv::Mat rgb;
+    cv::cvtColor(image_buffer_.front(), hsv, CV_BGR2HSV);
     cv::cvtColor(image_buffer_.front(), rgb, CV_BGR2RGB);
     if (!scene_image_)
     {
@@ -106,6 +112,48 @@ void ObjectTracking::onImageUpdate()
       scene_image_->updateImage(rgb);
     }
     image_buffer_.pop_front();
+
+
+    //get
+
+
+
+
+    //remove old graphic items
+    if(!added_graphics_items_.isEmpty())
+    {
+      foreach(QGraphicsItem* item, added_graphics_items_)
+      {
+              scene_->removeItem(item);
+      }
+      added_graphics_items_.clear();
+    }
+
+    if(1)
+    {
+      std::vector<cv::RotatedRect> result;
+      SimpleColorObjectMap::iterator it;
+      for(it = color_object_maps_.begin(); it != color_object_maps_.end(); it++)
+      {
+        it->setInput(hsv);
+        it->update();
+        //boost::thread cv_thread(boost::bind(&SimpleColorObjectTracker::update, &color_object_));
+        if(it->getResult(result))
+        {
+          //ui_mutex_.lock();
+          for(int i = 0; i < result.size(); i++)
+          {
+            //result[i].
+            cv::Rect rect = result[i].boundingRect();
+            //scene_image_->c
+
+            QGraphicsRectItem* item = scene_->addRect(rect.x + scene_image_->x(), rect.y + scene_image_->y(), rect.width, rect.height, QPen(Qt::red, 1));
+            added_graphics_items_.push_back(item);
+          }
+          //ui_mutex_.unlock();
+        }
+      }
+    }//if
   }
 }
 
@@ -158,9 +206,20 @@ void ObjectTracking::onColorPickerAdd()
     color_picker_->setCurrentColor(name);
     ve::ColorRange range;
     if(color_picker_->getColorRange(name, range))
+    {
       updateColorPickerRange(range);
 
-    //add color object tracker
+      //add color object tracker
+      //QMutexLocker locker(&color_object_mutex_);
+      SimpleColorObjectTracker color_object_tracker;
+      cv::Scalar hsv_max(range.max_.hue()/2, range.max_.saturation(), range.max_.value());
+      cv::Scalar hsv_min(range.min_.hue()/2, range.min_.saturation(), range.min_.value());
+      color_object_tracker.setColor(hsv_min, hsv_max);
+      color_object_tracker.setSize(10, 100);
+      color_object_maps_[name] = color_object_tracker;
+    }
+
+
     /*
     SimpleColorObjectTracker object_tracker;
     cv::Scalar hsv_max_(78/2, 255, 255);
@@ -177,7 +236,8 @@ void ObjectTracking::onColorListClicked(QListWidgetItem * item)
   //qDebug() << item->text();
   color_picker_->setCurrentColor(item->text());
   ve::ColorRange range;
-  if (color_picker_->getColorRange(color_picker_->getCurrentColorName(), range))
+  QString name = color_picker_->getCurrentColorName();
+  if (color_picker_->getColorRange(name, range))
   {
     updateColorPickerRange(range);
     int h, s, v;
@@ -192,6 +252,26 @@ void ObjectTracking::onColorListClicked(QListWidgetItem * item)
     v = (range.max_.value() + range.min_.value()) / 2;
     color_picker_->setCol(h, s);
     color_luminance_picker_->setCol(h, s, v);
+
+
+    if(color_object_maps_.find(name) != color_object_maps_.end())
+    {
+      //qDebug() << __FUNCTION__ << name << color_object_maps_[name].model().min_size_ << color_object_maps_[name].model().max_size_;
+      ui_color_object_.spinBoxMinArea->blockSignals(true);
+      ui_color_object_.spinBoxMinArea->setValue(color_object_maps_[name].model().min_size_);
+      //qDebug() << "a";
+      ui_color_object_.spinBoxMaxArea->setValue(color_object_maps_[name].model().max_size_);
+      ui_color_object_.spinBoxMinArea->blockSignals(false);
+      //qDebug() << "b";
+
+      ui_color_object_.horizontalSliderMinArea->setValue(ui_color_object_.spinBoxMinArea->value());
+      //ui_color_object_.horizontalSliderMaxArea->setValue(ui_color_object_.spinBoxMaxArea->value());
+
+      //ui_color_object_.spinBoxMinArea->update();
+      //ui_color_object_.spinBoxMaxArea->update();
+
+    }
+
   }
 
 }
@@ -201,7 +281,10 @@ void ObjectTracking::onColorPickerSelected(int h, int s, int v)
   //qDebug() << h << s << v;
   ve::ColorRange range;
   if(color_picker_->getColorRange(color_picker_->getCurrentColorName(), range))
+  {
     updateColorPickerRange(range);
+    updateColorObjectTracker(color_picker_->getCurrentColorName(), range);
+  }
 }
 
 void ObjectTracking::onLuminanceRangeUpdate(int v_min, int v_max)
@@ -230,9 +313,31 @@ void ObjectTracking::onRangeUpdate()
                                   ui_color_object_.spinBoxMinV->value());
   color_luminance_picker_->setRange(ui_color_object_.spinBoxMinV->value(), ui_color_object_.spinBoxMaxV->value());
 
+  //update color tracker
+  ve::ColorRange range;
+  if(color_picker_->getColorRange(color_picker_->getCurrentColorName(), range))
+  {
+    updateColorPickerRange(range);
+    updateColorObjectTracker(color_picker_->getCurrentColorName(), range);
+  }
+
+
+
 }
 
-void ObjectTracking::updateColorPickerRange(const ve::ColorRange range)
+void ObjectTracking::onSizeUpdate()
+{
+  //qDebug() << __FUNCTION__;
+  if(color_picker_->getCurrentColorName() == "")
+      return;
+  //update color tracker
+  //qDebug() << color_picker_->getCurrentColorName() << ui_color_object_.spinBoxMinArea->value() << ui_color_object_.spinBoxMaxArea->value();
+  color_object_maps_[color_picker_->getCurrentColorName()].setSize(ui_color_object_.spinBoxMinArea->value(),
+                                                                   ui_color_object_.spinBoxMaxArea->value());
+
+}
+
+void ObjectTracking::updateColorPickerRange(const ve::ColorRange& range)
 {
   ui_color_object_.spinBoxMaxH->setValue(range.max_.hue());
   ui_color_object_.spinBoxMaxS->setValue(range.max_.saturation());
@@ -240,6 +345,18 @@ void ObjectTracking::updateColorPickerRange(const ve::ColorRange range)
   ui_color_object_.spinBoxMinH->setValue(range.min_.hue());
   ui_color_object_.spinBoxMinS->setValue(range.min_.saturation());
   ui_color_object_.spinBoxMinV->setValue(range.min_.value());
+}
+
+void ObjectTracking::updateColorObjectTracker(const QString& name, const ve::ColorRange& range)
+{
+  if(color_object_maps_.find(name) != color_object_maps_.end())
+  {
+    //QMutexLocker locker(&color_object_mutex_);
+    cv::Scalar hsv_max(range.max_.hue()/2, range.max_.saturation(), range.max_.value());
+    cv::Scalar hsv_min(range.min_.hue()/2, range.min_.saturation(), range.min_.value());
+    color_object_maps_[name].setColor(hsv_min, hsv_max);
+    //color_object_maps_[name].setSize(10, 200);
+  }
 }
 
 void ObjectTracking::closeEvent(QCloseEvent *event)
@@ -272,18 +389,6 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
     return;
   }
 
-  //get
-  cv::Mat hsv;
-  cv::cvtColor(bridge_->image, hsv, CV_BGR2HSV);
-
-
-  //color_object_.setInput(hsv);
-  //color_object_.update();
-  //boost::thread cv_thread(boost::bind(&SimpleColorObjectTracker::update, &color_object_));
-
-
-
-
   ui_mutex_.lock();
   image_buffer_.push_back(bridge_->image);
   ui_mutex_.unlock();
@@ -310,12 +415,25 @@ void spin_function()
   }
 }
 
+void opencv_spin_function()
+{
+  while (ros::ok() && !initialized_)
+  {
+    cv::waitKey(5);
+  }
+  while (ros::ok() && !object_tracking_->quit_threads_)
+  {
+    cv::waitKey(5);
+  }
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "prw_object_tracking", ros::init_options::NoSigintHandler);
   ros::NodeHandle nh("~");
 
   boost::thread spin_thread(boost::bind(&spin_function));
+  //boost::thread opencv_spin_thread(boost::bind(&opencv_spin_function));
 
   QApplication a(argc, argv);
 

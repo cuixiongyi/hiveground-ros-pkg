@@ -34,6 +34,7 @@ public:
   virtual void setInput(const cv::Mat& input_image) = 0;
   virtual void update() = 0;
   virtual bool getResult(cv::Mat& result) = 0;
+  virtual bool getResult(std::vector<cv::RotatedRect>& result) = 0;
   virtual bool load(const std::string& file) = 0;
   virtual bool save(const std::string& file) = 0;
 };
@@ -65,11 +66,13 @@ public:
   void setInput(const cv::Mat& input_image);
   void update();
   bool getResult(cv::Mat& result);
+  bool getResult(std::vector<cv::RotatedRect>& result);
   bool load(const std::string& file);
   bool save(const std::string& file);
 
   void setColor(const cv::Scalar& hsv_min, const cv::Scalar& hsv_max);
   void setSize( int min_size, int max_size);
+  const ColorObject& model() { return model_; }
 
 protected:
   ColorObject model_;
@@ -79,6 +82,7 @@ protected:
   cv::Mat last_image_;
   cv::Mat mask_;
   bool found_in_last_image_;
+  std::vector<std::vector<cv::Point> > contours_filtered_;
 };
 
 
