@@ -15,6 +15,7 @@
 
 
 #include <boost/shared_ptr.hpp>
+#include <boost/multi_array.hpp>
 //#include <QObject>
 
 #include <opencv2/opencv.hpp>
@@ -45,14 +46,17 @@ class ColorObject
 {
 public:
   ColorObject()
-    : max_size_(0), min_size_(0)
+    : min_size_(0), max_size_(0)
   {}
 
-  cv::Scalar hsv_max_;
-  cv::Scalar hsv_min_;
-  int max_size_;
+  cv::Scalar min_hsv_;
+  cv::Scalar max_hsv_;
   int min_size_;
+  int max_size_;
+
 };
+
+typedef std::map<std::string, ColorObject> ColorObjectMap;
 
 /*
  * A class for tracking single color object in an image
@@ -85,7 +89,57 @@ protected:
   std::vector<std::vector<cv::Point> > contours_filtered_;
 };
 
+class TrackedObject
+{
+public:
+  TrackedObject()
+    : area_(0.0)
+  { }
 
+  std::string name_;
+  cv::RotatedRect boundary_;
+  double area_;
+};
+
+class LutColorObjectTraker : public ObjectTracker
+{
+public:
+  static const int H_RANGE = 256;
+  static const int S_RANGE = 256;
+  static const int V_RANGE = 256;
+
+
+
+  LutColorObjectTraker();
+  ~LutColorObjectTraker();
+
+  void setInput(const cv::Mat& input_image);
+  void update();
+  bool getResult(cv::Mat& result);
+  bool getResult(std::vector<cv::RotatedRect>& result);
+  bool load(const std::string& file);
+  bool save(const std::string& file);
+
+  void addObject(const std::string& name, const cv::Scalar& min_hsv, const cv::Scalar& max_hsv, int min_size,
+                 int max_size);
+  void updateObject(const std::string& name, const cv::Scalar& min_hsv, const cv::Scalar& max_hsv, int min_size,
+                    int max_size);
+  void deleteObject(const std::string& name);
+
+  void updateLut();
+protected:
+
+
+protected:
+  typedef boost::multi_array<int, 3> LookupTable;
+  typedef LookupTable::index LookupTableIndex;
+  LookupTable lut_;
+  //std::vector<std::vector<std::vector<unsigned char> > > lut2_;
+  ColorObjectMap color_object_map_;
+  cv::Mat current_image_;
+  cv::Mat last_image_;
+
+};
 
 
 

@@ -24,20 +24,20 @@ void SimpleColorObjectTracker::setInput(const cv::Mat& input_image)
 void SimpleColorObjectTracker::update()
 {
 
-  if(model_.hsv_min_.val[0] > model_.hsv_max_.val[0])
+  if(model_.min_hsv_.val[0] > model_.max_hsv_.val[0])
   {
     cv::Mat mask1, mask2;
-    cv::Scalar upper = model_.hsv_max_;
-    cv::Scalar lower = model_.hsv_min_;
+    cv::Scalar upper = model_.max_hsv_;
+    cv::Scalar lower = model_.min_hsv_;
     upper.val[0] = 180;
     lower.val[0] = 0;
-    inRange(current_image_, model_.hsv_min_, upper, mask1);
-    inRange(current_image_, lower, model_.hsv_max_, mask2);
+    inRange(current_image_, model_.min_hsv_, upper, mask1);
+    inRange(current_image_, lower, model_.max_hsv_, mask2);
     bitwise_or(mask1, mask2, mask_);
   }
   else
   {
-    inRange(current_image_, model_.hsv_min_, model_.hsv_max_, mask_);
+    inRange(current_image_, model_.min_hsv_, model_.max_hsv_, mask_);
   }
 
 
@@ -72,7 +72,7 @@ void SimpleColorObjectTracker::update()
 
   if(contours_filtered_.size() != 0)
   {
-    //drawContours(dst, contours_filtered_, -1, model_.hsv_max_, 1, 8);
+    //drawContours(dst, contours_filtered_, -1, model_.max_hsv_, 1, 8);
     found_in_last_image_ = true;
   }
   else
@@ -89,7 +89,7 @@ void SimpleColorObjectTracker::update()
     for (; idx >= 0; idx = hierarchy[idx][0])
     {
       if(cv::contourArea(contours);)
-      drawContours(dst, contours, idx, model_.hsv_max_, 1, 8, hierarchy);
+      drawContours(dst, contours, idx, model_.max_hsv_, 1, 8, hierarchy);
     }
   }
   */
@@ -128,8 +128,8 @@ bool SimpleColorObjectTracker::save(const std::string& file)
 
 void SimpleColorObjectTracker::setColor(const cv::Scalar& hsv_min, const cv::Scalar& hsv_max)
 {
-  model_.hsv_min_ = hsv_min;
-  model_.hsv_max_ = hsv_max;
+  model_.min_hsv_ = hsv_min;
+  model_.max_hsv_ = hsv_max;
 }
 
 void SimpleColorObjectTracker::setSize(int min_size, int max_size)

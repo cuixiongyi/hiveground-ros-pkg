@@ -81,7 +81,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 set(srcs
      src/object_tracking.cpp 
      src/object_tracking_utils.cpp
-     src/simple_color_object_tracker.cpp)
+     src/simple_color_object_tracker.cpp
+     src/lut_color_object_tracker.cpp)
 
 rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(object_tracking ${QT_LIBRARIES})

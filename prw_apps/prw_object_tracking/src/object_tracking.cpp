@@ -12,6 +12,9 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 
+#include <pcl/point_cloud.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
 using namespace prw;
 using namespace cv;
 
@@ -19,7 +22,8 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
     QMainWindow(parent, flags),
     nh_(nh),
     quit_threads_(false),
-    image_buffer_(2)
+    image_buffer_(2),
+    cloud_buffer_(2)
 
 {
   ui.setupUi(this);
@@ -87,6 +91,8 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
   color_object_.setColor(hsv_min_, hsv_max_);
   color_object_.setSize(10, 100);
   */
+
+  //lut_color_object_tracker_.updateLut();
 }
 
 ObjectTracking::~ObjectTracking()
@@ -95,13 +101,28 @@ ObjectTracking::~ObjectTracking()
 
 void ObjectTracking::onImageUpdate()
 {
-  QMutexLocker lock(&ui_mutex_);
-  if(image_buffer_.full())
-  {
+    cv::Mat image;
+    pcl::PointCloud <pcl::PointXYZRGB> cloud;
+    ui_mutex_.lock();
+    if(image_buffer_.full())
+    {
+      image = image_buffer_.front();
+      cloud = cloud_buffer_.front();
+      image_buffer_.pop_front();
+      cloud_buffer_.pop_front();
+    }
+    else
+    {
+      ui_mutex_.unlock();
+      return;
+    }
+    ui_mutex_.unlock();
+
+
     cv::Mat hsv;
     cv::Mat rgb;
-    cv::cvtColor(image_buffer_.front(), hsv, CV_BGR2HSV);
-    cv::cvtColor(image_buffer_.front(), rgb, CV_BGR2RGB);
+    cv::cvtColor(image, hsv, CV_BGR2HSV);
+    cv::cvtColor(image, rgb, CV_BGR2RGB);
     if (!scene_image_)
     {
       scene_image_ = new ve::OpenCVImage(rgb);
@@ -111,7 +132,7 @@ void ObjectTracking::onImageUpdate()
     {
       scene_image_->updateImage(rgb);
     }
-    image_buffer_.pop_front();
+
 
 
     //get
@@ -149,12 +170,15 @@ void ObjectTracking::onImageUpdate()
 
             QGraphicsRectItem* item = scene_->addRect(rect.x + scene_image_->x(), rect.y + scene_image_->y(), rect.width, rect.height, QPen(Qt::red, 1));
             added_graphics_items_.push_back(item);
+
+            int idx = (rect.x + rect.width/2) + ((rect.y + rect.height/2)*640);
+            qDebug() << cloud.points[idx].x << cloud.points[idx].y << cloud.points[idx].z;
           }
           //ui_mutex_.unlock();
         }
       }
     }//if
-  }
+
 }
 
 void ObjectTracking::onImageClicked(QPointF point, QRgb color)
@@ -374,6 +398,10 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
   pcl::PointCloud <pcl::PointXYZRGB> cloud;
   pcl::fromROSMsg(*message, cloud);
 
+  //ROS_INFO_STREAM_THROTTLE(1.0, cloud.height << ":" << cloud.width);
+
+
+
   // get an OpenCV image from the cloud
   sensor_msgs::Image image_message;
   pcl::toROSMsg(cloud, image_message);
@@ -391,6 +419,7 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
 
   ui_mutex_.lock();
   image_buffer_.push_back(bridge_->image);
+  cloud_buffer_.push_back(cloud);
   ui_mutex_.unlock();
 }
 
