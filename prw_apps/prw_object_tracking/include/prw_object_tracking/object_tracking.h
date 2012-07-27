@@ -76,6 +76,8 @@ public:
   SimpleColorObjectMap color_object_maps_;
   QMutex color_object_mutex_;
 
+  //LutColorObjectTraker lut_color_object_tracker_;
+
 
 
 
@@ -91,6 +93,9 @@ public:
   //QGraphicsScene* scene_;
   ve::OpenCVImage* scene_image_;
   boost::circular_buffer<cv::Mat> image_buffer_;
+  boost::circular_buffer<pcl::PointCloud <pcl::PointXYZRGB> > cloud_buffer_;
+  //boost::circular_buffer<sensor_msgs::PointCloud2> message_buffer;
+
   QTimer *image_timer_;
 
   //QColorDialog* color_dialog_;
