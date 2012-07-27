@@ -23,25 +23,32 @@ void SimpleColorObjectTracker::setInput(const cv::Mat& input_image)
 
 void SimpleColorObjectTracker::update()
 {
-  inRange(current_image_, model_.hsv_min_, model_.hsv_max_, mask_);
+
+  if(model_.hsv_min_.val[0] > model_.hsv_max_.val[0])
+  {
+    cv::Mat mask1, mask2;
+    cv::Scalar upper = model_.hsv_max_;
+    cv::Scalar lower = model_.hsv_min_;
+    upper.val[0] = 180;
+    lower.val[0] = 0;
+    inRange(current_image_, model_.hsv_min_, upper, mask1);
+    inRange(current_image_, lower, model_.hsv_max_, mask2);
+    bitwise_or(mask1, mask2, mask_);
+  }
+  else
+  {
+    inRange(current_image_, model_.hsv_min_, model_.hsv_max_, mask_);
+  }
+
+
+
   cv::Mat filtered;
   cv::erode(mask_, filtered, cv::Mat());
   cv::dilate(filtered, mask_, cv::Mat());
 
-  cv::imshow("mask", mask_);
-
-  /*
-  cv::Mat hue;
-  int ch[] = {0, 0};
-  hue.create(current_image_.size(), current_image_.depth());
-  cv::mixChannels(&current_image_, 1, &hue, 1, ch, 1);
-
-  cv::imshow("hue", hue);
-  */
+  //cv::imshow("mask", mask_);
 
   std::vector<std::vector<cv::Point> > contours;
-  vector<Vec4i> hierarchy;
-  //findContours(mask_, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
   findContours(mask_, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
   /*
@@ -51,18 +58,27 @@ void SimpleColorObjectTracker::update()
   }
   */
 
-  std::vector<std::vector<cv::Point> > contours_filtered;
+  contours_filtered_.clear();
   Mat dst = Mat::zeros(mask_.size(), CV_8UC3);
   for(int i = 0; i < contours.size(); i++)
   {
     double area = cv::contourArea(contours[i]);
     if(area <= model_.max_size_ && area >= model_.min_size_)
     {
-      contours_filtered.push_back(contours[i]);
+      contours_filtered_.push_back(contours[i]);
+      //qDebug() << area << contours_filtered.back().size();
     }
   }
 
-  drawContours(dst, contours_filtered, -1, model_.hsv_max_, 1, 8);
+  if(contours_filtered_.size() != 0)
+  {
+    //drawContours(dst, contours_filtered_, -1, model_.hsv_max_, 1, 8);
+    found_in_last_image_ = true;
+  }
+  else
+  {
+    found_in_last_image_  = false;
+  }
 
   /*
   if( !contours.empty() && !hierarchy.empty() )
@@ -77,7 +93,7 @@ void SimpleColorObjectTracker::update()
     }
   }
   */
-  cv::imshow("dst", dst);
+  //cv::imshow("dst", dst);
 
 
 }
@@ -85,6 +101,19 @@ void SimpleColorObjectTracker::update()
 bool SimpleColorObjectTracker::getResult(cv::Mat& result)
 {
   return false;
+}
+
+bool SimpleColorObjectTracker::getResult(std::vector<cv::RotatedRect>& result)
+{
+  result.clear();
+  if(!found_in_last_image_)
+    return false;
+
+  for(int i = 0; i < contours_filtered_.size(); i++)
+  {
+    if(contours_filtered_[i].size() > 5)
+      result.push_back(cv::fitEllipse(contours_filtered_[i]));
+  }
 }
 
 bool SimpleColorObjectTracker::load(const std::string& file)
