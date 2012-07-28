@@ -1,6 +1,6 @@
 <launch>
   <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
-    <remap from="~input" to="/kinect7051A/depth_registered/points" />      
+    <remap from="~input" to="/voxel_grid_y/output" />      
     <rosparam>
     </rosparam>
   </node>

@@ -93,6 +93,14 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
   */
 
   //lut_color_object_tracker_.updateLut();
+
+
+  seg_.setOptimizeCoefficients(true);
+  seg_.setModelType(pcl::SACMODEL_PLANE);
+  seg_.setMethodType(pcl::SAC_RANSAC);
+  seg_.setDistanceThreshold(0.02);
+
+
 }
 
 ObjectTracking::~ObjectTracking()
@@ -173,6 +181,9 @@ void ObjectTracking::onImageUpdate()
 
             int idx = (rect.x + rect.width/2) + ((rect.y + rect.height/2)*640);
             qDebug() << cloud.points[idx].x << cloud.points[idx].y << cloud.points[idx].z;
+
+            //tf_listener_.transformPoint
+
           }
           //ui_mutex_.unlock();
         }
@@ -392,15 +403,86 @@ void ObjectTracking::closeEvent(QCloseEvent *event)
 
 void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& message)
 {
+  static bool saved = false;
+
+
   ROS_INFO_STREAM_THROTTLE(30.0, message->header.frame_id);
 
   // convert cloud to PCL
-  pcl::PointCloud <pcl::PointXYZRGB> cloud;
-  pcl::fromROSMsg(*message, cloud);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::fromROSMsg(*message, *cloud);
+
+
+
+  if(!saved)
+  {
+    ROS_INFO_STREAM("saved scene.pcd");
+    writer.write<pcl::PointXYZRGB> ("scene.pcd", *cloud, false);
+  }
+
+  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+  pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+
+
+
+
+  //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  int i = 0, nr_points = (int)cloud->points.size();
+
+  while (cloud->points.size() > 0.3 * nr_points)
+  {
+    seg_.setInputCloud(cloud);
+    seg_.segment(*inliers, *coefficients);
+    if (inliers->indices.size () == 0)
+    {
+      std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
+      break;
+    }
+
+    // Extract the inliers
+    extract.setInputCloud(cloud);
+    extract.setIndices(inliers);
+    extract.setNegative(false);
+    extract.filter(*cloud_p);
+    std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points."
+        << std::endl;
+
+    if(!saved)
+    {
+      std::stringstream ss;
+      ss << "scene_plane_" << i << ".pcd";
+      ROS_INFO_STREAM("saved " << ss.str());
+      writer.write<pcl::PointXYZRGB>(ss.str(), *cloud_p, false);
+    }
+
+    // Create the filtering object
+    extract.setNegative(true);
+    extract.filter(*cloud_f);
+    cloud.swap(cloud_f);
+    i++;
+  }
+
+  saved = true;
+
+    /*
+    std::cerr << "Model coefficients: " << coefficients->values[0] << " "
+                                         << coefficients->values[1] << " "
+                                         << coefficients->values[2] << " "
+                                         << coefficients->values[3] << std::endl;
+
+    std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
+    */
+
+
+
+
 
   //ROS_INFO_STREAM_THROTTLE(1.0, cloud.height << ":" << cloud.width);
 
 
+  /*
 
   // get an OpenCV image from the cloud
   sensor_msgs::Image image_message;
@@ -421,6 +503,7 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
   image_buffer_.push_back(bridge_->image);
   cloud_buffer_.push_back(cloud);
   ui_mutex_.unlock();
+  */
 }
 
 
