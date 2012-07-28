@@ -8,6 +8,34 @@
   
   <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="-0.741438 -0.660471 1.866350 0.698840 0.713028 -0.041199 -0.038949 kinect7051A_rgb_optical_frame world 100"/>
   
+  <!-- extract pieces pipeline -->
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+  <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_z" args="load pcl/VoxelGrid pcl_manager" output="screen">
+    <!--<remap from="~input" to="/camera/rgb/points" />-->
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: 1.0
+      filter_limit_max: 2.0
+      filter_limit_negative: False
+      leaf_size: 0.01
+    </rosparam>
+  </node>
+  
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_y" args="load pcl/VoxelGrid pcl_manager" output="screen">
+    <!--<remap from="~input" to="/camera/rgb/points" />-->
+    <remap from="~input" to="/voxel_grid_z/output" />
+    <rosparam>
+      filter_field_name: y
+      filter_limit_min: -0.8
+      filter_limit_max: 0.11
+      filter_limit_negative: False
+      leaf_size: 0.01
+    </rosparam>
+  </node>
+  
   <!-- PCL pipe line-->
   
   <!--node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" /-->

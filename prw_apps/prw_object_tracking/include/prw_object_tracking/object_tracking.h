@@ -16,7 +16,10 @@
 #include <qcolordialog.h>
 
 #include <boost/circular_buffer.hpp>
-
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 
 namespace prw
 {
@@ -66,6 +69,7 @@ public:
   ros::NodeHandle& nh_;
   ros::Subscriber cloud_subscriber_;
   image_transport::Publisher image_publisher_;
+  ros::Publisher object_publisher_;
   tf::TransformBroadcaster tf_broadcaster_;
   tf::TransformListener tf_listener_;
   cv_bridge::CvImagePtr bridge_;
@@ -78,7 +82,9 @@ public:
 
   //LutColorObjectTraker lut_color_object_tracker_;
 
-
+  pcl::SACSegmentation<pcl::PointXYZRGB> seg_;
+  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+  pcl::PCDWriter writer;
 
 
   Ui::ObjectTracking ui;
