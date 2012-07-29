@@ -60,8 +60,15 @@
      <string>Trackers</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuCloud">
+    <property name="title">
+     <string>Cloud</string>
+    </property>
+    <addaction name="actionSaveCloud"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuTrackers"/>
+   <addaction name="menuCloud"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
@@ -86,28 +93,20 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionNew"/>
    <addaction name="separator"/>
-   <addaction name="actionAdd_2"/>
+   <addaction name="actionSaveCloud"/>
   </widget>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
    </property>
   </action>
-  <action name="actionAdd">
-   <property name="text">
-    <string>Add</string>
+  <action name="actionSaveCloud">
+   <property name="checkable">
+    <bool>true</bool>
    </property>
-  </action>
-  <action name="actionNew">
    <property name="text">
-    <string>New</string>
-   </property>
-  </action>
-  <action name="actionAdd_2">
-   <property name="text">
-    <string>Add</string>
+    <string> Save Cloud</string>
    </property>
   </action>
  </widget>

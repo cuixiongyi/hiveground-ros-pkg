@@ -22,6 +22,7 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
     QMainWindow(parent, flags),
     nh_(nh),
     quit_threads_(false),
+    pass_through_filter_(true),
     image_buffer_(2),
     cloud_buffer_(2)
 
@@ -44,6 +45,7 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
   view_->ensureVisible(scene_->itemsBoundingRect());
 
   image_publisher_ = image_transport::ImageTransport(nh_).advertise("image", 1);
+  cloud_publisher_ = nh_.advertise<sensor_msgs::PointCloud2> ("cloud_output", 1);
   cloud_subscriber_ = nh_.subscribe("input", 1, &ObjectTracking::cameraCallback, this);
 
   image_timer_ = new QTimer(this);
@@ -94,11 +96,34 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
 
   //lut_color_object_tracker_.updateLut();
 
+  //Voxel grid param
+  ROS_ASSERT(nh_.getParam("output_frame", output_frame_));
+  ROS_ASSERT(nh_.getParam("filter_limit_min_z", filter_limit_min_z_));
+  ROS_ASSERT(nh_.getParam("filter_limit_max_z", filter_limit_max_z_));
+  ROS_ASSERT(nh_.getParam("filter_limit_min_y", filter_limit_min_y_));
+  ROS_ASSERT(nh_.getParam("filter_limit_max_y", filter_limit_max_y_));
+  ROS_ASSERT(nh_.getParam("filter_limit_min_x", filter_limit_min_x_));
+  ROS_ASSERT(nh_.getParam("filter_limit_max_x", filter_limit_max_x_));
+  ROS_ASSERT(nh_.getParam("filter_limit_negative", filter_limit_negative_));
+  ROS_ASSERT(nh_.getParam("leaf_size", leaf_size_));
+
+
+
+  voxel_filter_.setFilterLimitsNegative(filter_limit_negative_);
+  voxel_filter_.setLeafSize(leaf_size_, leaf_size_, leaf_size_);
+
+
+
 
   seg_.setOptimizeCoefficients(true);
   seg_.setModelType(pcl::SACMODEL_PLANE);
   seg_.setMethodType(pcl::SAC_RANSAC);
   seg_.setDistanceThreshold(0.02);
+
+  ec_.setClusterTolerance (0.02); // 2cm
+  ec_.setMinClusterSize(50);
+  ec_.setMaxClusterSize(500);
+
 
 
 }
@@ -109,6 +134,207 @@ ObjectTracking::~ObjectTracking()
 
 void ObjectTracking::onImageUpdate()
 {
+
+  pcl::PointCloud <pcl::PointXYZRGB>::Ptr cloud;
+  ui_mutex_.lock();
+  if(cloud_buffer_.full())
+  {
+    cloud = cloud_buffer_.front();
+    cloud_buffer_.pop_front();
+  }
+  else
+  {
+    ui_mutex_.unlock();
+    return;
+  }
+  ui_mutex_.unlock();
+
+  double t = (double)getTickCount();
+
+  sensor_msgs::Image image_message;
+  pcl::toROSMsg(*cloud, image_message);
+
+
+  try
+  {
+    bridge_ = cv_bridge::toCvCopy(image_message, image_message.encoding);
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("Conversion failed");
+    return;
+  }
+
+  cv::Mat image = bridge_->image;
+
+
+  cv::Mat hsv;
+  cv::Mat rgb;
+  cv::cvtColor(image, hsv, CV_BGR2HSV);
+  cv::cvtColor(image, rgb, CV_BGR2RGB);
+
+  if (!scene_image_)
+  {
+    scene_image_ = new ve::OpenCVImage(rgb);
+    scene_->addItem(scene_image_);
+  }
+  else
+  {
+    scene_image_->updateImage(rgb);
+  }
+
+  pcl::PointCloud <pcl::PointXYZRGB>::Ptr cloud_transformed (new  pcl::PointCloud <pcl::PointXYZRGB>());
+  pcl::PointCloud <pcl::PointXYZRGB>::Ptr cloud_filtered (new  pcl::PointCloud <pcl::PointXYZRGB>());
+  pcl::PointCloud <pcl::PointXYZRGB>::Ptr cloud_tmp (new  pcl::PointCloud <pcl::PointXYZRGB>());
+  pcl_ros::transformPointCloud (output_frame_, *cloud, *cloud_transformed, tf_listener_);
+
+
+
+  voxel_filter_.setInputCloud(cloud_transformed);
+  voxel_filter_.setFilterFieldName("z");
+  voxel_filter_.setFilterLimits(filter_limit_min_z_, filter_limit_max_z_);
+  voxel_filter_.filter(*cloud_tmp);
+
+
+  voxel_filter_.setInputCloud(cloud_tmp);
+  voxel_filter_.setFilterFieldName("x");
+  voxel_filter_.setFilterLimits(filter_limit_min_x_, filter_limit_max_x_);
+  voxel_filter_.filter(*cloud_filtered);
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+  pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+  int i = 0, nr_points = (int)cloud_filtered->points.size();
+  while (cloud_filtered->points.size() > 0.3 * nr_points)
+  {
+    seg_.setInputCloud(cloud_filtered);
+    seg_.segment(*inliers, *coefficients);
+    if (inliers->indices.size () == 0)
+    {
+      std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
+      return;
+    }
+
+    // Extract the inliers
+    extract_.setInputCloud(cloud_filtered);
+    extract_.setIndices(inliers);
+    extract_.setNegative(false);
+    extract_.filter(*cloud_p);
+    //std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points."   << std::endl;
+
+    if(ui.actionSaveCloud->isChecked())
+    {
+      std::stringstream ss;
+      ss << "scene_plane_" << i << ".pcd";
+      ROS_INFO_STREAM("saved " << ss.str());
+      writer.write<pcl::PointXYZRGB>(ss.str(), *cloud_p, false);
+    }
+
+    // Create the filtering object
+    extract_.setNegative(true);
+    extract_.filter(*cloud_f);
+    cloud_filtered.swap(cloud_f);
+    i++;
+  }
+
+
+  if(ui.actionSaveCloud->isChecked())
+  {
+    writer.write<pcl::PointXYZRGB>("object.pcd", *cloud, false);
+  }
+
+  // Creating the KdTree object for the search method of the extraction
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+  tree->setInputCloud(cloud_filtered);
+  std::vector<pcl::PointIndices> cluster_indices;
+
+
+
+
+  sensor_msgs::PointCloud2 msg;
+  pcl::toROSMsg(*cloud_filtered, msg);
+  cloud_publisher_.publish(boost::make_shared<sensor_msgs::PointCloud2>(msg));
+
+
+  //setup EuclideanClusterExtraction input
+   ec_.setSearchMethod(tree);
+   ec_.setInputCloud(cloud_filtered);
+   ec_.extract(cluster_indices);
+
+   int j = 0;
+   std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> cloud_clusters;
+   float cx, cy, cz;
+   float cr, cg, cb;
+
+   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
+   {
+     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
+     cx = cy = cz = 0.0; cr = cg = cb = 0;
+     for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); pit++)
+     {
+       //add point to cloud cluster
+       cloud_cluster->points.push_back(cloud_filtered->points[*pit]); //*
+
+       //compute centroid
+       cx += cloud_filtered->points[*pit].x;
+       cy += cloud_filtered->points[*pit].y;
+       cz += cloud_filtered->points[*pit].z;
+
+       //get color color
+       unsigned char * rgb = (unsigned char *) &(cloud_filtered->points[j].rgb);
+       cr += rgb[0];
+       cg += rgb[1];
+       cb += rgb[2];
+     }
+     cloud_cluster->width = cloud_cluster->points.size();
+     cloud_cluster->height = 1;
+     cloud_cluster->is_dense = true;
+     cloud_clusters.push_back(cloud_cluster);
+     cx = cx/cloud_cluster->points.size();
+     cy = cy/cloud_cluster->points.size();
+     cz = cz/cloud_cluster->points.size();
+     cr = cr/cloud_cluster->points.size();
+     cg = cg/cloud_cluster->points.size();
+     cb = cb/cloud_cluster->points.size();
+
+
+
+     ROS_INFO("Cluster %02d size: %04d [%6.3f, %6.3f, %6.3f] [%03d %03d %03d]",
+              j,
+              (int)cloud_cluster->points.size(),
+              cx, cy, cz,
+              (int)cr, (int)cg, (int)cb);
+
+
+
+     if(ui.actionSaveCloud->isChecked())
+     {
+       std::stringstream ss;
+       ss << "cloud_cluster_" << j << ".pcd";
+       ROS_INFO_STREAM("saved " << ss.str());
+       writer.write<pcl::PointXYZRGB>(ss.str(), *cloud_cluster, false); //*
+     }
+     j++;
+   }
+
+
+
+  t = ((double)getTickCount() - t)/getTickFrequency();
+  ROS_INFO_THROTTLE(1.0, "process time: %5.3f s", t);
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
     cv::Mat image;
     pcl::PointCloud <pcl::PointXYZRGB> cloud;
     ui_mutex_.lock();
@@ -189,7 +415,7 @@ void ObjectTracking::onImageUpdate()
         }
       }
     }//if
-
+#endif
 }
 
 void ObjectTracking::onImageClicked(QPointF point, QRgb color)
@@ -403,18 +629,23 @@ void ObjectTracking::closeEvent(QCloseEvent *event)
 
 void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& message)
 {
+#if 0
   static bool saved = false;
 
+  //QMutexLocker locker(&ui_mutex_);
 
-  ROS_INFO_STREAM_THROTTLE(30.0, message->header.frame_id);
 
-  // convert cloud to PCL
+  //ROS_INFO_STREAM_THROTTLE(30.0, message->header.frame_id);
+
+  double t = (double)getTickCount();
+
+
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  // convert cloud to PCL
   pcl::fromROSMsg(*message, *cloud);
-
-
 
   if(!saved)
   {
@@ -422,15 +653,10 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
     writer.write<pcl::PointXYZRGB> ("scene.pcd", *cloud, false);
   }
 
+  //extract table plane
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-
-
-
-
-  //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZRGB> ());
   int i = 0, nr_points = (int)cloud->points.size();
-
   while (cloud->points.size() > 0.3 * nr_points)
   {
     seg_.setInputCloud(cloud);
@@ -438,16 +664,15 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
     if (inliers->indices.size () == 0)
     {
       std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
-      break;
+      return;
     }
 
     // Extract the inliers
-    extract.setInputCloud(cloud);
-    extract.setIndices(inliers);
-    extract.setNegative(false);
-    extract.filter(*cloud_p);
-    std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points."
-        << std::endl;
+    extract_.setInputCloud(cloud);
+    extract_.setIndices(inliers);
+    extract_.setNegative(false);
+    extract_.filter(*cloud_p);
+    //std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points."   << std::endl;
 
     if(!saved)
     {
@@ -458,13 +683,92 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
     }
 
     // Create the filtering object
-    extract.setNegative(true);
-    extract.filter(*cloud_f);
+    extract_.setNegative(true);
+    extract_.filter(*cloud_f);
     cloud.swap(cloud_f);
     i++;
   }
 
+  if(!saved)
+  {
+    writer.write<pcl::PointXYZRGB>("object.pcd", *cloud, false);
+  }
+
+  // Creating the KdTree object for the search method of the extraction
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+  tree->setInputCloud (cloud);
+  std::vector<pcl::PointIndices> cluster_indices;
+
+  //setup EuclideanClusterExtraction input
+  ec_.setSearchMethod(tree);
+  ec_.setInputCloud(cloud);
+  ec_.extract(cluster_indices);
+
+  int j = 0;
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> cloud_clusters;
+  float cx, cy, cz;
+  float cr, cg, cb;
+
+  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
+  {
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
+    cx = cy = cz = 0.0; cr = cg = cb = 0;
+    for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); pit++)
+    {
+      //add point to cloud cluster
+      cloud_cluster->points.push_back(cloud->points[*pit]); //*
+
+      //compute centroid
+      cx += cloud->points[*pit].x;
+      cy += cloud->points[*pit].y;
+      cz += cloud->points[*pit].z;
+
+      //get color color
+      unsigned char * rgb = (unsigned char *) &(cloud->points[j].rgb);
+      cr += rgb[0];
+      cg += rgb[1];
+      cb += rgb[2];
+    }
+    cloud_cluster->width = cloud_cluster->points.size();
+    cloud_cluster->height = 1;
+    cloud_cluster->is_dense = true;
+    cloud_clusters.push_back(cloud_cluster);
+    cx = cx/cloud_cluster->points.size();
+    cy = cy/cloud_cluster->points.size();
+    cz = cz/cloud_cluster->points.size();
+    cr = cr/cloud_cluster->points.size();
+    cg = cg/cloud_cluster->points.size();
+    cb = cb/cloud_cluster->points.size();
+
+
+    /*
+    ROS_INFO("Cluster %02d size: %04d [%6.3f, %6.3f, %6.3f] [%03d %03d %03d]",
+             j,
+             (int)cloud_cluster->points.size(),
+             cx, cy, cz,
+             (int)cr, (int)cg, (int)cb);
+    */
+
+
+    if(!saved)
+    {
+      std::stringstream ss;
+      ss << "cloud_cluster_" << j << ".pcd";
+      ROS_INFO_STREAM("saved " << ss.str());
+      writer.write<pcl::PointXYZRGB>(ss.str(), *cloud_cluster, false); //*
+    }
+    j++;
+  }
+
+  //ROS_INFO("=============");
+
+
+
+  t = ((double)getTickCount() - t)/getTickFrequency();
+  //std::cout << "Segmentation update time: " << t << std::endl;
+
   saved = true;
+
 
     /*
     std::cerr << "Model coefficients: " << coefficients->values[0] << " "
@@ -482,13 +786,22 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
   //ROS_INFO_STREAM_THROTTLE(1.0, cloud.height << ":" << cloud.width);
 
 
-  /*
+
+#endif
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+  // convert cloud to PCL
+  pcl::fromROSMsg(*message, *cloud);
+
+  ui_mutex_.lock();
+  cloud_buffer_.push_back(cloud);
+  ui_mutex_.unlock();
 
   // get an OpenCV image from the cloud
-  sensor_msgs::Image image_message;
-  pcl::toROSMsg(cloud, image_message);
+  //sensor_msgs::Image image_message;
+  //pcl::toROSMsg(*cloud, image_message);
 
-
+/*
   try
   {
     bridge_ = cv_bridge::toCvCopy(image_message, image_message.encoding);
@@ -498,12 +811,9 @@ void ObjectTracking::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& mess
     ROS_ERROR("Conversion failed");
     return;
   }
+*/
 
-  ui_mutex_.lock();
-  image_buffer_.push_back(bridge_->image);
-  cloud_buffer_.push_back(cloud);
-  ui_mutex_.unlock();
-  */
+
 }
 
 

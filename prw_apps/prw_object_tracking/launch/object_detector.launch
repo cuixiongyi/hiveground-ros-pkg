@@ -1,7 +1,16 @@
 <launch>
   <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
-    <remap from="~input" to="/voxel_grid_y/output" />      
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />      
     <rosparam>
+      output_frame: /world
+      filter_limit_min_z: -0.05
+      filter_limit_max_z: 2.0
+      filter_limit_min_y: -5.0
+      filter_limit_max_y: 5.0
+      filter_limit_min_x: -1.0
+      filter_limit_max_x: 0.76
+      filter_limit_negative: False
+      leaf_size: 0.01      
     </rosparam>
   </node>
 </launch>  

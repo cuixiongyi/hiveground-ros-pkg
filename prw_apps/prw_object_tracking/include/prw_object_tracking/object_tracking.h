@@ -17,9 +17,17 @@
 
 #include <boost/circular_buffer.hpp>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/filters/voxel_grid.h>
+
+#include <dynamic_reconfigure/server.h>
 
 namespace prw
 {
@@ -69,6 +77,7 @@ public:
   ros::NodeHandle& nh_;
   ros::Subscriber cloud_subscriber_;
   image_transport::Publisher image_publisher_;
+  ros::Publisher cloud_publisher_;
   ros::Publisher object_publisher_;
   tf::TransformBroadcaster tf_broadcaster_;
   tf::TransformListener tf_listener_;
@@ -82,8 +91,11 @@ public:
 
   //LutColorObjectTraker lut_color_object_tracker_;
 
+  pcl::PassThrough<pcl::PointXYZRGB> pass_through_filter_;
+  pcl::VoxelGrid<pcl::PointXYZRGB> voxel_filter_;
   pcl::SACSegmentation<pcl::PointXYZRGB> seg_;
-  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+  pcl::ExtractIndices<pcl::PointXYZRGB> extract_;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec_;
   pcl::PCDWriter writer;
 
 
@@ -99,8 +111,24 @@ public:
   //QGraphicsScene* scene_;
   ve::OpenCVImage* scene_image_;
   boost::circular_buffer<cv::Mat> image_buffer_;
-  boost::circular_buffer<pcl::PointCloud <pcl::PointXYZRGB> > cloud_buffer_;
-  //boost::circular_buffer<sensor_msgs::PointCloud2> message_buffer;
+  boost::circular_buffer<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > cloud_buffer_;
+
+  std::string output_frame_;
+  double filter_limit_min_z_;
+  double filter_limit_max_z_;
+  double filter_limit_min_y_;
+  double filter_limit_max_y_;
+  double filter_limit_min_x_;
+  double filter_limit_max_x_;
+  bool filter_limit_negative_;
+  double leaf_size_;
+
+  //voxel grid
+
+
+
+
+
 
   QTimer *image_timer_;
 
