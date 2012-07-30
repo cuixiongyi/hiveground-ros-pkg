@@ -4,22 +4,26 @@ python3 = True if sys.hexversion > 0x03000000 else False
 import genpy
 import struct
 
+import sensor_msgs.msg
 import geometry_msgs.msg
 import std_msgs.msg
 
 class Object(genpy.Message):
-  _md5sum = "354082e2c51736881bddfa3322c75e05"
+  _md5sum = "d6737f97696543959e66de394ecb5b58"
   _type = "prw_message/Object"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """# A pose, reference frame, timestamp, and type
 Header header
 geometry_msgs/Pose pose
 geometry_msgs/Vector3 size
+sensor_msgs/PointCloud2 cloud
+string name
 int32 type
 
-# chess piece definitions
+# object definitions
 int32 UNKNOW = 0
 int32 CUBE = 1
+int32 SPHERE = 1
 
 ================================================================================
 MSG: std_msgs/Header
@@ -68,13 +72,62 @@ MSG: geometry_msgs/Vector3
 float64 x
 float64 y
 float64 z
+================================================================================
+MSG: sensor_msgs/PointCloud2
+# This message holds a collection of N-dimensional points, which may
+# contain additional information such as normals, intensity, etc. The
+# point data is stored as a binary blob, its layout described by the
+# contents of the "fields" array.
+
+# The point cloud data may be organized 2d (image-like) or 1d
+# (unordered). Point clouds organized as 2d images may be produced by
+# camera depth sensors such as stereo or time-of-flight.
+
+# Time of sensor data acquisition, and the coordinate frame ID (for 3d
+# points).
+Header header
+
+# 2D structure of the point cloud. If the cloud is unordered, height is
+# 1 and width is the length of the point cloud.
+uint32 height
+uint32 width
+
+# Describes the channels and their layout in the binary data blob.
+PointField[] fields
+
+bool    is_bigendian # Is this data bigendian?
+uint32  point_step   # Length of a point in bytes
+uint32  row_step     # Length of a row in bytes
+uint8[] data         # Actual point data, size is (row_step*height)
+
+bool is_dense        # True if there are no invalid points
+
+================================================================================
+MSG: sensor_msgs/PointField
+# This message holds the description of one point entry in the
+# PointCloud2 message format.
+uint8 INT8    = 1
+uint8 UINT8   = 2
+uint8 INT16   = 3
+uint8 UINT16  = 4
+uint8 INT32   = 5
+uint8 UINT32  = 6
+uint8 FLOAT32 = 7
+uint8 FLOAT64 = 8
+
+string name      # Name of field
+uint32 offset    # Offset from start of point struct
+uint8  datatype  # Datatype enumeration, see above
+uint32 count     # How many elements in the field
+
 """
   # Pseudo-constants
   UNKNOW = 0
   CUBE = 1
+  SPHERE = 1
 
-  __slots__ = ['header','pose','size','type']
-  _slot_types = ['std_msgs/Header','geometry_msgs/Pose','geometry_msgs/Vector3','int32']
+  __slots__ = ['header','pose','size','cloud','name','type']
+  _slot_types = ['std_msgs/Header','geometry_msgs/Pose','geometry_msgs/Vector3','sensor_msgs/PointCloud2','string','int32']
 
   def __init__(self, *args, **kwds):
     """
@@ -84,7 +137,7 @@ float64 z
     changes.  You cannot mix in-order arguments and keyword arguments.
 
     The available fields are:
-       header,pose,size,type
+       header,pose,size,cloud,name,type
 
     :param args: complete set of field values, in .msg order
     :param kwds: use keyword arguments corresponding to message field names
@@ -99,12 +152,18 @@ float64 z
         self.pose = geometry_msgs.msg.Pose()
       if self.size is None:
         self.size = geometry_msgs.msg.Vector3()
+      if self.cloud is None:
+        self.cloud = sensor_msgs.msg.PointCloud2()
+      if self.name is None:
+        self.name = ''
       if self.type is None:
         self.type = 0
     else:
       self.header = std_msgs.msg.Header()
       self.pose = geometry_msgs.msg.Pose()
       self.size = geometry_msgs.msg.Vector3()
+      self.cloud = sensor_msgs.msg.PointCloud2()
+      self.name = ''
       self.type = 0
 
   def _get_types(self):
@@ -128,7 +187,43 @@ float64 z
         length = len(_x)
       buff.write(struct.pack('<I%ss'%length, length, _x))
       _x = self
-      buff.write(_struct_10di.pack(_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.type))
+      buff.write(_struct_10d3I.pack(_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.cloud.header.seq, _x.cloud.header.stamp.secs, _x.cloud.header.stamp.nsecs))
+      _x = self.cloud.header.frame_id
+      length = len(_x)
+      if python3 or type(_x) == unicode:
+        _x = _x.encode('utf-8')
+        length = len(_x)
+      buff.write(struct.pack('<I%ss'%length, length, _x))
+      _x = self
+      buff.write(_struct_2I.pack(_x.cloud.height, _x.cloud.width))
+      length = len(self.cloud.fields)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.cloud.fields:
+        _x = val1.name
+        length = len(_x)
+        if python3 or type(_x) == unicode:
+          _x = _x.encode('utf-8')
+          length = len(_x)
+        buff.write(struct.pack('<I%ss'%length, length, _x))
+        _x = val1
+        buff.write(_struct_IBI.pack(_x.offset, _x.datatype, _x.count))
+      _x = self
+      buff.write(_struct_B2I.pack(_x.cloud.is_bigendian, _x.cloud.point_step, _x.cloud.row_step))
+      _x = self.cloud.data
+      length = len(_x)
+      # - if encoded as a list instead, serialize as bytes instead of string
+      if type(_x) in [list, tuple]:
+        buff.write(struct.pack('<I%sB'%length, length, *_x))
+      else:
+        buff.write(struct.pack('<I%ss'%length, length, _x))
+      buff.write(_struct_B.pack(self.cloud.is_dense))
+      _x = self.name
+      length = len(_x)
+      if python3 or type(_x) == unicode:
+        _x = _x.encode('utf-8')
+        length = len(_x)
+      buff.write(struct.pack('<I%ss'%length, length, _x))
+      buff.write(_struct_i.pack(self.type))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -144,6 +239,8 @@ float64 z
         self.pose = geometry_msgs.msg.Pose()
       if self.size is None:
         self.size = geometry_msgs.msg.Vector3()
+      if self.cloud is None:
+        self.cloud = sensor_msgs.msg.PointCloud2()
       end = 0
       _x = self
       start = end
@@ -160,8 +257,71 @@ float64 z
         self.header.frame_id = str[start:end]
       _x = self
       start = end
-      end += 84
-      (_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.type,) = _struct_10di.unpack(str[start:end])
+      end += 92
+      (_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.cloud.header.seq, _x.cloud.header.stamp.secs, _x.cloud.header.stamp.nsecs,) = _struct_10d3I.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      start = end
+      end += length
+      if python3:
+        self.cloud.header.frame_id = str[start:end].decode('utf-8')
+      else:
+        self.cloud.header.frame_id = str[start:end]
+      _x = self
+      start = end
+      end += 8
+      (_x.cloud.height, _x.cloud.width,) = _struct_2I.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.cloud.fields = []
+      for i in range(0, length):
+        val1 = sensor_msgs.msg.PointField()
+        start = end
+        end += 4
+        (length,) = _struct_I.unpack(str[start:end])
+        start = end
+        end += length
+        if python3:
+          val1.name = str[start:end].decode('utf-8')
+        else:
+          val1.name = str[start:end]
+        _x = val1
+        start = end
+        end += 9
+        (_x.offset, _x.datatype, _x.count,) = _struct_IBI.unpack(str[start:end])
+        self.cloud.fields.append(val1)
+      _x = self
+      start = end
+      end += 9
+      (_x.cloud.is_bigendian, _x.cloud.point_step, _x.cloud.row_step,) = _struct_B2I.unpack(str[start:end])
+      self.cloud.is_bigendian = bool(self.cloud.is_bigendian)
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      start = end
+      end += length
+      if python3:
+        self.cloud.data = str[start:end].decode('utf-8')
+      else:
+        self.cloud.data = str[start:end]
+      start = end
+      end += 1
+      (self.cloud.is_dense,) = _struct_B.unpack(str[start:end])
+      self.cloud.is_dense = bool(self.cloud.is_dense)
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      start = end
+      end += length
+      if python3:
+        self.name = str[start:end].decode('utf-8')
+      else:
+        self.name = str[start:end]
+      start = end
+      end += 4
+      (self.type,) = _struct_i.unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
@@ -183,7 +343,43 @@ float64 z
         length = len(_x)
       buff.write(struct.pack('<I%ss'%length, length, _x))
       _x = self
-      buff.write(_struct_10di.pack(_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.type))
+      buff.write(_struct_10d3I.pack(_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.cloud.header.seq, _x.cloud.header.stamp.secs, _x.cloud.header.stamp.nsecs))
+      _x = self.cloud.header.frame_id
+      length = len(_x)
+      if python3 or type(_x) == unicode:
+        _x = _x.encode('utf-8')
+        length = len(_x)
+      buff.write(struct.pack('<I%ss'%length, length, _x))
+      _x = self
+      buff.write(_struct_2I.pack(_x.cloud.height, _x.cloud.width))
+      length = len(self.cloud.fields)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.cloud.fields:
+        _x = val1.name
+        length = len(_x)
+        if python3 or type(_x) == unicode:
+          _x = _x.encode('utf-8')
+          length = len(_x)
+        buff.write(struct.pack('<I%ss'%length, length, _x))
+        _x = val1
+        buff.write(_struct_IBI.pack(_x.offset, _x.datatype, _x.count))
+      _x = self
+      buff.write(_struct_B2I.pack(_x.cloud.is_bigendian, _x.cloud.point_step, _x.cloud.row_step))
+      _x = self.cloud.data
+      length = len(_x)
+      # - if encoded as a list instead, serialize as bytes instead of string
+      if type(_x) in [list, tuple]:
+        buff.write(struct.pack('<I%sB'%length, length, *_x))
+      else:
+        buff.write(struct.pack('<I%ss'%length, length, _x))
+      buff.write(_struct_B.pack(self.cloud.is_dense))
+      _x = self.name
+      length = len(_x)
+      if python3 or type(_x) == unicode:
+        _x = _x.encode('utf-8')
+        length = len(_x)
+      buff.write(struct.pack('<I%ss'%length, length, _x))
+      buff.write(_struct_i.pack(self.type))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -200,6 +396,8 @@ float64 z
         self.pose = geometry_msgs.msg.Pose()
       if self.size is None:
         self.size = geometry_msgs.msg.Vector3()
+      if self.cloud is None:
+        self.cloud = sensor_msgs.msg.PointCloud2()
       end = 0
       _x = self
       start = end
@@ -216,12 +414,80 @@ float64 z
         self.header.frame_id = str[start:end]
       _x = self
       start = end
-      end += 84
-      (_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.type,) = _struct_10di.unpack(str[start:end])
+      end += 92
+      (_x.pose.position.x, _x.pose.position.y, _x.pose.position.z, _x.pose.orientation.x, _x.pose.orientation.y, _x.pose.orientation.z, _x.pose.orientation.w, _x.size.x, _x.size.y, _x.size.z, _x.cloud.header.seq, _x.cloud.header.stamp.secs, _x.cloud.header.stamp.nsecs,) = _struct_10d3I.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      start = end
+      end += length
+      if python3:
+        self.cloud.header.frame_id = str[start:end].decode('utf-8')
+      else:
+        self.cloud.header.frame_id = str[start:end]
+      _x = self
+      start = end
+      end += 8
+      (_x.cloud.height, _x.cloud.width,) = _struct_2I.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.cloud.fields = []
+      for i in range(0, length):
+        val1 = sensor_msgs.msg.PointField()
+        start = end
+        end += 4
+        (length,) = _struct_I.unpack(str[start:end])
+        start = end
+        end += length
+        if python3:
+          val1.name = str[start:end].decode('utf-8')
+        else:
+          val1.name = str[start:end]
+        _x = val1
+        start = end
+        end += 9
+        (_x.offset, _x.datatype, _x.count,) = _struct_IBI.unpack(str[start:end])
+        self.cloud.fields.append(val1)
+      _x = self
+      start = end
+      end += 9
+      (_x.cloud.is_bigendian, _x.cloud.point_step, _x.cloud.row_step,) = _struct_B2I.unpack(str[start:end])
+      self.cloud.is_bigendian = bool(self.cloud.is_bigendian)
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      start = end
+      end += length
+      if python3:
+        self.cloud.data = str[start:end].decode('utf-8')
+      else:
+        self.cloud.data = str[start:end]
+      start = end
+      end += 1
+      (self.cloud.is_dense,) = _struct_B.unpack(str[start:end])
+      self.cloud.is_dense = bool(self.cloud.is_dense)
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      start = end
+      end += length
+      if python3:
+        self.name = str[start:end].decode('utf-8')
+      else:
+        self.name = str[start:end]
+      start = end
+      end += 4
+      (self.type,) = _struct_i.unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
+_struct_IBI = struct.Struct("<IBI")
+_struct_B = struct.Struct("<B")
+_struct_i = struct.Struct("<i")
+_struct_10d3I = struct.Struct("<10d3I")
 _struct_3I = struct.Struct("<3I")
-_struct_10di = struct.Struct("<10di")
+_struct_B2I = struct.Struct("<B2I")
+_struct_2I = struct.Struct("<2I")

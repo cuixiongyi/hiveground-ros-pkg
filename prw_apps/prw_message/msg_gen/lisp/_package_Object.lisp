@@ -5,6 +5,10 @@
           POSE
           SIZE-VAL
           SIZE
+          CLOUD-VAL
+          CLOUD
+          NAME-VAL
+          NAME
           TYPE-VAL
           TYPE
 ))
