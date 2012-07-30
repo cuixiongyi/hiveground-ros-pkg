@@ -4,6 +4,7 @@
 #include <prw_object_tracking/object_tracking_utils.h>
 #include "ui_object_tracking.h"
 #include "ui_color_object_selector.h"
+#include "ui_object_segmentation.h"
 
 #include <velib/view.h>
 #include <velib/scene.h>
@@ -29,6 +30,9 @@
 
 #include <dynamic_reconfigure/server.h>
 
+#include <prw_message/Objects.h>
+
+
 namespace prw
 {
 
@@ -53,6 +57,7 @@ public slots:
   void onLuminanceRangeUpdate(int v_min, int v_max);
   void onRangeUpdate();
   void onSizeUpdate();
+  void onObjectSegmentationDialogUpdate();
 
 
 signals:
@@ -101,8 +106,10 @@ public:
 
   Ui::ObjectTracking ui;
   Ui::ColorObjectSelector ui_color_object_;
+  Ui::ObjectSegmentDialog ui_object_segmentation_;
   bool quit_threads_;
   QMutex ui_mutex_;
+  QMutex object_tracking_mutex_;
 
   ve::View* view_;
   ve::Scene* scene_;
@@ -113,6 +120,7 @@ public:
   boost::circular_buffer<cv::Mat> image_buffer_;
   boost::circular_buffer<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > cloud_buffer_;
 
+  //voxel grid
   std::string output_frame_;
   double filter_limit_min_z_;
   double filter_limit_max_z_;
@@ -123,7 +131,11 @@ public:
   bool filter_limit_negative_;
   double leaf_size_;
 
-  //voxel grid
+  //euclidean cluster
+  double ec_distance_threshold_;
+  double ec_cluster_tolerance_;
+  double ec_min_size_;
+  double ec_max_size_;
 
 
 
@@ -135,7 +147,8 @@ public:
   //QColorDialog* color_dialog_;
   ve::ColorPicker* color_picker_;
   ve::ColorLuminancePicker* color_luminance_picker_;
-  QDialog* color_object_selector_;
+  QDialog* dialog_color_object_selector_;
+  QDialog* dialog_object_segmentation_;
 
 };
 

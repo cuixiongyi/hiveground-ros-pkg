@@ -10,7 +10,11 @@
       filter_limit_min_x: -1.0
       filter_limit_max_x: 0.76
       filter_limit_negative: False
-      leaf_size: 0.01      
+      leaf_size: 0.01            
+      ec_distance_threshold: 0.025
+      ec_cluster_tolerance: 0.02
+      ec_min_size: 50
+      ec_max_size: 500
     </rosparam>
   </node>
 </launch>  

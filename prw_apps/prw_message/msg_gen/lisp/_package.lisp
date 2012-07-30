@@ -3,5 +3,7 @@
   (:export
    "<OBJECT>"
    "OBJECT"
+   "<OBJECTS>"
+   "OBJECTS"
   ))
 
