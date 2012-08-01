@@ -132,6 +132,7 @@ public:
   bool motor_on_;
   bool slave_mode_on_;
   bool is_busy_;
+  bool is_preempted_;
 
   bool is_running_;
   boost::thread control_thread_;
