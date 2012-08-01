@@ -203,7 +203,7 @@ public:
   BCAP_HRESULT bCap_RobotExecute2(uint32_t lhRobot, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays,
                                   void *pVntValue, void *pVntReturn);
   BCAP_HRESULT bCap_RobotChange(uint32_t lhRobot, char *pStrCommand);
-  BCAP_HRESULT bCap_RobotMove(uint32_t lhRobot, long lComp, char *pStrPose, char *pStrOption);
+  BCAP_HRESULT bCap_RobotMove(uint32_t lhRobot, long lComp, const std::string& pStrPose, const std::string& pStrOption);
 
   /* b-CAP Task Functions */
   BCAP_HRESULT bCap_TaskRelease(uint32_t lhTask);

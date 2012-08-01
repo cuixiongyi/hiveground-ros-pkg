@@ -38,6 +38,8 @@ PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_controller, hg_plugins::RC7MController, hg:
 
 using namespace hg_plugins;
 
+#define USE_SLAVE_MODE 1
+
 RC7MController::RC7MController() :
     hg::Controller(),
     bcap_(false, false), //no CRC / TCP
@@ -187,6 +189,20 @@ void RC7MController::startup()
       ROS_BREAK();
     }
 
+    //set speed
+    float speed[2];
+    float speed_return[2];
+    speed[0] = 100.0;
+    speed[1] = 100.0;
+    ROS_INFO_STREAM(name_ + ": Set robot speed");
+    hr = bcap_.bCap_RobotExecute2(hRobot_, "ExtSpeed", VT_R4|VT_ARRAY, 2, speed, speed_return);
+    if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+
     //get variable handles
     ROS_INFO_STREAM(name_ + ": get robot variable handles");
     hr = bcap_.bCap_RobotGetVariable(hRobot_, "@CURRENT_POSITION", "", &hPositionVariable);
@@ -227,7 +243,7 @@ void RC7MController::startup()
       bcap_.bCap_Close();
       ROS_BREAK();
     }
-
+#if USE_SLAVE_MODE
     {
       //set slave mode
       int mode = 258;
@@ -258,10 +274,11 @@ void RC7MController::startup()
       }
       slave_mode_on_ = true;
     }
+#endif
   }
 
   //create control thread
-  control_thread_ = boost::thread(&RC7MController::control, this);
+  control_thread_ = boost::thread(&RC7MController::control2, this);
   is_running_ = true;
 
 
@@ -456,6 +473,91 @@ void RC7MController::control()
       }
     }
     rate.sleep();
+
+  }
+
+}
+
+void RC7MController::control2()
+{
+  ros::Rate rate(rate_);
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  double command[7];
+  float command_degree[7], command_result[7];
+
+
+  while (is_running_)
+  {
+
+    int i = 0;
+    for (it = joints_.begin(); it != joints_.end(); it++)
+    {
+      //if (node_->simulate_)
+        //command[i] = (*it)->interpolate(1.0 / rate_);
+      //elses
+        command[i] = (*it)->desired_position_;
+
+      //check real robot <-> URDF joint offset
+      if ((*it)->position_offset_ != 0.0)
+      {
+        command_degree[i] = ((command[i] - (*it)->position_offset_) * 180.0) / M_PI;
+      }
+      else
+      {
+        command_degree[i] = (command[i] * 180.0) / M_PI;
+      }
+
+      i++;
+    }
+
+    if (!node_->simulate_)
+    {
+      BCAP_HRESULT hr;
+      if (motor_on_)
+      {
+#if USE_SLAVE_MODE
+        hr = bcap_.bCap_RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
+        if (FAILED(hr))
+        {
+          ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " slvMode fail!");
+        }
+#else
+        long lComp = 1; //MOVE P
+        std::stringstream ss;
+        ss << "J(";
+        for(int j = 0; j < (i-1); j++)
+        {
+          ss << command_degree[j] << ",";
+        }
+        ss << command_degree[i-1] << ")";
+        //ROS_INFO_STREAM(ss.str());
+        hr = bcap_.bCap_RobotMove(hRobot_, lComp, ss.str(), "");
+        if (FAILED(hr))
+        {
+          ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " Robot_Mode fail!");
+          return;
+        }
+#endif
+      }
+
+      //get feedback from robot's angle variable
+      hr = getJointFeedback();
+      if (FAILED(hr))
+      {
+        ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " get joint feedback fail!");
+      }
+    }
+    else
+    {
+      int i = 0;
+      for (it = joints_.begin(); it != joints_.end(); it++)
+      {
+        (*it)->setFeedbackData(command[i]);
+        i++;
+      }
+    }
+    rate.sleep();
+
 
   }
 
@@ -664,7 +766,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
     }
     if (!found)
     {
-      //ROS_ERROR("Trajectory joint names do not match with controlled joints");
+      ROS_ERROR("Trajectory joint names do not match with controlled joints");
       result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
       action_server_->setAborted(result, "Trajectory joint names do not match with controlled joints");
       return;
@@ -674,12 +776,78 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   //check points
   if(trajectory.points.size() == 0)
   {
-    //ROS_ERROR("Trajectory empty");
+    ROS_ERROR("Trajectory empty");
     result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL ;
     action_server_->setAborted(result, "Trajectory empty");
     return;
   }
 
+  ROS_INFO("Got trajectory with %d points", trajectory.points.size());
+  for(int i = 0; i < trajectory.points.size(); i++)
+  {
+    trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
+    ROS_INFO_STREAM(point);
+  }
+#if 1
+  ros::Time current_time = ros::Time::now();
+  ros::Time trajectory_start_time = trajectory.header.stamp;
+
+  //ROS_INFO("%6.3f %6.3f", current_time.toSec(), trajectory_start_time.toSec());
+
+  std::vector<double> last_joint_positions;
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  for (it = joints_.begin(); it != joints_.end(); it++)
+  {
+    last_joint_positions.push_back((*it)->position_);
+    //ROS_INFO_STREAM( "last position of " << (*it)->name_ << ":" << (*it)->position_);
+  }
+
+  //wait for start time
+  while ((ros::Time::now() + ros::Duration(0.01)) < trajectory_start_time)
+  {
+    ros::Duration(0.01).sleep();
+  }
+
+  bool success = true;
+  for (size_t i = 0; i < trajectory.points.size(); i++)
+  {
+    if(action_server_->isPreemptRequested() || !ros::ok())
+    {
+      process_trajectory_ = false;
+      action_server_->setPreempted();
+      success = false;
+      break;
+    }
+
+
+
+
+
+    trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
+    std::vector<double> target_positions = point.positions;
+    ros::Time end_time = trajectory_start_time + point.time_from_start;
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it = joints_.begin();
+    for (size_t k = 0; k < target_positions.size(); k++, it++)
+    {
+      (*it)->setPosition(target_positions[k]);
+    }
+
+
+    ros::Rate rate(100.0);
+    while ((ros::Time::now() + ros::Duration(0.01)) < end_time)
+    {
+      if (action_server_->isPreemptRequested() || !ros::ok())
+      {
+        process_trajectory_ = false;
+        action_server_->setPreempted();
+        success = false;
+        break;
+      }
+      rate.sleep();
+    }
+
+  }
+#else
   queue_mutex_.lock();
   joint_trajecgtory_queue_.push(trajectory);
   queue_mutex_.unlock();
@@ -705,6 +873,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
 
 
   }while(!queue_empty || process_trajectory_);
+#endif
 
   if(success)
   {
