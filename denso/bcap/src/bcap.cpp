@@ -1329,7 +1329,7 @@ BCAP_HRESULT BCap::bCap_RobotChange(uint32_t lhRobot, char *pStrCommand)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotMove(uint32_t lhRobot, long lComp, char *pStrPose, char *pStrOption)
+BCAP_HRESULT BCap::bCap_RobotMove(uint32_t lhRobot, long lComp, const std::string& pStrPose, const std::string& pStrOption)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1361,7 +1361,7 @@ BCAP_HRESULT BCap::bCap_RobotMove(uint32_t lhRobot, long lComp, char *pStrPose, 
     }
 
     {
-      lLen = copyToBSTR(buff, pStrPose); /* Arg3 Pose param */
+      lLen = copyToBSTR(buff, pStrPose.c_str()); /* Arg3 Pose param */
       pArg = Arg_Create(VT_BSTR, 1, lLen, buff);
       if (pArg != NULL)
       {
@@ -1370,7 +1370,7 @@ BCAP_HRESULT BCap::bCap_RobotMove(uint32_t lhRobot, long lComp, char *pStrPose, 
     }
 
     {
-      lLen = copyToBSTR(buff, pStrOption); /* Arg4 option param */
+      lLen = copyToBSTR(buff, pStrOption.c_str()); /* Arg4 option param */
       pArg = Arg_Create(VT_BSTR, 1, lLen, buff);
       if (pArg != NULL)
       {

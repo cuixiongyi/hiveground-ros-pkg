@@ -31,6 +31,7 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <prw_message/Objects.h>
+#include <sensor_msgs/CameraInfo.h>
 
 
 namespace prw
@@ -73,26 +74,41 @@ protected:
   void closeEvent(QCloseEvent *event);
 
   //ROS
-  void cameraCallback(const sensor_msgs::PointCloud2ConstPtr& message);
+  void cameraCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_message,
+                      const sensor_msgs::CameraInfoConstPtr& info_message);
 
 
 
 
 public:
   ros::NodeHandle& nh_;
-  ros::Subscriber cloud_subscriber_;
+  //ros::Subscriber cloud_subscriber_;
+  message_filters::Subscriber<sensor_msgs::PointCloud2> cloud_subscriber_;
+  message_filters::Subscriber<sensor_msgs::CameraInfo> camera_info_subscriber_;
+  typedef message_filters::sync_policies::ApproximateTime<
+      sensor_msgs::PointCloud2,
+      sensor_msgs::CameraInfo> ApproximatePolicy;
+  typedef message_filters::Synchronizer<ApproximatePolicy> ApproximateSync;
+  boost::shared_ptr<ApproximateSync> approximate_sync_;
+
+
   image_transport::Publisher image_publisher_;
   ros::Publisher cloud_publisher_;
   ros::Publisher object_publisher_;
   tf::TransformBroadcaster tf_broadcaster_;
   tf::TransformListener tf_listener_;
   cv_bridge::CvImagePtr bridge_;
+  bool quit_threads_;
+  QMutex ui_mutex_;
+  QMutex object_tracking_mutex_;
+
 
   std::vector<ObjectTrackerPtr> object_trackers_;
 
   typedef QMap<QString, SimpleColorObjectTracker> SimpleColorObjectMap;
   SimpleColorObjectMap color_object_maps_;
   QMutex color_object_mutex_;
+
 
   //LutColorObjectTraker lut_color_object_tracker_;
 
@@ -107,9 +123,6 @@ public:
   Ui::ObjectTracking ui;
   Ui::ColorObjectSelector ui_color_object_;
   Ui::ObjectSegmentDialog ui_object_segmentation_;
-  bool quit_threads_;
-  QMutex ui_mutex_;
-  QMutex object_tracking_mutex_;
 
   ve::View* view_;
   ve::Scene* scene_;
@@ -117,8 +130,10 @@ public:
   //QGraphicsView* view_;
   //QGraphicsScene* scene_;
   ve::OpenCVImage* scene_image_;
-  boost::circular_buffer<cv::Mat> image_buffer_;
+  boost::circular_buffer<cv::Mat> image_rgb_buffer_;
+  boost::circular_buffer<cv::Mat> image_hsv_buffer_;
   boost::circular_buffer<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > cloud_buffer_;
+  boost::circular_buffer<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > cloud_filtered_buffer_;
 
   //voxel grid
   std::string output_frame_;

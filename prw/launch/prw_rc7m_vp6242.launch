@@ -45,8 +45,7 @@
   <!--node pkg="tf" type="static_transform_publisher" name="table_broadcaster" 
   args="-0.8013312048757147 -0.4705600194028853 1.879842401563593 1.580096886 -0.16322015961780161 3.210146698 kinect7051A_rgb_optical_frame table 100" /-->
   
-  <!--node pkg="tf" type="static_transform_publisher" name="arm1_broadcaster" 
-  args="0.10 0.67 0.00 0 0 0 world base_link 100" /-->
+  <node pkg="tf" type="static_transform_publisher" name="arm1_broadcaster" args="0.10 0.67 0.00 0 0 0 world base_link 100"/>
   
   	
   <node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find prw)/cfg/prw.vcg">    

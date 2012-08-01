@@ -7,7 +7,7 @@ joints: {
     upper_limit: 2.792526804,
     lower_limit: -2.792526804,
     position_offset: 0.0, #for ROS joint state
-    velocity_limit: 1.0
+    velocity_limit: 3.0
   },
   J2: {
     #RC7M software limit -120 / 120
