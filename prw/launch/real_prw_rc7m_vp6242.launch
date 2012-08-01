@@ -21,7 +21,7 @@
   <!-- RC7M -->
   <node name="vp6242" pkg="hg_cpp" type="hg_ros" output="screen">
     <param name="simulate" value="false"/>
-    <param name="loop_rate" value="150.0"/>
+    <param name="loop_rate" value="125.0"/>
     <param name="joint_publish_rate" value="10.0"/>
     <param name="diagnostic_publish_rate" value="10.0"/>      
     <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />    

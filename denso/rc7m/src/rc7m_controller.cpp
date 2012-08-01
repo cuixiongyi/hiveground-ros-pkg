@@ -39,6 +39,7 @@ PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_controller, hg_plugins::RC7MController, hg:
 using namespace hg_plugins;
 
 #define USE_SLAVE_MODE 1
+#define SLAVE_MODE 0x102
 
 RC7MController::RC7MController() :
     hg::Controller(),
@@ -46,6 +47,7 @@ RC7MController::RC7MController() :
     motor_on_(false),
     slave_mode_on_(false),
     is_busy_(false),
+    is_preempted_(false),
     is_running_(false),
     process_trajectory_(false)
 {
@@ -194,9 +196,19 @@ void RC7MController::startup()
     float speed_return[2];
     speed[0] = 100.0;
     speed[1] = 100.0;
-    ROS_INFO_STREAM(name_ + ": Set robot speed");
+    ROS_INFO_STREAM(name_ + ": Set robot external speed");
     hr = bcap_.bCap_RobotExecute2(hRobot_, "ExtSpeed", VT_R4|VT_ARRAY, 2, speed, speed_return);
     if(FAILED(hr))
+    {
+      bcap_.bCap_Close();
+      ROS_BREAK();
+    }
+
+    float internal_speed = 100.0;
+    float internal_speed_return;
+    ROS_INFO_STREAM(name_ + ": Set robot internal speed");
+    hr = bcap_.bCap_RobotExecute2(hRobot_, "Speed", VT_R4, 1, &internal_speed, &internal_speed_return);
+    if (FAILED(hr))
     {
       bcap_.bCap_Close();
       ROS_BREAK();
@@ -246,7 +258,7 @@ void RC7MController::startup()
 #if USE_SLAVE_MODE
     {
       //set slave mode
-      int mode = 258;
+      int mode = SLAVE_MODE;
       long result;
       ROS_INFO_STREAM(name_ + ": set robot to slave mode");
       hr = bcap_.bCap_RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
@@ -267,7 +279,7 @@ void RC7MController::startup()
         ROS_BREAK();
       }
       ROS_INFO_STREAM(name_ + ": mode " << result);
-      if (result != 258)
+      if (result != SLAVE_MODE)
       {
         bcap_.bCap_Close();
         ROS_BREAK();
@@ -279,6 +291,7 @@ void RC7MController::startup()
 
   //create control thread
   control_thread_ = boost::thread(&RC7MController::control2, this);
+  //control_thread_.
   is_running_ = true;
 
 
@@ -492,7 +505,7 @@ void RC7MController::control2()
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
-      //if (node_->simulate_)
+
         //command[i] = (*it)->interpolate(1.0 / rate_);
       //elses
         command[i] = (*it)->desired_position_;
@@ -774,6 +787,14 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   }
 
   //check points
+  if(is_preempted_)
+  {
+    ROS_ERROR("Remove first point");
+    trajectory.points.erase(trajectory.points.begin());
+    is_preempted_ = false;
+  }
+
+
   if(trajectory.points.size() == 0)
   {
     ROS_ERROR("Trajectory empty");
@@ -782,12 +803,21 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
     return;
   }
 
+
+
   ROS_INFO("Got trajectory with %d points", trajectory.points.size());
+  /*
   for(int i = 0; i < trajectory.points.size(); i++)
   {
     trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
-    ROS_INFO_STREAM(point);
+    //ROS_INFO_STREAM(point);
   }
+  */
+  ROS_INFO_STREAM(trajectory.points[0]);
+  ROS_INFO_STREAM(trajectory.points[trajectory.points.size()-1]);
+
+
+
 #if 1
   ros::Time current_time = ros::Time::now();
   ros::Time trajectory_start_time = trajectory.header.stamp;
@@ -803,9 +833,9 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   }
 
   //wait for start time
-  while ((ros::Time::now() + ros::Duration(0.01)) < trajectory_start_time)
+  while (ros::Time::now() < trajectory_start_time)
   {
-    ros::Duration(0.01).sleep();
+    ros::Duration(0.001).sleep();
   }
 
   bool success = true;
@@ -813,6 +843,8 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   {
     if(action_server_->isPreemptRequested() || !ros::ok())
     {
+      ROS_INFO("Preempted!!!");
+      is_preempted_ = true;
       process_trajectory_ = false;
       action_server_->setPreempted();
       success = false;
@@ -832,18 +864,9 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
       (*it)->setPosition(target_positions[k]);
     }
 
-
-    ros::Rate rate(100.0);
-    while ((ros::Time::now() + ros::Duration(0.01)) < end_time)
+    while ((ros::Time::now() < end_time) && (!action_server_->isPreemptRequested()))
     {
-      if (action_server_->isPreemptRequested() || !ros::ok())
-      {
-        process_trajectory_ = false;
-        action_server_->setPreempted();
-        success = false;
-        break;
-      }
-      rate.sleep();
+      ros::Duration(0.001).sleep();
     }
 
   }
@@ -877,6 +900,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
 
   if(success)
   {
+    is_preempted_ = false;
     result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
     action_server_->setSucceeded(result);
   }
