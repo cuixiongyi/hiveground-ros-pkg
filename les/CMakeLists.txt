@@ -23,6 +23,7 @@ set( QT_USE_QTGUI TRUE )
 set( QT_USE_QTOPENGL TRUE )
 set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
+add_definitions(-DQT_NO_KEYWORDS)
 
 
 set(qt_srcs
@@ -65,6 +66,6 @@ set(srcs
 )
 
 rosbuild_add_executable(les ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
-target_link_libraries(les ${QT_LIBRARIES})
+target_link_libraries(les ${QT_LIBRARIES} default_plugin)
 #rosbuild_link_boost(object_tracking thread signals system)
 
