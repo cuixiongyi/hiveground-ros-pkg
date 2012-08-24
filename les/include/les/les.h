@@ -13,6 +13,9 @@ public:
   ros::NodeHandle& nh_;
   bool quit_threads_;
 
+protected:
+  void closeEvent(QCloseEvent *event);
+
 private:
   Ui::LesUi ui;
 

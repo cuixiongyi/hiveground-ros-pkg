@@ -61,6 +61,7 @@ rosbuild_add_boost_directories()
 
 set(srcs
   src/main.cpp
+  src/les_utils.cpp
 )
 
 rosbuild_add_executable(les ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
