@@ -62,8 +62,9 @@ void LES::setupRviz()
   ROS_ASSERT( grid_ != NULL );
 
   // Configure the GridDisplay the way we like it.
-  grid_->setStyle( rviz::Grid::Billboards ); // Fat lines.
+  grid_->setStyle( rviz::Grid::Lines ); // Fat lines.
   grid_->setColor( rviz::Color( 1.0f, 1.0f, 0.0f )); // I like yellow.
+
 }
 
 void LES::cleanUpRviz()
