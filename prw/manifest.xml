@@ -21,7 +21,7 @@
   <depend package="sensor_msgs"/>
   
   <!-- External -->
-  <depend package="arm_kinematics"/>
+  <!--depend package="arm_kinematics"/-->
 
 </package>
 
