@@ -3,6 +3,13 @@
 #include <qmainwindow.h>
 #include "ui_les.h"
 
+namespace rviz
+{
+class GridDisplay;
+class RenderPanel;
+class VisualizationManager;
+}
+
 class LES : public QMainWindow
 {
   Q_OBJECT
@@ -14,9 +21,16 @@ public:
   bool quit_threads_;
 
 protected:
+  //Qt
   void closeEvent(QCloseEvent *event);
+
+  //ROS
+  void setupRviz();
+  void cleanUpRviz();
 
 private:
   Ui::LesUi ui;
-
+  rviz::VisualizationManager* manager_;
+  rviz::RenderPanel* render_panel_;
+  rviz::GridDisplay* grid_;
 };
