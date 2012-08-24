@@ -1,0 +1,22 @@
+<package>
+  <description brief="bcap">
+
+     bcap
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/bcap</url>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+
+  <depend package="hg_cpp"/>
+
+  <export>
+  	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>
+  </export>
+
+</package>
+
+
