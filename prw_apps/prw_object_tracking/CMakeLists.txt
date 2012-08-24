@@ -71,7 +71,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
+rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
@@ -87,4 +87,5 @@ set(srcs
 
 rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(object_tracking ${QT_LIBRARIES})
+rosbuild_link_boost(object_tracking thread signals system)
 
