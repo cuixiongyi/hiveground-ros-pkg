@@ -67,5 +67,5 @@ set(srcs
 
 rosbuild_add_executable(les ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(les ${QT_LIBRARIES} default_plugin)
-#rosbuild_link_boost(object_tracking thread signals system)
+rosbuild_link_boost(les thread signals system)
 
