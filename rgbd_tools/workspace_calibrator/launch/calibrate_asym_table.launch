@@ -1,0 +1,12 @@
+<launch>  
+  <arg name="chessboard" default="false" />
+  <arg name="x_step" default="6" />
+  <arg name="y_step" default="8" />
+  <arg name="size" default="0.04" />
+  <node name="workspace_calibrator" pkg="workspace_calibrator" type="workspace_calibrator" output="screen">  
+  	<param name="chessboard" value="$(arg chessboard)"/>
+  	<param name="x_step" value="$(arg x_step)"/>
+  	<param name="y_step" value="$(arg y_step)"/>
+  	<param name="size" value="$(arg size)"/>
+  </node>  
+</launch>
