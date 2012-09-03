@@ -15,3 +15,11 @@ syntax: glob
 
 
 *.log
+Debug/
+GeneratedFiles/
+Release/
+ReleaseWithDebugInfo/
+*.vcxproj.user
+*.sdf
+*.suo
+*.opensdf
