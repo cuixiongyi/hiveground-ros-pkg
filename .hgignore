@@ -23,3 +23,5 @@ ReleaseWithDebugInfo/
 *.sdf
 *.suo
 *.opensdf
+*.ipch
+*.vspscc
