@@ -7,12 +7,14 @@
 
 #include <QtGui/QMainWindow>
 #include "ui_kinect_server.h"
+#include "glwidget.h"
 
 #include <ros/ros.h>
 #include <boost/thread.hpp>
 #include <boost/smart_ptr.hpp>
 
 
+class QActionGroup;
 
 class kinect_server : public QMainWindow
 {
@@ -21,21 +23,39 @@ class kinect_server : public QMainWindow
 public:
 	kinect_server(ros::NodeHandle& nh, QWidget *parent = 0, Qt::WFlags flags = 0);
 	~kinect_server();
+
+protected slots:
+  void setting_kinect_triggered(QAction* action);
+  void setting_track_mode_triggered(QAction* action);
+  void setting_tracked_skeleton_triggered(QAction* action);
+  void setting_range_triggered(QAction* action);
+
+signals:
+  void showImage(const QImage &image);
+  void showDepth(const QImage &image);
+
 protected:
   //Qt  
   void closeEvent(QCloseEvent *event);
 
 
+
+
   //Kinect
   void nuiZero();
-  void updateKinectComboBox();
+  void updateKinectList();
   HRESULT nuiInit();
   void nuiUnInit();
   bool nuiGotColorAlert();
   bool nuiGotDepthAlert();
   bool nuiGotSkeletonAlert();
   void nuiProcessThread();
-
+ 
+  void updateSkeletonTrackingFlag( DWORD flag, bool value );
+  QPointF skeletonToScreen( Vector4 skeletonPoint, int width, int height );
+  void nuiDrawBone(QPainter& painter, const NUI_SKELETON_DATA & skel, NUI_SKELETON_POSITION_INDEX bone0, NUI_SKELETON_POSITION_INDEX bone1 );
+  void nuiDrawSkeleton(QPainter& painter, const NUI_SKELETON_DATA & skel, int windowWidth, int windowHeight );
+  QImage nuiDepthToQImage(NUI_LOCKED_RECT LockedRect, int w, int h); 
 
 
 public:
@@ -43,7 +63,17 @@ public:
   bool quit_threads_;
 
 private:
+  //Qt
 	Ui::kinect_serverClass ui;
+  QActionGroup* setting_kinect_;
+  QActionGroup* setting_track_mode_;
+  QActionGroup* setting_tracked_skeleton_;
+  QActionGroup* setting_range_;
+  GLWidget* draw_depth_;
+  GLWidget* draw_image_;
+  
+
+
 
   //Kinect
   INuiSensor* nui_sensor_;
@@ -64,6 +94,9 @@ private:
   DWORD last_skeleton_found_time_;
 
   bool screen_blanked_;
+  BYTE depth_rgbx_[640*480*4];
+  QPointF points_[NUI_SKELETON_POSITION_COUNT];
+  QImage last_depth_image_;
     
   
 };
