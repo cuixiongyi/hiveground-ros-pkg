@@ -28,6 +28,7 @@ public:
 
   static QPointF skeletonToScreen( Vector4 skeletonPoint, int width, int height );
   virtual void drawHistory(QPainter& painter);
+  virtual void drawInteractiveUi(QPainter& painter) { }
 
   virtual void addSkeleton(const QVector<Vector4>& skeleton_positions); 
   virtual void lookForGesture() = 0;

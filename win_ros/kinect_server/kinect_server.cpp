@@ -585,9 +585,13 @@ bool kinect_server::nuiGotSkeletonAlert()
       GestureDetector::Positions positions;
       positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT]);
       positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_LEFT]);
+      positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_CENTER]);
       
-      double_swipe_gesture_.addSkeleton(positions);
-      double_swipe_gesture_.drawHistory(painter);
+      three_axis_gesture_.addSkeleton(positions);
+      three_axis_gesture_.drawInteractiveUi(painter);
+      three_axis_gesture_.drawHistory(painter);
+      //double_swipe_gesture_.addSkeleton(positions);
+      //double_swipe_gesture_.drawHistory(painter);
       //swipe_gesture_.addSkeleton(positions);
       //swipe_gesture_.drawHistory(painter);
 

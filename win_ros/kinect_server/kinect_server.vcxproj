@@ -155,6 +155,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWithDebugInfo|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="gesture_three_axis_move_detector.cpp" />
     <ClCompile Include="gesture.cpp" />
     <ClCompile Include="glwidget.cpp" />
     <ClCompile Include="kinect_server.cpp" />
@@ -195,6 +196,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_kinect_server.h" />
+    <ClInclude Include="gesture_three_axis_move_detector.h" />
     <CustomBuild Include="gesture.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing gesture.h...</Message>

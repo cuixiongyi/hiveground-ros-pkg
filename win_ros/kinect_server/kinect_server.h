@@ -9,6 +9,7 @@
 #include "ui_kinect_server.h"
 #include "glwidget.h"
 #include "gesture.h"
+#include "gesture_three_axis_move_detector.h"
 
 #include <ros/ros.h>
 #include <boost/thread.hpp>
@@ -102,6 +103,7 @@ private:
   //gesture
   OnePointSwipeGestureDetector swipe_gesture_;
   TwoPointSwipeGestureDetector double_swipe_gesture_;
+  ThreeAsixMoveGestureDetector three_axis_gesture_;
     
   
 };
