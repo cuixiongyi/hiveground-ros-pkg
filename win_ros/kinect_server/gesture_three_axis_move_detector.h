@@ -13,6 +13,8 @@ public:
   void drawInteractiveUi(QPainter& painter);
   void lookForGesture();
 
+  //void drawCube3D(QPainter& painter, Vector4 center, float size);
+
 protected:
   Vector4 left_start_position_;
   Vector4 right_start_position_;
@@ -24,6 +26,9 @@ protected:
   float offset_x_;
   float offset_y_;
   float offset_z_;
+
+  bool right_active_;
+  bool left_active_;
 };
 
 

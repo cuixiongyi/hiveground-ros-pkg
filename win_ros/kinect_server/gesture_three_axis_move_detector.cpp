@@ -3,9 +3,9 @@
 
 ThreeAsixMoveGestureDetector::ThreeAsixMoveGestureDetector()
   : GestureDetector(),
-    min_displacement_(0.2),
-    offset_x_(0.2),
-    offset_y_(-0.2),
+    min_displacement_(0.1),
+    offset_x_(0.15),
+    offset_y_(-0.3),
     offset_z_(-0.3)
 {
 
@@ -26,11 +26,19 @@ void ThreeAsixMoveGestureDetector::drawInteractiveUi(QPainter& painter)
   QPointF right = skeletonToScreen(right_start_position_, w, h);
   QPointF left = skeletonToScreen(left_start_position_, w, h);
   
+  Vector4 size = right_start_position_;
+  size.x += min_displacement_;
+  QPointF size_point = skeletonToScreen(size, w, h);
+  int r = size_point.x() - right.x();
 
   painter.setPen(Qt::cyan);
   painter.drawEllipse(center, 10, 10);
-  painter.drawEllipse(right, 20, 20);
-  painter.drawEllipse(left, 20, 20);
+  //painter.drawEllipse(right, r, r);
+  painter.setPen(right_active_ ? Qt::red : Qt::cyan);
+  painter.drawRect(right.x() - r, right.y() - r, r*2, r*2);
+  painter.setPen(left_active_ ? Qt::red : Qt::cyan);
+  painter.drawRect(left.x() - r, left.y() - r, r*2, r*2);
+  //painter.drawEllipse(left, r, r);
   
 
 }
@@ -61,12 +69,14 @@ void ThreeAsixMoveGestureDetector::lookForGesture()
   
   bool move_x = fabs(dx) > min_displacement_ ? true : false;
   bool move_y = fabs(dy) > min_displacement_ ? true : false;
-  bool move_z = fabs(dz) > (min_displacement_*0.5) ? true : false;
+  bool move_z = fabs(dz) > min_displacement_ ? true : false;
   
   QString gesture("MoveThreeAsixR");
   if(move_x) dx > 0 ? gesture += "+X" : gesture += "-X";
   if(move_y) dy > 0 ? gesture += "+Y" : gesture += "-Y";
   if(move_z) dz > 0 ? gesture += "+Z" : gesture += "-Z";
+
+  right_active_ = move_x || move_y || move_z;
 
   //qDebug() << gesture;
 
@@ -77,12 +87,14 @@ void ThreeAsixMoveGestureDetector::lookForGesture()
   
   move_x = fabs(dx) > min_displacement_ ? true : false;
   move_y = fabs(dy) > min_displacement_ ? true : false;
-  move_z = fabs(dz) > (min_displacement_*0.5) ? true : false;
+  move_z = fabs(dz) > min_displacement_ ? true : false;
   
   gesture += "L";
   if(move_x) dx > 0 ? gesture += "+X" : gesture += "-X";
   if(move_y) dy > 0 ? gesture += "+Y" : gesture += "-Y";
   if(move_z) dz > 0 ? gesture += "+Z" : gesture += "-Z";
+
+  left_active_ = move_x || move_y || move_z;
 
   qDebug() << gesture;
 
