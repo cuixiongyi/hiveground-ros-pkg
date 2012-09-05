@@ -100,7 +100,8 @@ private:
   QImage last_depth_image_;
 
   //gesture
-  SinglePointSwipeGestureDetector swipe_gesture_;
+  OnePointSwipeGestureDetector swipe_gesture_;
+  TwoPointSwipeGestureDetector double_swipe_gesture_;
     
   
 };
