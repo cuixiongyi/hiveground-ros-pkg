@@ -148,23 +148,12 @@ void kinect_server::updateKinectList()
         pNui->Release();
         continue;
       }
-
-
-
+      
       QAction *kinect = new QAction(QString("Kinect %1").arg(i), ui.menuKinect);
       kinect->setCheckable(true);
       setting_kinect_->addAction(kinect);
       ui.menuKinect->addAction(kinect);
-      //ui.actionKinect->ch
-      //ui.actionKinect->actionGroup()->addAction(kinect);
-
-      //qDebug() <<  pNui->
-      //BSTR id = pNui->NuiDeviceConnectionId();
-      //QString qstr((QChar*)id, ::SysStringLen(id));
-      //qDebug() << qstr;
-      //SysFreeString(id);
-
-      //ui.cbDevice->addItem(QString("Kinect %1").arg(i));     
+      
       pNui->Release();
     }
   }
@@ -207,12 +196,10 @@ HRESULT kinect_server::nuiInit()
     if ( E_NUI_DEVICE_IN_USE == hr )
     {
       QMessageBox::critical(this, "Error", "Device in use"); 
-      //MessageBoxResource( IDS_ERROR_IN_USE, MB_OK | MB_ICONHAND );
     }
     else
     {
       QMessageBox::critical(this, "Error", "Device initialization");
-      //MessageBoxResource( IDS_ERROR_NUIINIT, MB_OK | MB_ICONHAND );
     }
     return hr;
   }
@@ -223,7 +210,6 @@ HRESULT kinect_server::nuiInit()
     if( FAILED( hr ) )
     {
       QMessageBox::critical(this, "Error", "Skelentan tracking");
-      //MessageBoxResource( IDS_ERROR_SKELETONTRACKING, MB_OK | MB_ICONHAND );
       return hr;
     }
   }
@@ -240,7 +226,6 @@ HRESULT kinect_server::nuiInit()
   if ( FAILED( hr ) )
   {
     QMessageBox::critical(this, "Error", "Video stream");
-    //MessageBoxResource( IDS_ERROR_VIDEOSTREAM, MB_OK | MB_ICONHAND );
     return hr;
   }
 
@@ -255,13 +240,11 @@ HRESULT kinect_server::nuiInit()
   if ( FAILED( hr ) )
   {
     QMessageBox::critical(this, "Error", "Depth stream");
-    //MessageBoxResource(IDS_ERROR_DEPTHSTREAM, MB_OK | MB_ICONHAND);
     return hr;
   }
 
   // Start the Nui processing thread
   h_ev_nui_process_stop_ = CreateEvent( NULL, FALSE, FALSE, NULL );
-  //m_hThNuiProcess = CreateThread( NULL, 0, Nui_ProcessThread, this, 0, NULL );
   nui_thread_.reset(new boost::thread(boost::bind(&kinect_server::nuiProcessThread, this)));
 
   return hr;
@@ -330,11 +313,8 @@ bool kinect_server::nuiGotColorAlert()
   }
 
   pTexture->UnlockRect( 0 );
-
-
   nui_sensor_->NuiImageStreamReleaseFrame( p_video_stream_handle_, &imageFrame );
 
-  //ROS_INFO_THROTTLE(1.0, "got color");
   return true;
 }
 
@@ -343,7 +323,6 @@ QImage kinect_server::nuiDepthToQImage(NUI_LOCKED_RECT LockedRect, int w, int h)
   DWORD frameWidth, frameHeight;
   frameWidth = w;
   frameHeight = h;
-  //NuiImageResolutionToSize( imageFrame.eResolution, frameWidth, frameHeight );
 
   // draw the bits to the bitmap
   BYTE * rgbrun = depth_rgbx_;
@@ -377,9 +356,6 @@ QImage kinect_server::nuiDepthToQImage(NUI_LOCKED_RECT LockedRect, int w, int h)
 
 
   return QImage(depth_rgbx_, 640, 480, QImage::Format_RGB32);    
-  //emit showDepth(image);   
-  //m_pDrawDepth->Draw( m_depthRGBX, frameWidth * frameHeight * g_BytesPerPixel );
-
 }
 
 bool kinect_server::nuiGotDepthAlert()
@@ -397,7 +373,6 @@ bool kinect_server::nuiGotDepthAlert()
     return false;
   }
 
-
   INuiFrameTexture * pTexture = imageFrame.pFrameTexture;
   NUI_LOCKED_RECT LockedRect;
   pTexture->LockRect( 0, &LockedRect, NULL, 0 );
@@ -409,8 +384,6 @@ bool kinect_server::nuiGotDepthAlert()
     NuiImageResolutionToSize( imageFrame.eResolution, frameWidth, frameHeight );
    
     last_depth_image_ = nuiDepthToQImage(LockedRect, frameWidth, frameHeight);
-    //emit showDepth(last_depth_image_);   
-    //m_pDrawDepth->Draw( m_depthRGBX, frameWidth * frameHeight * g_BytesPerPixel );
   }
   else
   {
@@ -418,12 +391,9 @@ bool kinect_server::nuiGotDepthAlert()
     qDebug("Buffer length of received texture is bogus");
   }
 
-
-
+  pTexture->UnlockRect(0);
   nui_sensor_->NuiImageStreamReleaseFrame( p_depth_stream_handle_, &imageFrame );
 
-
-  //ROS_INFO_THROTTLE(1.0, "got depth");
   return true;
 }
 
@@ -445,7 +415,6 @@ void kinect_server::updateSkeletonTrackingFlag( DWORD flag, bool value )
     if ( !HasSkeletalEngine(nui_sensor_) )
     {
       QMessageBox::critical(this, "Error", "Skeleton track");
-      //MessageBoxResource(IDS_ERROR_SKELETONTRACKING, MB_OK | MB_ICONHAND);
     }
 
     skeleton_tracking_flags_ = newFlags;
@@ -473,12 +442,7 @@ QPointF kinect_server::skeletonToScreen( Vector4 skeletonPoint, int width, int h
 
   return QPointF(screenPointX, screenPointY);
 }
-/// <summary>
-/// Draws a line between two bones
-/// </summary>
-/// <param name="skel">skeleton to draw bones from</param>
-/// <param name="bone0">bone to start drawing from</param>
-/// <param name="bone1">bone to end drawing at</param>
+
 void kinect_server::nuiDrawBone(QPainter& painter, const NUI_SKELETON_DATA & skel, NUI_SKELETON_POSITION_INDEX bone0, NUI_SKELETON_POSITION_INDEX bone1 )
 {
 
@@ -500,29 +464,17 @@ void kinect_server::nuiDrawBone(QPainter& painter, const NUI_SKELETON_DATA & ske
   // We assume all drawn bones are inferred unless BOTH joints are tracked
   if ( bone0State == NUI_SKELETON_POSITION_TRACKED && bone1State == NUI_SKELETON_POSITION_TRACKED )
   {
-    //image.d
-    //QPainter painter(&image);
     painter.setPen(Qt::cyan);
     painter.drawLine(points_[bone0], points_[bone1]);
-    //draw_depth_->getP
-    //m_pRenderTarget->DrawLine( m_Points[bone0], m_Points[bone1], m_pBrushBoneTracked, g_TrackedBoneThickness );
   }
   else
   {
-    //QPainter painter(&image);
     painter.setPen(Qt::yellow);
     painter.drawLine(points_[bone0], points_[bone1]);
-    // m_pRenderTarget->DrawLine( m_Points[bone0], m_Points[bone1], m_pBrushBoneInferred, g_InferredBoneThickness );
   }
 
 }
 
-/// <summary>
-/// Draws a skeleton
-/// </summary>
-/// <param name="skel">skeleton to draw</param>
-/// <param name="windowWidth">width (in pixels) of output buffer</param>
-/// <param name="windowHeight">height (in pixels) of output buffer</param>
 void kinect_server::nuiDrawSkeleton(QPainter& painter, const NUI_SKELETON_DATA & skel, int windowWidth, int windowHeight )
 {      
   int i;
@@ -564,12 +516,8 @@ void kinect_server::nuiDrawSkeleton(QPainter& painter, const NUI_SKELETON_DATA &
   // Draw the joints in a different color
   for ( i = 0; i < NUI_SKELETON_POSITION_COUNT; i++ )
   {
-
-    //D2D1_ELLIPSE ellipse = D2D1::Ellipse( m_Points[i], g_JointThickness, g_JointThickness );
-
     if ( skel.eSkeletonPositionTrackingState[i] == NUI_SKELETON_POSITION_INFERRED )
     {
-      //m_pRenderTarget->DrawEllipse(ellipse, m_pBrushJointInferred);
       painter.setPen(Qt::red);
       painter.drawEllipse(points_[i], 3, 3);
     }
@@ -577,7 +525,6 @@ void kinect_server::nuiDrawSkeleton(QPainter& painter, const NUI_SKELETON_DATA &
     {
       painter.setPen(Qt::green);
       painter.drawEllipse(points_[i], 3, 3);
-      //m_pRenderTarget->DrawEllipse(ellipse, m_pBrushJointTracked);
     }
 
   }
@@ -608,7 +555,6 @@ bool kinect_server::nuiGotSkeletonAlert()
   if( !foundSkeleton )
   {    
     emit showDepth(last_depth_image_);   
-    //ROS_INFO_THROTTLE(1.0, "got no skeleton");
     return true;
   }
 
@@ -635,7 +581,10 @@ bool kinect_server::nuiGotSkeletonAlert()
     if ( trackingState == NUI_SKELETON_TRACKED )
     {
       // We're tracking the skeleton, draw it
-
+      qDebug() << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].w
+               << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].x
+               << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].y
+               << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].z;
       nuiDrawSkeleton(painter, SkeletonFrame.SkeletonData[i], width, height );
     }
     else if ( trackingState == NUI_SKELETON_POSITION_ONLY )
@@ -643,19 +592,9 @@ bool kinect_server::nuiGotSkeletonAlert()
       QPointF point = skeletonToScreen( SkeletonFrame.SkeletonData[i].Position, width, height );
       painter.setPen(Qt::blue);
       painter.drawEllipse(point, 3, 3);
-      // we've only received the center point of the skeleton, draw that
-      //D2D1_ELLIPSE ellipse = D2D1::Ellipse(
-      //  SkeletonToScreen( SkeletonFrame.SkeletonData[i].Position, width, height ),
-      //  g_JointThickness,
-      //  g_JointThickness
-      //  );
-
-      //m_pRenderTarget->DrawEllipse(ellipse, m_pBrushJointTracked);
     }
   }
   emit showDepth(skeleton_image);   
-
-  //ROS_INFO_THROTTLE(1.0, "got skeleton");
   return true;
 }
 
@@ -727,8 +666,6 @@ void kinect_server::nuiProcessThread()
     {
       float dt =  (t - last_depth_fps_time_);
       float fps = ((depth_frames_total_ - last_depth_frames_total_) * 1000 + 500) / dt;
-      //ROS_INFO("FPS: %f", fps);
-      //PostMessageW( m_hWnd, WM_USER_UPDATE_FPS, IDC_FPS, fps );
       ui.statusBar->showMessage(QString("FPS: %1").arg(fps));
       last_depth_frames_total_ = depth_frames_total_;
       last_depth_fps_time_ = t;
@@ -739,7 +676,6 @@ void kinect_server::nuiProcessThread()
     {
       if ( !screen_blanked_ )
       {
-        //Nui_BlankSkeletonScreen( );
         screen_blanked_ = true;
       }
     }
