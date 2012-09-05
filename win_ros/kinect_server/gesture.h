@@ -19,12 +19,14 @@ public:
   typedef QPair<Positions, QDateTime> PositionsStamped;
   typedef QList<PositionsStamped> PositionsStampedList;
   
+  
   GestureDetector();
   virtual ~GestureDetector();
 
   void setWindowSize(int window_size) { window_size_ = window_size; }
   int getWindowSize() { return window_size_; }
 
+  static QPointF skeletonToScreen( Vector4 skeletonPoint, int width, int height );
   virtual void drawHistory(QPainter& painter);
 
   virtual void addSkeleton(const QVector<Vector4>& skeleton_positions); 
@@ -41,6 +43,7 @@ protected:
   int min_period_between_gesture_;
   QDateTime last_gesture_detected_time_;
   PositionsStampedList entries_;
+  PositionsStampedList gesture_history_;
   
 
 };

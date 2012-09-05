@@ -586,7 +586,7 @@ bool kinect_server::nuiGotSkeletonAlert()
       positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT]);
       swipe_gesture_.addSkeleton(positions);
 
-
+      swipe_gesture_.drawHistory(painter);
 
       /*
       qDebug() << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].w
