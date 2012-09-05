@@ -11,9 +11,44 @@ GestureDetector::~GestureDetector()
 {
 }
 
+QPointF GestureDetector::skeletonToScreen( Vector4 skeletonPoint, int width, int height )
+{
+  LONG x, y;
+  USHORT depth;
+
+  // calculate the skeleton's position on the screen
+  // NuiTransformSkeletonToDepthImage returns coordinates in NUI_IMAGE_RESOLUTION_320x240 space
+  NuiTransformSkeletonToDepthImage( skeletonPoint, &x, &y, &depth);
+
+  float screenPointX = static_cast<float>(x * width) / 320;
+  float screenPointY = static_cast<float>(y * height) / 240;
+
+  return QPointF(screenPointX, screenPointY);
+}
+
 void GestureDetector::drawHistory(QPainter& painter)
 {
+  if(gesture_history_.isEmpty())
+    return;
 
+  int w = painter.device()->width();
+  int h = painter.device()->height();
+  QVector<QVector<QPointF> > points;
+  points.resize(gesture_history_.begin()->first.size());
+  PositionsStampedList::Iterator itr;
+  for(itr = gesture_history_.begin(); itr != gesture_history_.end(); itr++)
+  {
+    for(int i = 0; i < itr->first.size(); i++)
+    {
+      points[i].push_back(skeletonToScreen(itr->first[i], w, h));
+    }    
+  }
+
+  for(int i = 0; i < points.size(); i++)
+  {
+    painter.setPen(Qt::red);
+    painter.drawLines(points[i]);
+  }
 }
 
 void GestureDetector::addSkeleton(const QVector<Vector4>& skeleton_positions)
@@ -23,10 +58,13 @@ void GestureDetector::addSkeleton(const QVector<Vector4>& skeleton_positions)
   ps.second = QDateTime::currentDateTime();
   
   entries_.push_front(ps);
+  gesture_history_.push_front(ps);
 
   if(entries_.size() > window_size_)
   {
     entries_.pop_back();
+    if(!gesture_history_.isEmpty())
+      gesture_history_.pop_back();
   }
 
   lookForGesture();
@@ -43,8 +81,10 @@ void GestureDetector::signalGestureDetected(const QString& gesture)
     {
       emit gestureDetected(gesture);
     }
-    last_gesture_detected_time_ = QDateTime::currentDateTime();
+    last_gesture_detected_time_ = QDateTime::currentDateTime();    
   }
+
+  //gesture_history_.clear();  
 }
 
 SinglePointSwipeGestureDetector::SinglePointSwipeGestureDetector()
@@ -54,7 +94,7 @@ SinglePointSwipeGestureDetector::SinglePointSwipeGestureDetector()
     min_duration_(250), //250 ms
     max_duration_(1500) //1500 ms
 {
-  min_period_between_gesture_ = 100;
+  min_period_between_gesture_ = 50;
 }
 
 
@@ -80,24 +120,20 @@ void SinglePointSwipeGestureDetector::lookForGesture()
     {     
       continue;
     }
-
-
+    
     quint64 dt = itr->second.msecsTo(itr_start->second);
     if((dt >= min_duration_) && (dt < max_duration_))
     {        
-      //qDebug() << dt << lenght << height;
       float sign = itr_start->first[0].x - itr->first[0].x;
 
       if(sign > -0.01f)
       {
         //swipe to right
-        //qDebug() << "swipe to right";
         signalGestureDetected("SinglePointSwipeToRight");
       }
       else if(sign < 0.01f)
       {
         //swipe to left
-        //qDebug() << "swipe to left";
         signalGestureDetected("SinglePointSwipeToLeft");
       }
     }
