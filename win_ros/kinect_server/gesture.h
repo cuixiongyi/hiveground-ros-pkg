@@ -49,11 +49,11 @@ protected:
 };
 
 
-class SinglePointSwipeGestureDetector : public GestureDetector
+class OnePointSwipeGestureDetector : public GestureDetector
 {
 public:
-  SinglePointSwipeGestureDetector();
-  ~SinglePointSwipeGestureDetector();
+  OnePointSwipeGestureDetector();
+  ~OnePointSwipeGestureDetector();
   
   void lookForGesture();
 
@@ -63,6 +63,22 @@ protected:
   int min_duration_;
   int max_duration_;
 
+};
+
+
+class TwoPointSwipeGestureDetector : public GestureDetector
+{
+public:
+  TwoPointSwipeGestureDetector();
+  ~TwoPointSwipeGestureDetector();
+  
+  void lookForGesture();
+
+protected:
+  float min_length_;
+  float max_height_;
+  int min_duration_;
+  int max_duration_;
 };
 
 

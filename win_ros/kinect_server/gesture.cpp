@@ -87,7 +87,7 @@ void GestureDetector::signalGestureDetected(const QString& gesture)
   //gesture_history_.clear();  
 }
 
-SinglePointSwipeGestureDetector::SinglePointSwipeGestureDetector()
+OnePointSwipeGestureDetector::OnePointSwipeGestureDetector()
   : GestureDetector(),
     min_length_(0.1f), //0.3 m
     max_height_(0.2f), //0.2 m
@@ -98,11 +98,11 @@ SinglePointSwipeGestureDetector::SinglePointSwipeGestureDetector()
 }
 
 
-SinglePointSwipeGestureDetector::~SinglePointSwipeGestureDetector()
+OnePointSwipeGestureDetector::~OnePointSwipeGestureDetector()
 {
 }
 
-void SinglePointSwipeGestureDetector::lookForGesture()
+void OnePointSwipeGestureDetector::lookForGesture()
 {
   PositionsStampedList::Iterator itr, itr_start;
   itr_start = entries_.begin();
@@ -135,6 +135,64 @@ void SinglePointSwipeGestureDetector::lookForGesture()
       {
         //swipe to left
         signalGestureDetected("SinglePointSwipeToLeft");
+      }
+    }
+  }
+}
+
+
+
+TwoPointSwipeGestureDetector::TwoPointSwipeGestureDetector()
+  : GestureDetector(),
+    min_length_(0.1f), //0.3 m
+    max_height_(0.2f), //0.2 m
+    min_duration_(250), //250 ms
+    max_duration_(1500) //1500 ms
+{
+    
+}
+
+TwoPointSwipeGestureDetector::~TwoPointSwipeGestureDetector()
+{
+}
+  
+void TwoPointSwipeGestureDetector::lookForGesture()
+{
+  PositionsStampedList::Iterator itr, itr_start;
+  itr_start = entries_.begin();
+  for(itr = entries_.begin() + 1; itr != entries_.end(); itr++)
+  {
+    float heightR = fabs(itr_start->first[0].y - itr->first[0].y);
+    float heightL = fabs(itr_start->first[1].y - itr->first[1].y);
+    if(heightR > max_height_ || heightL > max_height_)
+    {      
+      itr_start = itr;
+      continue;
+    }
+
+    float lenghtR = fabs(itr_start->first[0].x - itr->first[0].x);
+    float lenghtL = fabs(itr_start->first[1].x - itr->first[1].x);
+    if(lenghtR < min_length_ || lenghtL < min_length_)
+    {     
+      continue;
+    }
+    
+    quint64 dt = itr->second.msecsTo(itr_start->second);
+    if((dt >= min_duration_) && (dt < max_duration_))
+    {        
+      float signR = itr_start->first[0].x - itr->first[0].x;
+      float signL = itr_start->first[1].x - itr->first[1].x;
+
+
+      if(signR > -0.01f && signL > -0.01f)
+      {
+        //swipe to right
+        signalGestureDetected("TwoPointSwipeToRight");
+      }
+      else if(signR < 0.01f && signL < 0.01f)
+      {
+        //swipe to left
+        signalGestureDetected("TwoPointSwipeToLeft");
       }
     }
   }
