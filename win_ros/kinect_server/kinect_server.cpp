@@ -111,6 +111,7 @@ void kinect_server::nuiZero()
   p_depth_stream_handle_ = NULL;  
   skeleton_tracking_flags_ = NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE | NUI_SKELETON_TRACKING_FLAG_ENABLE_SEATED_SUPPORT;
   depth_stream_flags_ = 0;
+  //depth_stream_flags_ = NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE;
 
   depth_frames_total_ = 0;
   last_depth_fps_time_ = 0;
