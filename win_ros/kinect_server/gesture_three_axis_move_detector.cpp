@@ -96,7 +96,8 @@ void ThreeAsixMoveGestureDetector::lookForGesture()
 
   left_active_ = move_x || move_y || move_z;
 
-  qDebug() << gesture;
+  //qDebug() << gesture;
+  signalGestureDetected(gesture);
 
 
 
