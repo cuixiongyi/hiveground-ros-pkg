@@ -8,6 +8,7 @@
 #include <QtGui/QMainWindow>
 #include "ui_kinect_server.h"
 #include "glwidget.h"
+#include "gesture.h"
 
 #include <ros/ros.h>
 #include <boost/thread.hpp>
@@ -97,6 +98,9 @@ private:
   BYTE depth_rgbx_[640*480*4];
   QPointF points_[NUI_SKELETON_POSITION_COUNT];
   QImage last_depth_image_;
+
+  //gesture
+  SinglePointSwipeGestureDetector swipe_gesture_;
     
   
 };

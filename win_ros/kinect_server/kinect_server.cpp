@@ -581,10 +581,19 @@ bool kinect_server::nuiGotSkeletonAlert()
     if ( trackingState == NUI_SKELETON_TRACKED )
     {
       // We're tracking the skeleton, draw it
+      //swipe_gesture_.addSkeleton(
+      GestureDetector::Positions positions;
+      positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT]);
+      swipe_gesture_.addSkeleton(positions);
+
+
+
+      /*
       qDebug() << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].w
                << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].x
                << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].y
                << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].z;
+      */
       nuiDrawSkeleton(painter, SkeletonFrame.SkeletonData[i], width, height );
     }
     else if ( trackingState == NUI_SKELETON_POSITION_ONLY )
