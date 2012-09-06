@@ -64,10 +64,17 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   is_ik_control_active_ = true;
   last_collision_objects_id_ = 0;
 
+  //get robot description
   string robot_description_name = nh_.resolveName("robot_description", true);
+
+  //create robot collision model
   cm_ = new CollisionModels("robot_description");
+
+  //publisher
   marker_publisher_ = nh_.advertise<Marker>("prw_workspace_editor", 128);
   marker_array_publisher_ = nh_.advertise<MarkerArray>("prw_workspace_editor_array", 128);
+
+  //feedback
   process_ik_controller_feedback_ptr_ = boost::bind(&WorkspaceEditor::processIKControllerFeedback, this, _1);
   process_menu_feedback_ptr_ = boost::bind(&WorkspaceEditor::processMenuFeedback, this, _1);
   process_marker_feedback_ptr_ = boost::bind(&WorkspaceEditor::processMarkerFeedback, this, _1);
@@ -75,20 +82,14 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   //Subscribers
   joint_state_subscriber_ = nh_.subscribe("joint_states", 25, &WorkspaceEditor::jointStateCallback, this);
 
-  //Clients
-  while (!ros::service::waitForService(SET_PLANNING_SCENE_DIFF_NAME, ros::Duration(1.0)))
-  {
-  }
+  //Services
+  while (!ros::service::waitForService(SET_PLANNING_SCENE_DIFF_NAME, ros::Duration(1.0))) { }
   get_planning_scene_client_ = nh_.serviceClient<arm_navigation_msgs::GetPlanningScene>(SET_PLANNING_SCENE_DIFF_NAME);
 
-  while (!ros::service::waitForService(PLANNER_SERVICE_NAME, ros::Duration(1.0)))
-  {
-  }
+  while (!ros::service::waitForService(PLANNER_SERVICE_NAME, ros::Duration(1.0))) { }
   planner_client_ = nh_.serviceClient<GetMotionPlan>(PLANNER_SERVICE_NAME, true);
 
-  while (!ros::service::waitForService(TRAJECTORY_FILTER_SERVICE_NAME, ros::Duration(1.0)))
-  {
-  }
+  while (!ros::service::waitForService(TRAJECTORY_FILTER_SERVICE_NAME, ros::Duration(1.0))) { }
   trajectory_filter_client_ = nh_.serviceClient<FilterJointTrajectoryWithConstraints>(TRAJECTORY_FILTER_SERVICE_NAME,
                                                                                       true);
 
@@ -109,12 +110,8 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
     string non_coll_aware_name = ik_service_name + "get_ik";
     string arm_controller_name = cm_->getKinematicModel()->getRobotName() + "/follow_joint_trajectory";
 
-    while (!ros::service::waitForService(coll_aware_name, ros::Duration(1.0)))
-    {
-    }
-    while (!ros::service::waitForService(non_coll_aware_name, ros::Duration(1.0)))
-    {
-    }
+    while (!ros::service::waitForService(coll_aware_name, ros::Duration(1.0))) { }
+    while (!ros::service::waitForService(non_coll_aware_name, ros::Duration(1.0))) { }
 
     group_map_[it->first].ik_collision_aware_client_ = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(
         coll_aware_name, true);
@@ -131,26 +128,24 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
 
   robot_state_ = new KinematicState(cm_->getKinematicModel());
   robot_state_->setKinematicStateToDefault();
-  sendPlanningScene();
 
   //send planning scene
-
-  //Publishers
+  sendPlanningScene();
 
   //Marker & Interactive Marker
-
   interactive_marker_server_.reset(new InteractiveMarkerServer("prw_visualizer_controls", "", false));
 
   unsigned int cmd = 0;
   for (PlanningGroupDataMap::iterator it = group_map_.begin(); it != group_map_.end(); it++)
   {
-    // These positions will be reset by main()
     makeIKControllerMarker(tf::Transform(tf::Quaternion(0.0f, 0.0f, 0.0f, 1.0f), tf::Vector3(0.0f, 0.0f, 0.0f)),
                            it->first, it->first, true, 0.5f);
     cmd++;
   }
 
+  //make scene menu
   makeTopLevelMenu();
+
 
   interactive_marker_server_->applyChanges();
 
@@ -165,6 +160,7 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   solveIKForEndEffectorPose(*getPlanningGroup(0));
 
 
+  /*
   Pose pose;
   pose.position.x = 2.0f;
   pose.position.z = 1.0f;
@@ -190,7 +186,7 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   createCollisionObject(pose, Sphere, color, 0.1, 0.0, 0.0, true);
 
   sendPlanningScene();
-
+  */
 
   ROS_INFO_STREAM(__FUNCTION__ << " Initialized");
 }
