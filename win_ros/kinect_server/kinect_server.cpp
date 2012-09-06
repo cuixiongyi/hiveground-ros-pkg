@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <strsafe.h>
 
+#include <std_msgs/String.h>
+
 
 //lookups for color tinting based on player index
 static const int g_IntensityShiftByPlayerR[] = { 1, 2, 0, 2, 0, 0, 2, 0 };
@@ -65,7 +67,16 @@ kinect_server::kinect_server(ros::NodeHandle& nh, QWidget *parent, Qt::WFlags fl
   connect(this, SIGNAL(showImage(const QImage &)), draw_image_, SLOT(updateImage(const QImage&)));
 
 
+  gesture_pub_ = nh_.advertise<std_msgs::String>("gesture", 10);
+  connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
+  connect(&double_swipe_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
+  connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
+
+
   nuiInit();
+
+
+
 }
 
 kinect_server::~kinect_server()
@@ -91,6 +102,16 @@ void kinect_server::setting_tracked_skeleton_triggered(QAction* action)
 void kinect_server::setting_range_triggered(QAction* action)
 {
   ROS_INFO("set range");
+}
+
+void kinect_server::publish_gesture(const QString& gesture)
+{
+  if(!gesture.isNull())
+  {
+    std_msgs::String msg;
+    msg.data = gesture.toStdString();
+    gesture_pub_.publish(msg); 
+  }
 }
 
 void kinect_server::closeEvent(QCloseEvent *event)
