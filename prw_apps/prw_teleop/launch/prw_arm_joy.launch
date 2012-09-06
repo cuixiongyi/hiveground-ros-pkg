@@ -1,0 +1,31 @@
+<launch>
+  <arg name="robot" default="vp6242"/>
+
+  <!-- joy node -->
+  <node respawn="true" pkg="joy" type="joy" name="turtle_joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <!--param name="deadzone" value="0.12" /-->
+  </node>
+    
+
+
+
+  <node pkg="prw_teleop" type="prw_teleop_arm" name="arm_joy" output="screen">
+    <!--DualShock2-->
+    <param name="dead_man_button" value ="4"/><!-- L2 -->
+    <param name="axis_j0" value ="0"/><!-- left analog H -->
+    <param name="axis_j1" value ="1"/><!-- left analog V -->
+    <param name="axis_j2" value ="2"/><!-- right analog H -->
+    <param name="axis_j3" value ="3"/><!-- right analog V -->
+    <param name="axis_j4" value ="4"/><!-- arrow H -->
+    <param name="axis_j5" value ="5"/><!-- arrow V -->
+       
+
+    <remap from="command0" to="$(arg robot)/J1/command/position" />
+    <remap from="command1" to="$(arg robot)/J2/command/position" />
+    <remap from="command2" to="$(arg robot)/J3/command/position" />
+    <remap from="command3" to="$(arg robot)/J4/command/position" />
+    <remap from="command4" to="$(arg robot)/J5/command/position" />
+    <remap from="command5" to="$(arg robot)/J6/command/position" />
+  </node>
+</launch>
