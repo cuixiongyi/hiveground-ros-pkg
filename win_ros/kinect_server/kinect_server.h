@@ -31,6 +31,7 @@ protected slots:
   void setting_track_mode_triggered(QAction* action);
   void setting_tracked_skeleton_triggered(QAction* action);
   void setting_range_triggered(QAction* action);
+  void publish_gesture(const QString& gesture);
 
 signals:
   void showImage(const QImage &image);
@@ -74,7 +75,8 @@ private:
   GLWidget* draw_depth_;
   GLWidget* draw_image_;
   
-
+  //ROS
+  ros::Publisher gesture_pub_;
 
 
   //Kinect
