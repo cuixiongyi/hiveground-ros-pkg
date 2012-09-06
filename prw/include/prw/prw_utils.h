@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * Author: Mahisorn Wongphati
- * A lot of copy & paste from arm_navigatio and arm_navigation_experiment package
+ * A lot of copy & paste from arm_navigation and arm_navigation_experiment package
  */
 
 
