@@ -18,7 +18,7 @@
     <param name="axis_j2" value ="2"/><!-- right analog H -->
     <param name="axis_j3" value ="3"/><!-- right analog V -->
     <param name="axis_j4" value ="4"/><!-- arrow H -->
-    <param name="axis_j5" value ="5"/><!-- arrow V -->
+    <param name="axis_j5" value ="5"/><!-- arrow V -->      
        
 
     <remap from="command0" to="$(arg robot)/J1/command/position" />
