@@ -11,8 +11,8 @@
   <node pkg="prw_teleop" type="teleop_end_effector_joy" name="teleop_end_effector_$(arg robot)_joy" output="screen">
     <!--param name="min_axes" value ="6"/-->
     <!--param name="min_buttons" value ="4"/-->   
-    <param name="move_rate" value="0.1"/><!-- m/repeat rate -->
-    <param name="rotate_rate" value="0.1"/><!-- rad/repeat rate -->
+    <param name="move_rate" value="0.01"/><!-- m/repeat rate -->
+    <param name="rotate_rate" value="0.05"/><!-- rad/repeat rate -->
 
     <!--DualShock2-->
     <param name="dead_man_button" value ="4"/><!-- L2 -->
@@ -30,11 +30,6 @@
     <param name="axis5_flip" value ="false"/>      
        
 
-    <remap from="command0" to="$(arg robot)/J1/command/position_relative" />
-    <remap from="command1" to="$(arg robot)/J2/command/position_relative" />
-    <remap from="command2" to="$(arg robot)/J3/command/position_relative" />
-    <remap from="command3" to="$(arg robot)/J4/command/position_relative" />
-    <remap from="command4" to="$(arg robot)/J5/command/position_relative" />
-    <remap from="command5" to="$(arg robot)/J6/command/position_relative" />
+    <remap from="command" to="prw_end_effector_pose_relative" />    
   </node>
 </launch>
