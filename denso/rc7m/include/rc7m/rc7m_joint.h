@@ -79,6 +79,7 @@ public:
    * Set joint position.
    */
   double setPosition(double position);
+  double setPositionRelative(double position);
 
   /**
    * Get a diagnostics message for this joint.
@@ -87,10 +88,12 @@ public:
 
   //callback
   void callbackJointPosition(const std_msgs::Float64& position);
+  void callbackJointPositionRelative(const std_msgs::Float64& position);
   void callbackJointPositionDegree(const std_msgs::Float64& position);
   void callbackJointVelocity(const std_msgs::Float64& velocity);
 
   ros::Subscriber subscriber_joint_position_;
+  ros::Subscriber subscriber_joint_position_relative_;
   ros::Subscriber subscriber_joint_position_degree_;
   ros::Subscriber subscriber_joint_velocity_;
 
