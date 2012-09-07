@@ -11,10 +11,10 @@
   <node pkg="prw_teleop" type="teleop_arm_joy" name="teleop_arm_$(arg robot)_joy" output="screen">
     <!--param name="min_axes" value ="6"/-->
     <!--param name="min_buttons" value ="4"/-->   
-    <param name="move_rate" value="0.05"/><!-- rad/s -->
+    <param name="move_rate" value="0.05"/><!-- rad/repeate rate -->
 
     <!--DualShock2-->
-    <param name="dead_man_button" value ="4"/><!-- L2 -->
+    <param name="dead_man_button" value ="4"/><!-- L2 --> 
     <param name="axis_j0" value ="0"/><!-- left analog H -->
     <param name="axis_j1" value ="1"/><!-- left analog V -->
     <param name="axis_j2" value ="2"/><!-- right analog H -->

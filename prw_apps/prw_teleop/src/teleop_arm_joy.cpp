@@ -6,13 +6,13 @@
 
 using namespace std;
 
-class TeleopArm
+class TeleopArmJoy
 {
 public:
-  TeleopArm()
+  TeleopArmJoy()
   {
     ros::NodeHandle nh_private_("~");
-    sub_ = nh_.subscribe("joy", 1, &TeleopArm::joyCallback, this);
+    sub_ = nh_.subscribe("joy", 1, &TeleopArmJoy::joyCallback, this);
     ROS_DEBUG("teleop_arm started");
 
     nh_private_.param("move_rate", move_rate_, 0.02);
@@ -36,8 +36,6 @@ public:
       joint_pub_[i] = nh_.advertise<std_msgs::Float64>(ss2.str(), 1, false);
     }
 
-
-
     //Gripper command
     //gripper_pub_ = nh_.advertise<std_msgs::Float64>(ss.str(), 1, false);
 
@@ -51,7 +49,7 @@ public:
     //{
       //ROS_WARN_THROTTLE(1, "need a joy stick with 6 axes for controlling all joints");
     //}
-    if(dead_man_button_ >= joy->buttons.size())
+    if(dead_man_button_ >= (int)joy->buttons.size())
     {
       ROS_ERROR_THROTTLE(1.0, "Not enough buttons on the joy stick");
       return;
@@ -76,12 +74,10 @@ public:
       if(fabs(joy->axes[axis_map_[i]]) > 0.5)
       {
         msg.data = (joy->axes[axis_map_[i]] > 0.1) ? move_rate_ : -move_rate_;
-        ROS_INFO("move joint %d %f rad", msg.data);
+        ROS_INFO("move joint %d %f rad", i, msg.data);
         joint_pub_[i].publish(msg);
       }
     }
-
-
   }
 
 private:
@@ -98,9 +94,9 @@ private:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "teleop_arm");
+  ros::init(argc, argv, "teleop_arm_joy");
 
-  TeleopArm teleop_arm;
+  TeleopArmJoy teleop_arm_joy;
 
   ros::spin();
 

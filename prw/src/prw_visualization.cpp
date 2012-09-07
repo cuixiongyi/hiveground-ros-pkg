@@ -357,6 +357,7 @@ void WorkspaceEditor::makeIKControllerMarker(tf::Transform transform, const std:
   marker.controls.push_back(control3);
 
   interactive_marker_server_->insert(marker, process_ik_controller_feedback_ptr_);
+  //interactive_marker_server_->setPose()
 
   if(selectable)
     selectable_markers_[marker.name] = selectable_marker;
