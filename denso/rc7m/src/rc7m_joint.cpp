@@ -73,6 +73,8 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
   //subscribers
   subscriber_joint_position_ =
       node_->node_handle_.subscribe(name_ + "/command/position", 1, &RC7MJoint::callbackJointPosition, this);
+  subscriber_joint_position_relative_ =
+        node_->node_handle_.subscribe(name_ + "/command/position_relative", 1, &RC7MJoint::callbackJointPositionRelative, this);
   subscriber_joint_position_degree_ =
       node_->node_handle_.subscribe(name_ + "/command/position_degree", 1, &RC7MJoint::callbackJointPositionDegree, this);
   subscriber_joint_velocity_ =
@@ -170,10 +172,25 @@ double RC7MJoint::setPosition(double position)
     return position_;
   }
 
-
   desired_position_ = position;
   touched_ = true;
   return position;
+}
+
+
+double RC7MJoint::setPositionRelative(double position)
+{
+  double temp = position_ + position;
+  //check position limit
+  if ((temp > upper_limit_) || (temp < lower_limit_))
+  {
+    ROS_WARN_STREAM(name_ + " position out of range [" << lower_limit_ << ", " << upper_limit_ << "]");
+    return position_;
+  }
+
+  desired_position_ = temp;
+  touched_ = true;
+  return temp;
 }
 
 diagnostic_msgs::DiagnosticStatus RC7MJoint::getDiagnostics()
@@ -189,6 +206,17 @@ void RC7MJoint::callbackJointPosition(const std_msgs::Float64& position)
     setPosition(position.data);
   }
 }
+
+void RC7MJoint::callbackJointPositionRelative(const std_msgs::Float64& position)
+{
+  //check controller status
+  if(!controller_->active())
+  {
+    setPositionRelative(position.data);
+  }
+}
+
+
 
 void RC7MJoint::callbackJointPositionDegree(const std_msgs::Float64& position)
 {

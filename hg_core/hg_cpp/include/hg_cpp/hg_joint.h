@@ -109,6 +109,7 @@ public:
    * Set joint position.
    */
   virtual double setPosition(double position) = 0;
+  virtual double setPositionRelative(double position) = 0;
 
   /**
    * Get a diagnostics message for this joint.

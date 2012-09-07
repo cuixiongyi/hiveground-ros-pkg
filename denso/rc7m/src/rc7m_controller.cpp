@@ -319,9 +319,9 @@ void RC7MController::control()
 
   ros::Time trajectory_start_time;
   std::vector<double> last_joint_positions;
-  int current_trajectory_index;
+  int current_trajectory_index = 0;
   std::vector<double> error, velocity;
-  bool trajectory_started_;
+  bool trajectory_started_ = false;
   trajectory_msgs::JointTrajectoryPoint current_trajectory_point;
   std::vector<double> target_joint_positions;
   ros::Time point_end_time;
@@ -357,7 +357,7 @@ void RC7MController::control()
     else
     {
 
-      if (current_trajectory_index == current_joint_trajecgtory_.points.size())
+      if (current_trajectory_index == (int)current_joint_trajecgtory_.points.size())
       {
         //ROS_INFO("trajectory done");
         //control_msgs::FollowJointTrajectoryResult result;
@@ -389,7 +389,7 @@ void RC7MController::control()
             //process current point
             double joint_command = 0;
             it = joints_.begin();
-            for (int i = 0; i < target_joint_positions.size(); i++, it++)
+            for (int i = 0; i < (int)target_joint_positions.size(); i++, it++)
             {
 
               error[i] = target_joint_positions[i] - last_joint_positions[i];
@@ -805,7 +805,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
 
 
 
-  ROS_INFO("Got trajectory with %d points", trajectory.points.size());
+  ROS_INFO("Got trajectory with %d points", (int)trajectory.points.size());
   /*
   for(int i = 0; i < trajectory.points.size(); i++)
   {
