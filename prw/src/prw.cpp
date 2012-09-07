@@ -64,14 +64,32 @@ void PRW::initialize()
 void PRW::on_ik_move_go_clicked()
 {
   qDebug() << __FUNCTION__;
+  geometry_msgs::Pose pose;
+  tf::Quaternion quat;
+  quat.setRPY( ui.ik_move_roll->value(), ui.ik_move_yaw->value(), ui.ik_move_pitch->value());
+  pose.position.x = ui.ik_move_x->value();
+  pose.position.y = ui.ik_move_y->value();
+  pose.position.z = ui.ik_move_z->value();
+  pose.orientation.x = quat.x();
+  pose.orientation.y = quat.y();
+  pose.orientation.z = quat.z();
+  pose.orientation.w = quat.w();
+  interactive_marker_server_->setPose("arm", pose);
+  interactive_marker_server_->applyChanges();
+
+  PlanningGroupData& gc = group_map_[current_group_name_];
+  tf::Transform cur = toBulletTransform(pose);
+  setNewEndEffectorPosition(gc, cur, collision_aware_);
+  last_ee_poses_[current_group_name_] = pose;
+
 }
 
 void PRW::on_ik_move_reset_clicked()
 {
   qDebug() << __FUNCTION__;
-  ui.ik_move_x->setValue(0.0);
+  ui.ik_move_x->setValue(0.28);
   ui.ik_move_y->setValue(0.0);
-  ui.ik_move_z->setValue(0.0);
+  ui.ik_move_z->setValue(0.565);
   ui.ik_move_roll->setValue(0.0);
   ui.ik_move_pitch->setValue(0.0);
   ui.ik_move_yaw->setValue(0.0);

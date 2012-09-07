@@ -30,3 +30,4 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_executable(teleop_arm_joy src/teleop_arm_joy.cpp)
+rosbuild_add_executable(teleop_end_effector_joy src/teleop_end_effector_joy.cpp)

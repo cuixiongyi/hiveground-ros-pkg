@@ -28,7 +28,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>199</width>
+         <width>211</width>
          <height>161</height>
         </rect>
        </property>
@@ -48,6 +48,9 @@
               </item>
               <item>
                <widget class="QDoubleSpinBox" name="ik_move_x">
+                <property name="decimals">
+                 <number>3</number>
+                </property>
                 <property name="minimum">
                  <double>-5.000000000000000</double>
                 </property>
@@ -56,6 +59,9 @@
                 </property>
                 <property name="singleStep">
                  <double>0.100000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.280000000000000</double>
                 </property>
                </widget>
               </item>
@@ -72,6 +78,9 @@
               </item>
               <item>
                <widget class="QDoubleSpinBox" name="ik_move_y">
+                <property name="decimals">
+                 <number>3</number>
+                </property>
                 <property name="minimum">
                  <double>-5.000000000000000</double>
                 </property>
@@ -80,6 +89,9 @@
                 </property>
                 <property name="singleStep">
                  <double>0.100000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.000000000000000</double>
                 </property>
                </widget>
               </item>
@@ -96,6 +108,9 @@
               </item>
               <item>
                <widget class="QDoubleSpinBox" name="ik_move_z">
+                <property name="decimals">
+                 <number>3</number>
+                </property>
                 <property name="minimum">
                  <double>-5.000000000000000</double>
                 </property>
@@ -104,6 +119,9 @@
                 </property>
                 <property name="singleStep">
                  <double>0.100000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.560000000000000</double>
                 </property>
                </widget>
               </item>
@@ -254,7 +272,7 @@
      <x>0</x>
      <y>0</y>
      <width>750</width>
-     <height>23</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
