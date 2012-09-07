@@ -280,6 +280,10 @@ protected:
   bool is_joint_control_active_;
   bool is_ik_control_active_;
 
+  //for teleop
+  ros::Subscriber end_effector_pose_subscriber_;
+
+
 
 
 
@@ -329,7 +333,9 @@ protected:
   void lockScene() { mutex_.lock(); };
   void unlockScene() { mutex_.unlock(); };
 
+  //callback
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state);
+  void endEffectorPoseCallBack(const geometry_msgs::PoseConstPtr& pose);
 
   void sendPlanningScene();
   void refreshEnvironment();

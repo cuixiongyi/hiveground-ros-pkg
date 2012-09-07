@@ -12,6 +12,8 @@
   <depend package="sensor_msgs"/>
   <depend package="joy"/>
   <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="tf"/>
 
 </package>
 

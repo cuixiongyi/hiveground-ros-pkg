@@ -160,6 +160,8 @@ WorkspaceEditor::WorkspaceEditor(const WorkspaceEditorParameters& parameter)
   solveIKForEndEffectorPose(*getPlanningGroup(0));
 
 
+  end_effector_pose_subscriber_ = nh_.subscribe("prw_end_effector_pose_relative", 1, &WorkspaceEditor::endEffectorPoseCallBack, this);
+
   /*
   Pose pose;
   pose.position.x = 2.0f;
@@ -265,8 +267,32 @@ void WorkspaceEditor::jointStateCallback(const sensor_msgs::JointStateConstPtr& 
   //TODO
   //Add collision check here
 
-
   unlockScene();
+}
+
+
+void WorkspaceEditor::endEffectorPoseCallBack(const geometry_msgs::PoseConstPtr& pose)
+{
+  ROS_INFO_STREAM(*pose);
+
+  tf::Transform relative_pose = toBulletTransform(*pose);
+
+  InteractiveMarker marker;
+  interactive_marker_server_->get("arm", marker);
+  tf::Transform marker_pose = toBulletTransform(marker.pose);
+
+  tf::Transform new_pose = marker_pose*relative_pose;
+  geometry_msgs::Pose new_geo_pose = toGeometryPose(new_pose);
+
+
+
+  interactive_marker_server_->setPose("arm", new_geo_pose);
+  interactive_marker_server_->applyChanges();
+
+  PlanningGroupData& gc = group_map_[current_group_name_];
+  setNewEndEffectorPosition(gc, new_pose, collision_aware_);
+  last_ee_poses_[current_group_name_] = new_geo_pose;
+
 }
 
 void WorkspaceEditor::sendPlanningScene()

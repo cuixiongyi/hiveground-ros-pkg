@@ -1,6 +1,8 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
-#include <std_msgs/Float64.h>
+#include <geometry_msgs/Pose.h>
+#include <tf/tf.h>
+
 #include <string>
 #include <sstream>
 
@@ -59,8 +61,9 @@ public:
         ROS_FATAL("Invalid axis mapping value");
         ROS_BREAK();
       }
-
     }
+
+    pose_pub_ = nh_.advertise<geometry_msgs::Pose>("command", 1, false);
 
 
   }
@@ -124,7 +127,21 @@ public:
     }
 
     if(updated)
-      ROS_INFO("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", results_[0], results_[1], results_[2], results_[3], results_[4],results_[5]);
+    {
+      //ROS_INFO("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", results_[0], results_[1], results_[2], results_[3], results_[4],results_[5]);
+      tf::Quaternion quat;
+      quat.setRPY(results_[3], results_[4],results_[5]);
+      geometry_msgs::Pose msg;
+      msg.position.x = results_[0];
+      msg.position.y = results_[1];
+      msg.position.z = results_[2];
+      msg.orientation.x = quat.x();
+      msg.orientation.y = quat.y();
+      msg.orientation.z = quat.z();
+      msg.orientation.w = quat.w();
+      pose_pub_.publish(msg);
+      ROS_INFO_STREAM(msg);
+    }
 
 
 
@@ -146,7 +163,7 @@ private:
 
   //int axis_map_[6];
   //ros::Publisher joint_pub_[6];
-  //ros::Publisher gripper_pub_;
+  ros::Publisher pose_pub_;
 
 };
 

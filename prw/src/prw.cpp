@@ -48,6 +48,19 @@ PRW::PRW(const hg::WorkspaceEditorParameters& parameters, QWidget *parent, Qt::W
 {
   ui.setupUi(this);
 
+  connect(ui.hs_move_x, SIGNAL(valueChanged(int)), this, SLOT(endEffectorSlideUpdate()));
+  connect(ui.hs_move_y, SIGNAL(valueChanged(int)), this, SLOT(endEffectorSlideUpdate()));
+  connect(ui.hs_move_z, SIGNAL(valueChanged(int)), this, SLOT(endEffectorSlideUpdate()));
+  connect(ui.hs_roll, SIGNAL(valueChanged(int)), this, SLOT(endEffectorSlideUpdate()));
+  connect(ui.hs_pitch, SIGNAL(valueChanged(int)), this, SLOT(endEffectorSlideUpdate()));
+  connect(ui.hs_yaw, SIGNAL(valueChanged(int)), this, SLOT(endEffectorSlideUpdate()));
+  connect(ui.sb_move_x, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
+  connect(ui.sb_move_y, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
+  connect(ui.sb_move_z, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
+  connect(ui.sb_roll, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
+  connect(ui.sb_pitch, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
+  connect(ui.sb_yaw, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
+  on_bt_reset_clicked();
 }
 
 PRW::~PRW()
@@ -61,15 +74,15 @@ void PRW::initialize()
   //ROS_INFO_STREAM("Initialized");
 }
 
-void PRW::on_ik_move_go_clicked()
+void PRW::on_bt_go_clicked()
 {
-  qDebug() << __FUNCTION__;
+  //qDebug() << __FUNCTION__;
   geometry_msgs::Pose pose;
   tf::Quaternion quat;
-  quat.setRPY( ui.ik_move_roll->value(), ui.ik_move_yaw->value(), ui.ik_move_pitch->value());
-  pose.position.x = ui.ik_move_x->value();
-  pose.position.y = ui.ik_move_y->value();
-  pose.position.z = ui.ik_move_z->value();
+  quat.setRPY( DEG2RAD(ui.sb_roll->value()), DEG2RAD(ui.sb_pitch->value()), DEG2RAD(ui.sb_yaw->value()));
+  pose.position.x = ui.sb_move_x->value();
+  pose.position.y = ui.sb_move_y->value();
+  pose.position.z = ui.sb_move_z->value();
   pose.orientation.x = quat.x();
   pose.orientation.y = quat.y();
   pose.orientation.z = quat.z();
@@ -84,16 +97,65 @@ void PRW::on_ik_move_go_clicked()
 
 }
 
-void PRW::on_ik_move_reset_clicked()
+void PRW::on_bt_reset_clicked()
 {
-  qDebug() << __FUNCTION__;
-  ui.ik_move_x->setValue(0.28);
-  ui.ik_move_y->setValue(0.0);
-  ui.ik_move_z->setValue(0.565);
-  ui.ik_move_roll->setValue(0.0);
-  ui.ik_move_pitch->setValue(0.0);
-  ui.ik_move_yaw->setValue(0.0);
+  //qDebug() << __FUNCTION__;
+  ui.sb_move_x->setValue(0.28);
+  ui.sb_move_y->setValue(0.0);
+  ui.sb_move_z->setValue(0.565);
+  ui.sb_roll->setValue(0.0);
+  ui.sb_pitch->setValue(0.0);
+  ui.sb_yaw->setValue(0.0);
+  if(ui.cb_real_time_update->isChecked())
+    on_bt_go_clicked();
 }
+
+void PRW::endEffectorSlideUpdate()
+{
+  //qDebug() << __FUNCTION__;
+  ui.sb_move_x->setValue(ui.hs_move_x->value() * 0.001 * ui.sb_move_x->maximum());
+  ui.sb_move_y->setValue(ui.hs_move_y->value() * 0.001 * ui.sb_move_y->maximum());
+  ui.sb_move_z->setValue(ui.hs_move_z->value() * 0.001 * ui.sb_move_z->maximum());
+  ui.sb_roll->setValue(ui.hs_roll->value() * 0.001 * ui.sb_roll->maximum());
+  ui.sb_pitch->setValue(ui.hs_pitch->value() * 0.001 * ui.sb_pitch->maximum());
+  ui.sb_yaw->setValue(ui.hs_yaw->value() * 0.001 * ui.sb_yaw->maximum());
+  if(ui.cb_real_time_update->isChecked())
+    on_bt_go_clicked();
+}
+
+void PRW::endEffectorValueUpdate()
+{
+  //qDebug() << __FUNCTION__;
+  ui.hs_move_x->setValue(ui.sb_move_x->value() / ui.sb_move_x->maximum() * 1000);
+  ui.hs_move_y->setValue(ui.sb_move_y->value() / ui.sb_move_y->maximum() * 1000);
+  ui.hs_move_z->setValue(ui.sb_move_z->value() / ui.sb_move_z->maximum() * 1000);
+  ui.hs_roll->setValue(ui.sb_roll->value() / ui.sb_roll->maximum() * 1000);
+  ui.hs_pitch->setValue(ui.sb_pitch->value() / ui.sb_pitch->maximum() * 1000);
+  ui.hs_yaw->setValue(ui.sb_yaw->value() / ui.sb_yaw->maximum() * 1000);
+  if(ui.cb_real_time_update->isChecked())
+    on_bt_go_clicked();
+}
+
+
+void PRW::on_cb_enable_teleop_clicked()
+{
+  if(ui.cb_enable_teleop->isChecked())
+  {
+    ui.cb_teleop_arm->setEnabled(true);
+    ui.cb_teleop_end_effector->setEnabled(true);
+    ui.cb_teleop_tool->setEnabled(true);
+  }
+  else
+  {
+    ui.cb_teleop_arm->setChecked(false);
+    ui.cb_teleop_end_effector->setChecked(false);
+    ui.cb_teleop_tool->setChecked(false);
+    ui.cb_teleop_arm->setEnabled(false);
+    ui.cb_teleop_end_effector->setEnabled(false);
+    ui.cb_teleop_tool->setEnabled(false);
+  }
+}
+
 
 void PRW::on_new_scene_clicked()
 {

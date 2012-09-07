@@ -69,16 +69,23 @@ public:
   void initialize();
 
 public slots:
-  void on_ik_move_go_clicked();
-  void on_ik_move_reset_clicked();
+  //Qt
+  void on_bt_go_clicked();
+  void on_bt_reset_clicked();
+  void on_cb_enable_teleop_clicked();
+
+
+
   void on_new_scene_clicked();
   void on_new_mpr_clicked();
   void on_plan_clicked();
 
+  //prw
+  void endEffectorSlideUpdate();
+  void endEffectorValueUpdate();
+
 protected:
   void closeEvent(QCloseEvent *event);
-
-
 
 public:
   Ui::PRW ui;
