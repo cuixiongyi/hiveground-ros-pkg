@@ -24,10 +24,10 @@ set( QT_USE_QTGUI TRUE )
 #set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 
-#ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
 #The reason is the define I added for QT_NO_KEYWORDS. Either remove that or replace slots with Q_SLOTS, etc.
 
-set(qt_srcs
+set(qt_srcs	  
       src/prw.cpp)
 set(qt_hdrs
       include/prw/prw.h)
@@ -57,10 +57,11 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #target_link_libraries(prw ${QT_LIBRARIES} move_arm_utils)
 
 set(prw_srcs
-      src/prw.cpp 
-      src/prw_parameter_dialog.cpp
-      src/prw_utils.cpp 
-      src/prw_visualization.cpp)
+      src/main.cpp
+      src/prw.cpp)
+      #src/prw_parameter_dialog.cpp
+      #src/prw_utils.cpp 
+      #src/prw_visualization.cpp)
 
 rosbuild_add_executable(personal_robotic_workspace ${prw_srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(personal_robotic_workspace ${QT_LIBRARIES})

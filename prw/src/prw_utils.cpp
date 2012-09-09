@@ -273,8 +273,51 @@ void WorkspaceEditor::jointStateCallback(const sensor_msgs::JointStateConstPtr& 
 
 void WorkspaceEditor::endEffectorPoseCallBack(const geometry_msgs::PoseConstPtr& pose)
 {
-  ROS_INFO_STREAM(*pose);
 
+  ROS_INFO("a");
+  PlanningGroupData& gc = group_map_[current_group_name_];
+  tf::Transform relative_pose = toBulletTransform(*pose);
+  tf::Transform new_pose = gc.last_good_state_*relative_pose;
+  geometry_msgs::Pose new_geo_pose = toGeometryPose(new_pose);
+
+  //PlanningGroupData& gc = group_map_[current_group_name_];
+  setNewEndEffectorPosition(gc, new_pose, collision_aware_);
+  last_ee_poses_[current_group_name_] = new_geo_pose;
+
+  ROS_INFO("b");
+  //ROS_INFO_STREAM(new_geo_pose);
+
+
+  if (gc.good_ik_solution_)
+  {
+    ROS_INFO("b1");
+    planToEndEffectorState(gc, true, true);
+    ROS_INFO("b2");
+    if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
+    {
+      ROS_INFO("c1");
+      control_msgs::FollowJointTrajectoryGoal goal;
+      ROS_INFO("c2");
+      goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
+      goal.trajectory.header.stamp = ros::Time::now();
+      ROS_INFO("c3");
+      gc.arm_controller_->sendGoal(goal, boost::bind(&WorkspaceEditor::controllerDoneCallback, this, _1, _2));
+      ROS_INFO("c4");
+    }
+    /*
+    filterPlannerTrajectory(gc, true, true);
+    if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
+    {
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+      goal.trajectory.header.stamp = ros::Time::now();
+      gc.arm_controller_->sendGoal(goal, boost::bind(&WorkspaceEditor::controllerDoneCallback, this, _1, _2));
+    }
+    */
+  }
+  ROS_INFO("d");
+
+  /*
   tf::Transform relative_pose = toBulletTransform(*pose);
 
   InteractiveMarker marker;
@@ -292,6 +335,22 @@ void WorkspaceEditor::endEffectorPoseCallBack(const geometry_msgs::PoseConstPtr&
   PlanningGroupData& gc = group_map_[current_group_name_];
   setNewEndEffectorPosition(gc, new_pose, collision_aware_);
   last_ee_poses_[current_group_name_] = new_geo_pose;
+
+
+  if (gc.good_ik_solution_)
+  {
+    planToEndEffectorState(gc, true, true);
+    filterPlannerTrajectory(gc, true, true);
+
+    if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
+    {
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+      goal.trajectory.header.stamp = ros::Time::now();
+      gc.arm_controller_->sendGoal(goal, boost::bind(&WorkspaceEditor::controllerDoneCallback, this, _1, _2));
+    }
+  }
+  */
 
 }
 
@@ -539,6 +598,7 @@ void WorkspaceEditor::moveEndEffectorMarkers(double vx, double vy, double vz, do
 
 void WorkspaceEditor::setNewEndEffectorPosition(PlanningGroupData& gc, tf::Transform& cur, bool coll_aware)
 {
+  //ROS_INFO_STREAM(gc.ik_link_name_);
   if (!gc.end_state_->updateKinematicStateWithLinkAt(gc.ik_link_name_, cur))
   {
     ROS_INFO_STREAM(__FUNCTION__ << " Problem");
@@ -690,6 +750,7 @@ bool WorkspaceEditor::planToEndEffectorState(PlanningGroupData& gc, bool show, b
   motion_plan_request.allowed_planning_time = ros::Duration(5.0);
   if (!constrain_rp_)
   {
+    ROS_INFO("1");
     const KinematicState::JointStateGroup* jsg = gc.end_state_->getJointStateGroup(gc.name_);
     motion_plan_request.goal_constraints.joint_constraints.resize(jsg->getJointNames().size());
     vector<double> joint_values;
@@ -701,6 +762,7 @@ bool WorkspaceEditor::planToEndEffectorState(PlanningGroupData& gc, bool show, b
       motion_plan_request.goal_constraints.joint_constraints[i].tolerance_above = 0.01;
       motion_plan_request.goal_constraints.joint_constraints[i].tolerance_below = 0.01;
     }
+    ROS_INFO("2");
   }
   else
   {
@@ -719,8 +781,11 @@ bool WorkspaceEditor::planToEndEffectorState(PlanningGroupData& gc, bool show, b
                                             motion_plan_request.goal_constraints.orientation_constraints[0],
                                             motion_plan_request.path_constraints.orientation_constraints[0]);
   }
+
   convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
                                     motion_plan_request.start_state);
+
+  ROS_INFO("3");
   GetMotionPlan::Request plan_req;
   plan_req.motion_plan_request = motion_plan_request;
   GetMotionPlan::Response plan_res;
@@ -732,6 +797,7 @@ bool WorkspaceEditor::planToEndEffectorState(PlanningGroupData& gc, bool show, b
 
   if (gc.trajectory_data_map_.find("planner") != gc.trajectory_data_map_.end())
   {
+    ROS_INFO("4");
     TrajectoryData& disp = gc.trajectory_data_map_["planner"];
     if (plan_res.error_code.val != plan_res.error_code.SUCCESS)
     {
@@ -748,10 +814,13 @@ bool WorkspaceEditor::planToEndEffectorState(PlanningGroupData& gc, bool show, b
     disp.state_ = new KinematicState(*robot_state_);
 
     vector<ArmNavigationErrorCodes> trajectory_error_codes;
+    ROS_INFO("5");
 
     cm_->isJointTrajectoryValid(*disp.state_, disp.joint_trajectory_, last_motion_plan_request_.goal_constraints,
                                 last_motion_plan_request_.path_constraints, disp.trajectory_error_code_,
                                 trajectory_error_codes, false);
+    ROS_INFO("5.1");
+
 
     if (disp.trajectory_error_code_.val != disp.trajectory_error_code_.SUCCESS)
     {
@@ -763,10 +832,12 @@ bool WorkspaceEditor::planToEndEffectorState(PlanningGroupData& gc, bool show, b
     }
 
     last_motion_plan_request_ = motion_plan_request;
+    ROS_INFO("6");
     return true;
   }
   else
   {
+    ROS_INFO("7");
     return false;
   }
 }

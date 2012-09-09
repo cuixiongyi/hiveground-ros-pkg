@@ -31,44 +31,9 @@ Interactive\ Marker.Update\ Topic=/prw_visualizer_controls/update
 PCV\ Marker.Enabled=1
 PCV\ Marker.Marker\ Topic=/prw_workspace_editor
 PCV\ Marker.Queue\ Size=100
-PCV\ Marker.arm=1
-PCV\ Marker.filter_trajectory=1
-PCV\ Marker.object_0_pole=1
-PCV\ Marker.object_1_box=1
-PCV\ Marker.object_2_sphere=1
-PCV\ Marker.planner_trajectory=1
-PointCloud2..AxisColorAutocompute\ Value\ Bounds=1
-PointCloud2..AxisColorAxis=2
-PointCloud2..AxisColorMax\ Value=10
-PointCloud2..AxisColorMin\ Value=-10
-PointCloud2..AxisColorUse\ Fixed\ Frame=1
-PointCloud2..FlatColorColorB=1
-PointCloud2..FlatColorColorG=1
-PointCloud2..FlatColorColorR=1
-PointCloud2..IntensityAutocompute\ Intensity\ Bounds=1
-PointCloud2..IntensityChannel\ Name=intensity
-PointCloud2..IntensityMax\ ColorB=1
-PointCloud2..IntensityMax\ ColorG=1
-PointCloud2..IntensityMax\ ColorR=1
-PointCloud2..IntensityMax\ Intensity=4096
-PointCloud2..IntensityMin\ ColorB=0
-PointCloud2..IntensityMin\ ColorG=0
-PointCloud2..IntensityMin\ ColorR=0
-PointCloud2..IntensityMin\ Intensity=0
-PointCloud2..IntensityUse\ full\ RGB\ spectrum=0
-PointCloud2.Alpha=1
-PointCloud2.Billboard\ Size=0.01
-PointCloud2.Color\ Transformer=RGB8
-PointCloud2.Decay\ Time=0
-PointCloud2.Enabled=1
-PointCloud2.Position\ Transformer=XYZ
-PointCloud2.Queue\ Size=10
-PointCloud2.Selectable=1
-PointCloud2.Style=1
-PointCloud2.Topic=/prw_object_tracking/cloud_output
-Property\ Grid\ Splitter=882,84
-Property\ Grid\ State=expanded=.Global Options,World.Enabled,Interactive Marker.Enabled,PCV Marker.Enabled,PCV Marker.Status,PointCloud2.Enabled;splitterratio=0.5
-QMainWindow=000000ff00000000fd00000003000000000000011d00000418fc0200000002fb000000100044006900730070006c006100790073010000003400000418000000fa00fffffffb0000000c00430061006d00650072006102000004c10000004a0000028f0000023f000000010000013100000418fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000034000001730000006d00fffffffb0000000a0056006900650077007301000001ad000001ab000000c500fffffffb0000001200530065006c0065006300740069006f006e010000035e000000ee0000006d00ffffff000000030000077e0000003efc0100000001fb0000000800540069006d006501000000000000077e0000024500ffffff000005240000041800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+Property\ Grid\ Splitter=913,84
+Property\ Grid\ State=expanded=.Global Options,World.Enabled,Interactive Marker.Enabled,Interactive Marker.Status,PCV Marker.Enabled;splitterratio=0.5
+QMainWindow=000000ff00000000fd00000003000000000000022d00000437fc0200000002fb000000100044006900730070006c006100790073010000001d00000437000000ee00fffffffb0000000c00430061006d00650072006102000004c10000004a0000028f0000023f000000010000013100000437fc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d0000017e0000006700fffffffb0000000a0056006900650077007301000001a1000001b9000000bb00fffffffb0000001200530065006c0065006300740069006f006e0100000360000000f40000006700ffffff00000003000007800000003efc0100000001fb0000000800540069006d0065010000000000000780000002bf00ffffff000004160000043700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 Robot\:\ RobotModel\ Link\ base_linkAlpha=1
 Robot\:\ RobotModel\ Link\ base_linkEnabled=1
 Robot\:\ RobotModel\ Link\ base_linkShow\ Axes=0
@@ -129,9 +94,6 @@ Name=Interactive Marker
 [Display5]
 ClassName=rviz::MarkerDisplay
 Name=PCV Marker
-[Display6]
-ClassName=rviz::PointCloud2Display
-Name=PointCloud2
 [Views]
 0Name=001
 [Views/0]
@@ -139,7 +101,7 @@ Config=1.1498 5.67358 4.24545 0.463816 0.675617 -0.000257993
 Target=<Fixed Frame>
 Type=rviz::OrbitViewController
 [Window]
-Height=1168
-Width=1918
+Height=1176
+Width=1920
 X=1922
 Y=-28

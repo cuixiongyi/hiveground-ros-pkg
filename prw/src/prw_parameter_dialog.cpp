@@ -1,5 +1,6 @@
 #include <prw/prw.h>
 
+/*
 void ParameterDialog::setup()
 {
   QGroupBox* groupBox = new QGroupBox(this);
@@ -15,3 +16,4 @@ void ParameterDialog::setup()
   boxLayout->addWidget(groupBox);
   setLayout(boxLayout);
 }
+*/
