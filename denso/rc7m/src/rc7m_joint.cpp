@@ -63,6 +63,8 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/position_offset", position_offset_));
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/velocity_limit", velocity_limit_));
 
+  ROS_INFO("velocity_limit_ %f", velocity_limit_);
+
   //set position according to limit
   if(lower_limit_ > 0)
     position_ = desired_position_ = last_commanded_position_ = lower_limit_;

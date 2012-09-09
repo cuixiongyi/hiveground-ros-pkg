@@ -505,10 +505,7 @@ void RC7MController::control2()
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
-
-        //command[i] = (*it)->interpolate(1.0 / rate_);
-      //elses
-        command[i] = (*it)->desired_position_;
+      command[i] = (*it)->interpolate(1.0 / rate_);
 
       //check real robot <-> URDF joint offset
       if ((*it)->position_offset_ != 0.0)
@@ -757,7 +754,7 @@ BCAP_HRESULT RC7MController::getJointFeedback(bool set_desired_position_)
 
 void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
 {
-  ROS_INFO_STREAM(name_  << __FUNCTION__);
+  //ROS_INFO_STREAM(name_  << __FUNCTION__);
   action_goal_ = goal;
 
   //get trajectory
@@ -789,7 +786,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   //check points
   if(is_preempted_)
   {
-    ROS_ERROR("Remove first point");
+    //ROS_ERROR("Remove first point");
     trajectory.points.erase(trajectory.points.begin());
     is_preempted_ = false;
   }
@@ -805,7 +802,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
 
 
 
-  ROS_INFO("Got trajectory with %d points", (int)trajectory.points.size());
+  //ROS_INFO("Got trajectory with %d points", (int)trajectory.points.size());
   /*
   for(int i = 0; i < trajectory.points.size(); i++)
   {
@@ -813,8 +810,9 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
     //ROS_INFO_STREAM(point);
   }
   */
-  ROS_INFO_STREAM(trajectory.points[0]);
-  ROS_INFO_STREAM(trajectory.points[trajectory.points.size()-1]);
+  //ROS_INFO_STREAM(trajectory.points[0]);
+  //ROS_INFO_STREAM(trajectory.points[1]);
+  //ROS_INFO_STREAM(trajectory.points[trajectory.points.size()-1]);
 
 
 
@@ -843,7 +841,8 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   {
     if(action_server_->isPreemptRequested() || !ros::ok())
     {
-      ROS_INFO("Preempted!!!");
+      //ROS_INFO("Preempted!!!");
+      //ROS_INFO_STREAM(trajectory.points[i]);
       is_preempted_ = true;
       process_trajectory_ = false;
       action_server_->setPreempted();
@@ -866,7 +865,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
 
     while ((ros::Time::now() < end_time) && (!action_server_->isPreemptRequested()))
     {
-      ros::Duration(0.001).sleep();
+      ros::Duration(0.0001).sleep();
     }
 
   }

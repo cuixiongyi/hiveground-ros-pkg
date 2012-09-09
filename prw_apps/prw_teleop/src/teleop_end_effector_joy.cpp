@@ -12,7 +12,7 @@ class TeleopEndeffectorJoy
 {
   enum ControlType {
     AXIS,
-    BUTTONS
+    BUTTON
   };
 
 public:
@@ -28,8 +28,33 @@ public:
     nh_private_.param("rotate_rate", rotate_rate_, 0.01);
     ROS_INFO("End effector rotating rate is %f rad/repeating rate", rotate_rate_);
 
-    nh_private_.param("dead_man_button", dead_man_button_, 4);
-    ROS_INFO("Dead man button is %d", dead_man_button_);
+
+    std::string dead_man_button_value;
+    nh_private_.getParam("dead_man_button", dead_man_button_value);
+    if(dead_man_button_value.empty())
+    {
+      ROS_FATAL("No dead man button assignment");
+      ROS_BREAK();
+    }
+
+    dead_man_button_threshold_ = 0;
+    nh_private_.param("dead_man_button_threshold", dead_man_button_threshold_, 0.2);
+    ROS_INFO("Dead man button threshold is %f", dead_man_button_threshold_);
+
+    if(dead_man_button_value.at(0) == 'A')
+    {
+      dead_man_button_type_ = AXIS;
+      sscanf(dead_man_button_value.c_str(), "A_%d", &dead_man_button_);
+      ROS_INFO("Dead man button is axis %d", dead_man_button_);
+    }
+    else
+    {
+      dead_man_button_type_ = BUTTON;
+      sscanf(dead_man_button_value.c_str(), "B_%d", &dead_man_button_);
+      ROS_INFO("Dead man button is button %d", dead_man_button_);
+    }
+
+
 
     for(int i = 0; i < 6; i++)
     {
@@ -52,7 +77,7 @@ public:
       }
       else if(value.at(0) == 'B')
       {
-        control_type_[i] = BUTTONS;
+        control_type_[i] = BUTTON;
         sscanf(value.c_str(), "B_%d_%d", &button_map_[i].first, &button_map_[i].second);
         ROS_INFO("Mapped axis %d to buttons %d and %d flipped %d", i, button_map_[i].first, button_map_[i].second, axis_flip[i]);
       }
@@ -75,17 +100,39 @@ public:
     //{
       //ROS_WARN_THROTTLE(1, "need a joy stick with 6 axes for controlling all joints");
     //}
-    if(dead_man_button_ >= (int)joy->buttons.size())
+
+    if(dead_man_button_type_ == BUTTON)
     {
-      ROS_ERROR_THROTTLE(1.0, "Not enough buttons on the joy stick");
-      return;
+      if(dead_man_button_ >= (int)joy->buttons.size())
+      {
+        ROS_ERROR_THROTTLE(1.0, "Not enough button on the joy stick");
+        return;
+      }
+
+      if(joy->buttons[dead_man_button_] != 1)
+      {
+        ROS_WARN_THROTTLE(1.0, "Press dead man button (%d) to enable", dead_man_button_);
+        return;
+      }
+    }
+    else
+    {
+      if(dead_man_button_ >= (int)joy->axes.size())
+      {
+        ROS_ERROR_THROTTLE(1.0, "Not enough axis on the joy stick");
+        return;
+      }
+
+      double pressed_value  = fabs(fabs(joy->axes[dead_man_button_]) - 0.5);
+      //ROS_INFO("%f", pressed_value);
+      if(pressed_value > dead_man_button_threshold_ )
+      {
+        ROS_WARN_THROTTLE(1.0, "Press dead man axis (%d) halfway to enable", dead_man_button_);
+        return;
+      }
     }
 
-    if(joy->buttons[dead_man_button_] != 1)
-    {
-      ROS_WARN_THROTTLE(1.0, "Press dead man button (%d) to enable", dead_man_button_);
-      return;
-    }
+
     bool updated = false;
     for(int i = 0; i < 6; i++)
     {
@@ -105,7 +152,7 @@ public:
           results_[i] = 0;
         }
       }
-      else if(control_type_[i] == BUTTONS)
+      else if(control_type_[i] == BUTTON)
       {
         //ROS_INFO("%d %d %d %d %d", i, button_map_[i].first, button_map_[i].second, joy->buttons[button_map_[i].first], joy->buttons[button_map_[i].second]);
         if(joy->buttons[button_map_[i].first])
@@ -154,6 +201,8 @@ private:
   double move_rate_;
   double rotate_rate_;
   int dead_man_button_;
+  ControlType dead_man_button_type_;
+  double dead_man_button_threshold_;
 
   ControlType control_type_[6];
   bool axis_flip[6];

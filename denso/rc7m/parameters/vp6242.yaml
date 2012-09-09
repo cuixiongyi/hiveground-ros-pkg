@@ -7,7 +7,7 @@ joints: {
     upper_limit: 2.792526804,
     lower_limit: -2.792526804,
     position_offset: 0.0, #for ROS joint state
-    velocity_limit: 3.0
+    velocity_limit: 1.0
   },
   J2: {
     #RC7M software limit -120 / 120
@@ -15,7 +15,7 @@ joints: {
     upper_limit: 2.094395103,
     lower_limit: -2.094395103,
     position_offset: 0.0,  #for ROS joint state
-    velocity_limit: 3.0  
+    velocity_limit: 1.0  
   },
   J3: {
     #RC7M software limit  19 / 160
@@ -25,7 +25,7 @@ joints: {
     upper_limit: 1.221730477,
     lower_limit: -1.239183769,    
     position_offset: -1.570796327, #for ROS joint state 
-    velocity_limit: 3.0
+    velocity_limit: 1.0
   },
   J4: {
     #RC7M software limit -160 / 160
@@ -33,7 +33,7 @@ joints: {
     upper_limit: 2.792526804,
     lower_limit: -2.792526804,    
     position_offset: 0.0,  #for ROS joint state
-    velocity_limit: 3.0
+    velocity_limit: 1.0
   },
   J5: {
     #RC7M software limit -120 / 120
@@ -41,7 +41,7 @@ joints: {
     upper_limit: 2.094395103,
     lower_limit: -2.094395103,
     position_offset: 0.0,  #for ROS joint state
-    velocity_limit: 3.0
+    velocity_limit: 1.0
   },
   J6: {
     #RC7M software limit -360 / 360
@@ -49,7 +49,7 @@ joints: {
     upper_limit: 6.283185308,
     lower_limit: -6.283185308,
     position_offset: 0.0,  #for ROS joint state
-    velocity_limit: 3.0
+    velocity_limit: 1.0
   }
 }
 
