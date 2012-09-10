@@ -133,10 +133,10 @@ double RC7MJoint::interpolate(double dt)
     }
 
     //is simulated?
-    if (node_->simulate_)
+    //if (node_->simulate_)
     {
       //set position according to command
-      position_ = last_commanded_position_;
+      //position_ = last_commanded_position_;
     }
 
     return command;
@@ -160,6 +160,7 @@ void RC7MJoint::setFeedbackData(double feedback)
   //compute joint velocity in unit/sec
   ros::Time t = ros::Time::now();
   velocity_ = ((position_ - last_position) * 1.0e9)/(t - last_update_).toNSec();
+  //ROS_DEBUG("%f %f %f", position_, last_position, velocity_);
 
   //save last updated time
   last_update_ = t;

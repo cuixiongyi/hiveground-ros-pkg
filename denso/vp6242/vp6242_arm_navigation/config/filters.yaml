@@ -6,5 +6,5 @@ filter_chain:
   -
     name: cubic_spline_short_cutter_smoother
     type: CubicSplineShortCutterFilterJointTrajectoryWithConstraints
-    params: {discretization: 0.008}
+    params: {discretization: 0.01}
 

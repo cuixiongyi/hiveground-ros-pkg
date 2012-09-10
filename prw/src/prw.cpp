@@ -412,7 +412,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
     case InteractiveMarkerFeedback::BUTTON_CLICK: break;
     case InteractiveMarkerFeedback::MENU_SELECT: break;
     case InteractiveMarkerFeedback::MOUSE_UP:
-
+      /*
       if(gc.good_ik_solution_)
       {
 
@@ -432,7 +432,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
         }
 
       }
-
+      */
       break;
 
     case InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -465,10 +465,18 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           //ROS_INFO_STREAM("group " << feedback->marker_name);
           setNewEndEffectorPosition(gc, cur, collision_aware_);
 
-          /*
+
           if(gc.good_ik_solution_)
           {
             planToEndEffectorState(gc, false, false);
+            if(gc.trajectory_data_map_["planner"].has_joint_trajectory_)
+            {
+              FollowJointTrajectoryGoal goal;
+              goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
+              goal.trajectory.header.stamp = ros::Time::now();
+              gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+            }
+            /*
             filterPlannerTrajectory(gc, false, false);
             if(gc.trajectory_data_map_["filter"].has_joint_trajectory_)
             {
@@ -477,8 +485,9 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
               goal.trajectory.header.stamp = ros::Time::now();
               gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
             }
+            */
           }
-          */
+
           last_tf = cur;
         }
 

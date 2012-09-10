@@ -88,13 +88,6 @@ public:
    */
   void control();
 
-
-  /**
-     * Control loop of RC7M.
-     * Execute in separated thread.
-     */
-    void control2();
-
   /**
    * Stop the controller, do any hardware shutdown needed.
    */
