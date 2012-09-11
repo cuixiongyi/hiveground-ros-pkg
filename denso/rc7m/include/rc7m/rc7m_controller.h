@@ -126,6 +126,10 @@ public:
   bool slave_mode_on_;
   bool is_busy_;
   bool is_preempted_;
+  int preempted_point_;
+  int new_start_point_;
+  trajectory_msgs::JointTrajectory last_trajectory_;
+
 
   bool is_running_;
   boost::thread control_thread_;
@@ -141,6 +145,8 @@ public:
   JointTrajectoryQueue joint_trajecgtory_queue_;
   trajectory_msgs::JointTrajectory current_joint_trajecgtory_;
   bool process_trajectory_;
+
+
 
 };
 

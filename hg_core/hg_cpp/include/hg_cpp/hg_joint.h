@@ -38,6 +38,7 @@
 #include <ros/ros.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <urdf/model.h>
+#include <boost/thread.hpp>
 
 namespace hg
 {
@@ -125,6 +126,7 @@ public:
 
   hg::Node* node_;
   std::string name_;
+  boost::recursive_mutex mutex_;
 
   hg::Controller* controller_;
   ros::Time last_update_;
@@ -135,6 +137,7 @@ public:
   double upper_limit_;
   double position_offset_;
   double velocity_limit_;
+  double acceleration_limit_;
   double position_;
   double velocity_;
   bool touched_;

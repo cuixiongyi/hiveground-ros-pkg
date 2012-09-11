@@ -40,6 +40,10 @@ PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_joint, hg_plugins::RC7MJoint, hg::Joint)
 
 using namespace hg_plugins;
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 RC7MJoint::RC7MJoint()
   : hg::Joint()
 {
@@ -64,12 +68,14 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/velocity_limit", velocity_limit_));
 
   ROS_INFO("velocity_limit_ %f", velocity_limit_);
+  acceleration_limit_ = 1.0;
 
   //set position according to limit
   if(lower_limit_ > 0)
     position_ = desired_position_ = last_commanded_position_ = lower_limit_;
   else if(upper_limit_ < 0)
     position_ = desired_position_ = last_commanded_position_ = upper_limit_;
+
 
 
   //subscribers
@@ -94,10 +100,20 @@ double RC7MJoint::interpolate(double dt)
   //if position updated
   if (touched_)
   {
+#if 1
+    mutex_.lock();
     double command = desired_position_ - last_commanded_position_;
+    mutex_.unlock();
+
+
+
+
+    //ROS_INFO_STREAM_THROTTLE(1.0, name_ << " command " << command << "last " << last_commanded_position_);
 
     //check velocity limit
     double move_limit_dt = velocity_limit_ * dt;
+
+    //double acceleration =
     if (command > move_limit_dt)
     {
       command = move_limit_dt;
@@ -111,6 +127,8 @@ double RC7MJoint::interpolate(double dt)
 
     //check position limit
     command = last_commanded_position_ + command;
+    //ROS_INFO_STREAM_THROTTLE(1.0, name_ << " command " << command);
+
     if (command > upper_limit_)
     {
       command = upper_limit_;
@@ -129,17 +147,12 @@ double RC7MJoint::interpolate(double dt)
     if (last_commanded_position_ == desired_position_)
     {
       touched_ = false; //stop the movement
-      //ROS_INFO_STREAM("reached desired position: " << desired_position_);
-    }
+      //ROS_INFO_STREAM( name_ << " reached desired position: " << desired_position_);
 
-    //is simulated?
-    //if (node_->simulate_)
-    {
-      //set position according to command
-      //position_ = last_commanded_position_;
     }
-
     return command;
+#endif
+
   }
   else
   {
@@ -160,7 +173,10 @@ void RC7MJoint::setFeedbackData(double feedback)
   //compute joint velocity in unit/sec
   ros::Time t = ros::Time::now();
   velocity_ = ((position_ - last_position) * 1.0e9)/(t - last_update_).toNSec();
-  //ROS_DEBUG("%f %f %f", position_, last_position, velocity_);
+  //if(name_ == "J1")
+  //{
+    //ROS_INFO("%6.3f %6.3f %6.3f", position_, last_position, velocity_);
+  //}
 
   //save last updated time
   last_update_ = t;
@@ -175,8 +191,10 @@ double RC7MJoint::setPosition(double position)
     return position_;
   }
 
+  mutex_.lock();
   desired_position_ = position;
   touched_ = true;
+  mutex_.unlock();
   return position;
 }
 
@@ -190,9 +208,10 @@ double RC7MJoint::setPositionRelative(double position)
     ROS_WARN_STREAM(name_ + " position out of range [" << lower_limit_ << ", " << upper_limit_ << "]");
     return position_;
   }
-
+  mutex_.lock();
   desired_position_ = temp;
   touched_ = true;
+  mutex_.unlock();
   return temp;
 }
 
