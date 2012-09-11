@@ -476,49 +476,32 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           break;
         }
 
-        if(!(last_tf == cur))
+        if (!(last_tf == cur))
         {
           setNewEndEffectorPosition(gc, cur, collision_aware_);
           last_tf = cur;
-        }
-
-
           //ROS_INFO_STREAM("group " << feedback->marker_name);
 
-
-
-        /*
-        if (gc.good_ik_solution_)
-        {
-          planToEndEffectorState(gc, false, false);
-
-          if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
+          if (gc.good_ik_solution_)
           {
-            FollowJointTrajectoryGoal goal;
-            if(gc.trajectory_data_map_["planner"].joint_trajectory_.points.size() < 5)
-            {
-              goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
-              ROS_INFO("IK only");
-            }
-            else
-            {
-              filterPlannerTrajectory(gc, false, false);
-              if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
-              {
-                goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-              }
-            }
 
-            if(!goal.trajectory.points.empty())
+            //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
+            planToEndEffectorState(gc, false, false);
+            filterPlannerTrajectory(gc, false, false);
+            //ros::Duration dt = ros::Time(ros::WallTime::now().toSec()) - startTime;
+
+            if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
             {
-              goal.trajectory.header.stamp = ros::Time::now();
+              FollowJointTrajectoryGoal goal;
+              goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+              goal.trajectory.header.stamp = ros::Time::now(); // + dt;
               gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
               arm_is_moving_ = true;
+              //ROS_INFO_STREAM("Total time " << dt);
             }
+
           }
         }
-        */
-
 
 
       }
@@ -1283,7 +1266,14 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
 
   filter_req.goal_constraints = last_motion_plan_request_.goal_constraints;
   filter_req.path_constraints = last_motion_plan_request_.path_constraints;
-  filter_req.allowed_time = ros::Duration(2.0);
+
+  if(filter_req.trajectory.points.size() < 10)
+  {
+    ROS_INFO("Short path");
+    filter_req.allowed_time = ros::Duration(0.01);
+  }
+  else
+    filter_req.allowed_time = ros::Duration(0.1);
 
 
   ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
@@ -1293,7 +1283,7 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
     gc.trajectory_data_map_["filter"].reset();
     return false;
   }
-  ROS_DEBUG_STREAM(ros::Time(ros::WallTime::now().toSec()) - startTime);
+  ROS_INFO_STREAM(ros::Time(ros::WallTime::now().toSec()) - startTime);
 
   lockScene();
 
