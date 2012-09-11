@@ -385,6 +385,7 @@ private:
 
 
   arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
+  bool arm_is_moving_;
 
 
 };

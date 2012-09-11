@@ -97,6 +97,7 @@ public:
   ros::Subscriber subscriber_joint_position_degree_;
   ros::Subscriber subscriber_joint_velocity_;
 
+  double t0, t1;
 };
 
 }

@@ -33,6 +33,7 @@
 
 #include <pluginlib/class_list_macros.h>
 #include <rc7m/rc7m_controller.h>
+#include <algorithm>
 
 PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_controller, hg_plugins::RC7MController, hg::Controller)
 
@@ -317,15 +318,17 @@ void RC7MController::control()
   double command[7];
   float command_degree[7], command_result[7];
 
+  //ROS_INFO("control() loop rate: %f", rate_);
 
   while (is_running_)
   {
-
+    ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
 #if USE_SLAVE_MODE
       command[i] = (*it)->interpolate(1.0 / rate_);
+      //command[i] = (*it)->desired_position_;
 #else
       command[i] = (*it)->desired_position_;
 #endif
@@ -349,11 +352,14 @@ void RC7MController::control()
       if (motor_on_)
       {
 #if USE_SLAVE_MODE
+
+
         hr = bcap_.bCap_RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
         if (FAILED(hr))
         {
           ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " slvMode fail!");
         }
+
 #else
         long lComp = 1; //MOVE P
         std::stringstream ss;
@@ -389,8 +395,11 @@ void RC7MController::control()
         i++;
       }
     }
-    rate.sleep();
 
+
+
+    rate.sleep();
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "slvMove Time: " << ros::Time(ros::WallTime::now().toSec()) - startTime);
 
   }
 
@@ -584,6 +593,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   trajectory_msgs::JointTrajectory trajectory = action_goal_->trajectory;
 
   control_msgs::FollowJointTrajectoryResult result;
+  static trajectory_msgs::JointTrajectoryPoint last_point;
 
   //check joint names
   for (size_t i = 0; i < trajectory.joint_names.size(); i++)
@@ -606,15 +616,6 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
     }
   }
 
-  //check points
-  if(is_preempted_)
-  {
-    //ROS_ERROR("Remove first point");
-    trajectory.points.erase(trajectory.points.begin());
-    is_preempted_ = false;
-  }
-
-
   if(trajectory.points.size() == 0)
   {
     ROS_ERROR("Trajectory empty");
@@ -623,34 +624,68 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
     return;
   }
 
+  ROS_INFO("Got trajectory with %d points", (int)trajectory.points.size());
 
-
-  //ROS_INFO("Got trajectory with %d points", (int)trajectory.points.size());
-  /*
-  for(int i = 0; i < trajectory.points.size(); i++)
-  {
-    trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
-    //ROS_INFO_STREAM(point);
-  }
-  */
-  //ROS_INFO_STREAM(trajectory.points[0]);
-  //ROS_INFO_STREAM(trajectory.points[1]);
-  //ROS_INFO_STREAM(trajectory.points[trajectory.points.size()-1]);
-
-
-
-#if 1
-  ros::Time current_time = ros::Time::now();
   ros::Time trajectory_start_time = trajectory.header.stamp;
-
-  //ROS_INFO("%6.3f %6.3f", current_time.toSec(), trajectory_start_time.toSec());
-
-  std::vector<double> last_joint_positions;
-  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-  for (it = joints_.begin(); it != joints_.end(); it++)
+  //check points
+  if (is_preempted_)
   {
-    last_joint_positions.push_back((*it)->position_);
-    //ROS_INFO_STREAM( "last position of " << (*it)->name_ << ":" << (*it)->position_);
+    //search for nearest in new trajectory due to unpredictable delay in trajectory filter
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    std::vector<double> joint_position;
+    for (it = joints_.begin(); it != joints_.end(); it++)
+    {
+      joint_position.push_back((*it)->position_);
+      ROS_INFO("J %f", (*it)->position_);
+    }
+
+    std::vector<double> sum_square_error(trajectory.points.size());
+    double error;
+    for(int i = 0; i < (int)trajectory.points.size(); i++)
+    {
+      sum_square_error[i] = 0;
+      for(int j = 0; j < joint_position.size(); j++)
+      {
+        error = trajectory.points[i].positions[j] - joint_position[j];
+        sum_square_error[i] += error * error;
+      }
+    }
+
+    int min_index = std::min_element(sum_square_error.begin(), sum_square_error.end()) - sum_square_error.begin();
+    printf("min sum_square_error: %f @ %d\n", sum_square_error[min_index], min_index);
+    printf("joint : %f6.3 %f6.3 %f6.3 %f6.3 %f6.3 %f6.3\n",
+           joint_position[0],
+           joint_position[1],
+           joint_position[2],
+           joint_position[3],
+           joint_position[4],
+           joint_position[5]);
+    printf("preempted point : %f6.3 %f6.3 %f6.3 %f6.3 %f6.3 %f6.3\n",
+           last_trajectory_.points[preempted_point_].positions[0],
+           last_trajectory_.points[preempted_point_].positions[1],
+           last_trajectory_.points[preempted_point_].positions[2],
+           last_trajectory_.points[preempted_point_].positions[3],
+           last_trajectory_.points[preempted_point_].positions[4],
+           last_trajectory_.points[preempted_point_].positions[5]);
+    printf("start point : %f6.3 %f6.3 %f6.3 %f6.3 %f6.3 %f6.3\n",
+           trajectory.points[min_index].positions[0],
+           trajectory.points[min_index].positions[1],
+           trajectory.points[min_index].positions[2],
+           trajectory.points[min_index].positions[3],
+           trajectory.points[min_index].positions[4],
+           trajectory.points[min_index].positions[5]);
+
+    //is_preempted_ = false;
+    new_start_point_ = min_index;
+    /*
+    if(new_start_point_ >= trajectory.points.size())
+      new_start_point_ = trajectory.points.size() - 1;
+    */
+    is_preempted_ = false;
+  }
+  else
+  {
+    new_start_point_ = 0;
   }
 
   //wait for start time
@@ -659,66 +694,49 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
     ros::Duration(0.001).sleep();
   }
 
+  ros::Duration skip_duration = trajectory.points[new_start_point_].time_from_start;
   bool success = true;
-  for (size_t i = 0; i < trajectory.points.size(); i++)
+  ros::Time last_time = trajectory_start_time + skip_duration;
+  for (size_t i = new_start_point_; i < trajectory.points.size(); i++)
   {
-    if(action_server_->isPreemptRequested() || !ros::ok())
-    {
-      //ROS_INFO("Preempted!!!");
-      //ROS_INFO_STREAM(trajectory.points[i]);
-      is_preempted_ = true;
-      process_trajectory_ = false;
-      action_server_->setPreempted();
-      success = false;
-      break;
-    }
-
-
-
-
-
     trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
-    std::vector<double> target_positions = point.positions;
-    ros::Time end_time = trajectory_start_time + point.time_from_start;
+    ros::Time end_time = trajectory_start_time + (point.time_from_start - skip_duration);
+    //ROS_INFO_STREAM("dt: " << (end_time - last_time).toSec());
+    //last_time = end_time;
     std::vector<boost::shared_ptr<hg::Joint> >::iterator it = joints_.begin();
-    for (size_t k = 0; k < target_positions.size(); k++, it++)
+    for (size_t k = 0; k < point.positions.size(); k++, it++)
     {
-      (*it)->setPosition(target_positions[k]);
+      //while((*it)->touched_) { ros::Duration(0.0001).sleep(); }
+      (*it)->setPosition(point.positions[k]);
     }
+    last_point = point;
 
     while ((ros::Time::now() < end_time) && (!action_server_->isPreemptRequested()))
     {
       ros::Duration(0.0001).sleep();
     }
 
-  }
-#else
-  queue_mutex_.lock();
-  joint_trajecgtory_queue_.push(trajectory);
-  queue_mutex_.unlock();
-
-  bool queue_empty = false;
-  bool success = true;
-  do
-  {
-    queue_mutex_.lock();
-    queue_empty = joint_trajecgtory_queue_.empty();
-    queue_mutex_.unlock();
-
-
-    if(action_server_->isPreemptRequested() || !ros::ok())
+    if (action_server_->isPreemptRequested() || !ros::ok())
     {
+      //ROS_INFO("Preempted!!! @ point %d %f", (int)i, last_point.positions[0]);
+      printf("Preempted!! @ point %d : %f6.3 %f6.3 %f6.3 %f6.3 %f6.3 %f6.3\n", (int) i,
+             last_point.positions[0],
+             last_point.positions[1],
+             last_point.positions[2],
+             last_point.positions[3],
+             last_point.positions[4],
+             last_point.positions[5]);
+      is_preempted_ = true;
+      preempted_point_ = i;
       process_trajectory_ = false;
       action_server_->setPreempted();
       success = false;
       break;
     }
+  }
 
-    ros::Duration(0.01).sleep();
+  last_trajectory_ = trajectory;
 
-
-  }while(!queue_empty || process_trajectory_);
-#endif
 
   if(success)
   {

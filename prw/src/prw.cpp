@@ -198,7 +198,11 @@ bool PRW::initialize()
 void PRW::on_bt_go_clicked()
 {
   //qDebug() << __FUNCTION__;
-
+  if(arm_is_moving_)
+  {
+    ROS_WARN("Arm is moving!");
+    return;
+  }
 
   geometry_msgs::Pose pose;
   tf::Quaternion quat;
@@ -210,6 +214,7 @@ void PRW::on_bt_go_clicked()
   pose.orientation.y = quat.y();
   pose.orientation.z = quat.z();
   pose.orientation.w = quat.w();
+
 
 
   interactive_marker_server_->setPose("arm", pose);
@@ -224,7 +229,7 @@ void PRW::on_bt_go_clicked()
   if(gc.good_ik_solution_)
   {
     planToEndEffectorState(gc, false, false);
-    filterPlannerTrajectory(gc, true, false);
+    filterPlannerTrajectory(gc, false, false);
 
 
     if(gc.trajectory_data_map_["filter"].has_joint_trajectory_)
@@ -233,6 +238,7 @@ void PRW::on_bt_go_clicked()
       goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
       goal.trajectory.header.stamp = ros::Time::now();
       gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+      arm_is_moving_ = true;
     }
 
   }
@@ -412,27 +418,36 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
     case InteractiveMarkerFeedback::BUTTON_CLICK: break;
     case InteractiveMarkerFeedback::MENU_SELECT: break;
     case InteractiveMarkerFeedback::MOUSE_UP:
-      /*
+
+      if(arm_is_moving_)
+      {
+        ROS_WARN("Arm is moving!");
+        break;
+      }
+
+
       if(gc.good_ik_solution_)
       {
 
 
-
+        //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
         planToEndEffectorState(gc, false, false);
         filterPlannerTrajectory(gc, false, false);
-
+        //ros::Duration dt = ros::Time(ros::WallTime::now().toSec()) - startTime;
 
 
         if(gc.trajectory_data_map_["filter"].has_joint_trajectory_)
         {
           FollowJointTrajectoryGoal goal;
           goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-          goal.trajectory.header.stamp = ros::Time::now();
+          goal.trajectory.header.stamp = ros::Time::now();// + dt;
           gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+          arm_is_moving_ = true;
+          //ROS_INFO_STREAM("Total time " << dt);
         }
 
       }
-      */
+
       break;
 
     case InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -453,43 +468,57 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
       if(is_ik_control_active_ && isGroupName(feedback->marker_name))
       {
         tf::Transform cur = toBulletTransform(feedback->pose);
-
         static tf::Transform last_tf = cur;
 
-        if(last_tf == cur)
+        if(arm_is_moving_)
         {
-
+          interactive_marker_server_->setPose(feedback->marker_name, toGeometryPose(last_tf));
+          break;
         }
-        else
+
+        if(!(last_tf == cur))
         {
-          //ROS_INFO_STREAM("group " << feedback->marker_name);
           setNewEndEffectorPosition(gc, cur, collision_aware_);
-
-
-          if(gc.good_ik_solution_)
-          {
-            planToEndEffectorState(gc, false, false);
-            if(gc.trajectory_data_map_["planner"].has_joint_trajectory_)
-            {
-              FollowJointTrajectoryGoal goal;
-              goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
-              goal.trajectory.header.stamp = ros::Time::now();
-              gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-            }
-            /*
-            filterPlannerTrajectory(gc, false, false);
-            if(gc.trajectory_data_map_["filter"].has_joint_trajectory_)
-            {
-              FollowJointTrajectoryGoal goal;
-              goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-              goal.trajectory.header.stamp = ros::Time::now();
-              gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-            }
-            */
-          }
-
           last_tf = cur;
         }
+
+
+          //ROS_INFO_STREAM("group " << feedback->marker_name);
+
+
+
+        /*
+        if (gc.good_ik_solution_)
+        {
+          planToEndEffectorState(gc, false, false);
+
+          if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
+          {
+            FollowJointTrajectoryGoal goal;
+            if(gc.trajectory_data_map_["planner"].joint_trajectory_.points.size() < 5)
+            {
+              goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
+              ROS_INFO("IK only");
+            }
+            else
+            {
+              filterPlannerTrajectory(gc, false, false);
+              if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
+              {
+                goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+              }
+            }
+
+            if(!goal.trajectory.points.empty())
+            {
+              goal.trajectory.header.stamp = ros::Time::now();
+              gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+              arm_is_moving_ = true;
+            }
+          }
+        }
+        */
+
 
 
       }
@@ -1264,7 +1293,7 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
     gc.trajectory_data_map_["filter"].reset();
     return false;
   }
-  ROS_INFO_STREAM(ros::Time(ros::WallTime::now().toSec()) - startTime);
+  ROS_DEBUG_STREAM(ros::Time(ros::WallTime::now().toSec()) - startTime);
 
   lockScene();
 
@@ -1308,4 +1337,5 @@ void PRW::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                  const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
   ROS_INFO("trajectory done");
+  arm_is_moving_ = false;
 }
