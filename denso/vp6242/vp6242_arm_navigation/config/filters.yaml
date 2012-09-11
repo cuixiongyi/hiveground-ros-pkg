@@ -8,3 +8,4 @@ filter_chain:
     type: CubicSplineShortCutterFilterJointTrajectoryWithConstraints
     params: {discretization: 0.001}
 
+
