@@ -136,6 +136,7 @@ public:
   double lower_limit_;
   double upper_limit_;
   double position_offset_;
+  double parameter_velocity_limit_;
   double velocity_limit_;
   double acceleration_limit_;
   double position_;

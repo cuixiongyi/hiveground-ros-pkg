@@ -53,6 +53,7 @@ static const string PLANNER_SERVICE_NAME = "/ompl_planning/plan_kinematic_path";
 static const string TRAJECTORY_FILTER_SERVICE_NAME = "/trajectory_filter_server/filter_trajectory_with_constraints";
 
 #define DEG2RAD(x) (((x)*M_PI)/180.0)
+#define RAD2DEG(x) (((x)*180.0)/M_PI)
 
 PRW::PRW(QWidget *parent, Qt::WFlags flags) :
     QMainWindow(parent, flags),
@@ -101,9 +102,11 @@ bool PRW::initialize()
   constrain_rp_ = false;
   is_joint_control_active_ = false;
   is_ik_control_active_ = true;
+  arm_is_moving_ = false;
 
   //subscriber
-  joint_state_subscriber_ = nh_.subscribe("joint_states", 25, &PRW::jointStateCallback, this);
+  joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &PRW::jointStateCallback, this);
+  gesture_subscriber_ = nh_.subscribe("kinect_gesture", 1, &PRW::gestureCallback, this);
 
   //publisher
   marker_publisher_ = nh_.advertise<Marker>("prw_workspace_editor", 128);
@@ -186,6 +189,8 @@ bool PRW::initialize()
     ros::Duration(1.0).sleep();
   }
 
+  //initialize menu
+  makeMenu();
 
   selectPlanningGroup(0);
   solveIKForEndEffectorPose(*getPlanningGroup(0));
@@ -206,44 +211,76 @@ void PRW::on_bt_go_clicked()
 
   geometry_msgs::Pose pose;
   tf::Quaternion quat;
-  quat.setRPY( DEG2RAD(ui.sb_roll->value()), DEG2RAD(ui.sb_pitch->value()), DEG2RAD(ui.sb_yaw->value()));
-  pose.position.x = ui.sb_move_x->value();
-  pose.position.y = ui.sb_move_y->value();
-  pose.position.z = ui.sb_move_z->value();
-  pose.orientation.x = quat.x();
-  pose.orientation.y = quat.y();
-  pose.orientation.z = quat.z();
-  pose.orientation.w = quat.w();
-
-
-
-  interactive_marker_server_->setPose("arm", pose);
-  interactive_marker_server_->applyChanges();
+  {
+    boost::recursive_mutex::scoped_lock lock(ui_mutex_);
+    quat.setRPY( DEG2RAD(ui.sb_roll->value()), DEG2RAD(ui.sb_pitch->value()), DEG2RAD(ui.sb_yaw->value()));
+    pose.position.x = ui.sb_move_x->value();
+    pose.position.y = ui.sb_move_y->value();
+    pose.position.z = ui.sb_move_z->value();
+    pose.orientation.x = quat.x();
+    pose.orientation.y = quat.y();
+    pose.orientation.z = quat.z();
+    pose.orientation.w = quat.w();
+  }
 
   PlanningGroupData& gc = group_data_map_[current_group_name_];
   tf::Transform cur = toBulletTransform(pose);
   setNewEndEffectorPosition(gc, cur, collision_aware_);
-  //last_ee_poses_[current_group_name_] = pose;
+
+
 
 
   if(gc.good_ik_solution_)
   {
+    interactive_marker_server_->setPose(current_group_name_, pose);
+    interactive_marker_server_->applyChanges();
+
+    //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
     planToEndEffectorState(gc, false, false);
-    filterPlannerTrajectory(gc, false, false);
 
-
-    if(gc.trajectory_data_map_["filter"].has_joint_trajectory_)
+    if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
     {
-      control_msgs::FollowJointTrajectoryGoal goal;
-      goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-      goal.trajectory.header.stamp = ros::Time::now();
+      FollowJointTrajectoryGoal goal;
+      goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
+      trajectory_msgs::JointTrajectoryPoint last = goal.trajectory.points.back();
+      goal.trajectory.points.clear();
+      goal.trajectory.points.push_back(last);
+      goal.trajectory.header.stamp = ros::Time::now(); // + dt;
       gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
       arm_is_moving_ = true;
+      //ROS_INFO_STREAM("Total time " << dt);
     }
 
+
+
+
+
+  }
+  else
+  {
+    double ryp[3];
+    tf::Transform good_state = gc.last_good_state_;
+    tf::Matrix3x3(good_state.getRotation()).getRPY(ryp[0], ryp[1], ryp[2]);
+    bool checked = ui.cb_real_time_update->isChecked();
+    if(checked)
+    {
+      ui.cb_real_time_update->setChecked(false);
+    }
+
+    ui.sb_move_x->setValue(good_state.getOrigin().x());
+    ui.sb_move_y->setValue(good_state.getOrigin().y());
+    ui.sb_move_z->setValue(good_state.getOrigin().z());
+    ui.sb_roll->setValue(RAD2DEG(ryp[0]));
+    ui.sb_pitch->setValue(RAD2DEG(ryp[1]));
+    ui.sb_yaw->setValue(RAD2DEG(ryp[2]));
+
+
+
+    ui.cb_real_time_update->setChecked(checked);
+    resetToLastGoodState(gc);
+    interactive_marker_server_->applyChanges();
   }
 
-  //qDebug() << __FUNCTION__;
 }
 
 void PRW::on_bt_reset_clicked()
@@ -261,7 +298,7 @@ void PRW::on_bt_reset_clicked()
 
 void PRW::endEffectorSlideUpdate()
 {
-  //qDebug() << __FUNCTION__;
+  boost::recursive_mutex::scoped_lock lock(ui_mutex_);
   ui.sb_move_x->setValue(ui.hs_move_x->value() * 0.001 * ui.sb_move_x->maximum());
   ui.sb_move_y->setValue(ui.hs_move_y->value() * 0.001 * ui.sb_move_y->maximum());
   ui.sb_move_z->setValue(ui.hs_move_z->value() * 0.001 * ui.sb_move_z->maximum());
@@ -274,7 +311,7 @@ void PRW::endEffectorSlideUpdate()
 
 void PRW::endEffectorValueUpdate()
 {
-  //qDebug() << __FUNCTION__;
+  boost::recursive_mutex::scoped_lock lock(ui_mutex_);
   ui.hs_move_x->setValue(ui.sb_move_x->value() / ui.sb_move_x->maximum() * 1000);
   ui.hs_move_y->setValue(ui.sb_move_y->value() / ui.sb_move_y->maximum() * 1000);
   ui.hs_move_z->setValue(ui.sb_move_z->value() / ui.sb_move_z->maximum() * 1000);
@@ -336,7 +373,7 @@ void PRW::closeEvent(QCloseEvent *event)
   event->accept();
 }
 
-void PRW::jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state)
+void PRW::jointStateCallback(const sensor_msgs::JointStateConstPtr& message)
 {
   if (robot_state_ == NULL)
     return;
@@ -345,20 +382,20 @@ void PRW::jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state)
   std::map<std::string, double> joint_velocity_map;
 
   //message already been validated in kmsm
-  if (joint_state->velocity.size() == joint_state->position.size())
+  if (message->velocity.size() == message->position.size())
   {
-    for (unsigned int i = 0; i < joint_state->position.size(); ++i)
+    for (unsigned int i = 0; i < message->position.size(); ++i)
     {
-      joint_state_map[joint_state->name[i]] = joint_state->position[i];
-      joint_velocity_map[joint_state->name[i]] = joint_state->velocity[i];
+      joint_state_map[message->name[i]] = message->position[i];
+      joint_velocity_map[message->name[i]] = message->velocity[i];
     }
   }
   else
   {
-    for (unsigned int i = 0; i < joint_state->position.size(); ++i)
+    for (unsigned int i = 0; i < message->position.size(); ++i)
     {
-      joint_state_map[joint_state->name[i]] = joint_state->position[i];
-      joint_velocity_map[joint_state->name[i]] = 0.0;
+      joint_state_map[message->name[i]] = message->position[i];
+      joint_velocity_map[message->name[i]] = 0.0;
     }
   }
 
@@ -408,6 +445,107 @@ void PRW::jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state)
   robot_state_->getKinematicStateValues(robot_state_joint_values_);
 }
 
+void PRW::gestureCallback(const std_msgs::StringConstPtr& message)
+{
+  if(ui.cb_enable_gesture->isChecked())
+  {
+    QString gesture_string = message->data.c_str();
+    QStringList gesture_list = gesture_string.split("_");
+    Q_FOREACH(QString gesture, gesture_list)
+    {
+      //ROS_INFO_STREAM(gesture.toStdString());
+      if(gesture.contains("MoveThreeAxis"))
+      {
+        QStringList move_list = gesture.split(":");
+        //qDebug() << move_list;
+        if(move_list.size() == 3)
+        {
+          boost::recursive_mutex::scoped_lock lock(ui_mutex_);
+
+          /*
+          //Right hand
+          if(move_list[1].indexOf("X") != -1)
+          {
+
+          }
+          if(move_list[1].indexOf("Y") != -1)
+          {
+
+          }
+          if(move_list[1].indexOf("Z") != -1)
+          {
+
+          }
+          */
+          /*
+          if(!move_list[1].isEmpty())
+          {
+            ROS_WARN_THROTTLE(1.0, "put right hand in center position");
+            return;
+          }
+          */
+
+
+          if(move_list[1] != move_list[2])
+          {
+            ROS_WARN_THROTTLE(1.0, "both hands need to be synchronized");
+            return;
+          }
+
+
+          //Left hand
+          int index;
+          double value;
+          if((index = move_list[2].indexOf("X")) != -1)
+          {
+            value = ui.sb_move_y->value();
+            value += (move_list[2].at(index-1) == '+') ? 0.001 : -0.001;
+            ui.sb_move_y->setValue(value);
+          }
+          if((index = move_list[2].indexOf("Y")) != -1)
+          {
+            value = ui.sb_move_z->value();
+            value += (move_list[2].at(index - 1) == '+') ? 0.001 : -0.001;
+            ui.sb_move_z->setValue(value);
+          }
+          if((index = move_list[2].indexOf("Z")) != -1)
+          {
+            value = ui.sb_move_x->value();
+            value += (move_list[2].at(index - 1) == '+') ? 0.001 : -0.001;
+            ui.sb_move_x->setValue(value);
+          }
+
+          /*
+          //Left hand
+          if(move_list[2].indexOf("X") != -1)
+          {
+
+          }
+          if(move_list[2].indexOf("Y") != -1)
+          {
+
+          }
+          if(move_list[2].indexOf("Z") != -1)
+          {
+
+          }
+          */
+
+        }
+        //ROS_INFO_STREAM("Move axis: " << move_list);
+
+
+
+
+      }
+
+    }
+
+
+
+    //ROS_INFO_STREAM(1.0, gesture->data);
+  }
+}
 
 void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
@@ -418,6 +556,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
     case InteractiveMarkerFeedback::BUTTON_CLICK: break;
     case InteractiveMarkerFeedback::MENU_SELECT: break;
     case InteractiveMarkerFeedback::MOUSE_UP:
+    {
 
       if(arm_is_moving_)
       {
@@ -425,11 +564,10 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
         break;
       }
 
-
+      tf::Transform cur = toBulletTransform(feedback->pose);
+      setNewEndEffectorPosition(gc, cur, collision_aware_);
       if(gc.good_ik_solution_)
       {
-
-
         //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
         planToEndEffectorState(gc, false, false);
         filterPlannerTrajectory(gc, false, false);
@@ -445,11 +583,10 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           arm_is_moving_ = true;
           //ROS_INFO_STREAM("Total time " << dt);
         }
-
       }
 
       break;
-
+    }
     case InteractiveMarkerFeedback::MOUSE_DOWN:
       {
         std::map<std::string, SelectableMarker>::iterator it = selectable_markers_.begin();
@@ -470,26 +607,20 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
         tf::Transform cur = toBulletTransform(feedback->pose);
         static tf::Transform last_tf = cur;
 
-        if(arm_is_moving_)
+        if(!(last_tf == cur))
         {
-          interactive_marker_server_->setPose(feedback->marker_name, toGeometryPose(last_tf));
-          break;
-        }
+          if(arm_is_moving_)
+          {
+            interactive_marker_server_->setPose(feedback->marker_name, toGeometryPose(last_tf));
+            break;
+          }
 
-        if (!(last_tf == cur))
-        {
           setNewEndEffectorPosition(gc, cur, collision_aware_);
-          last_tf = cur;
-          //ROS_INFO_STREAM("group " << feedback->marker_name);
-
+          /*
           if (gc.good_ik_solution_)
           {
-
-            //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
             planToEndEffectorState(gc, false, false);
             filterPlannerTrajectory(gc, false, false);
-            //ros::Duration dt = ros::Time(ros::WallTime::now().toSec()) - startTime;
-
             if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
             {
               FollowJointTrajectoryGoal goal;
@@ -499,11 +630,11 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
               arm_is_moving_ = true;
               //ROS_INFO_STREAM("Total time " << dt);
             }
-
           }
+          */
+
+          last_tf = cur;
         }
-
-
       }
       else if (is_joint_control_active_ && feedback->marker_name.rfind("_joint_control") != string::npos)
       {
@@ -516,7 +647,41 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
 
 void PRW::processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
+  ROS_INFO("%s %d", __FUNCTION__, feedback->event_type);
+  PlanningGroupData& gc = group_data_map_[current_group_name_];
+  switch (feedback->event_type)
+  {
+    case InteractiveMarkerFeedback::BUTTON_CLICK: break;
+    case InteractiveMarkerFeedback::MENU_SELECT:
+    {
+      MenuHandler::EntryHandle handle;
+      ROS_INFO_STREAM("Selected " << feedback->marker_name);
+      if(is_ik_control_active_ && isGroupName(feedback->marker_name))
+      {
+        handle = feedback->menu_entry_id;
+        if(handle == menu_ee_last_good_state_)
+        {
+          ROS_INFO_STREAM("Set group " << current_group_name_ << " to last good state");
+          resetToLastGoodState(gc);
+        }
+        else if(handle == menu_ee_start_state_)
+        {
 
+        }
+      }
+
+
+
+
+
+
+      break;
+    }
+    case InteractiveMarkerFeedback::MOUSE_UP: break;
+    case InteractiveMarkerFeedback::MOUSE_DOWN: break;
+    case InteractiveMarkerFeedback::POSE_UPDATE: break;
+  }
+  interactive_marker_server_->applyChanges();
 }
 
 void PRW::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -783,9 +948,11 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
   marker.controls.push_back(control3);
 
   interactive_marker_server_->insert(marker, process_ik_controller_feedback_ptr_);
-
+  menu_handler_map_["End Effector"].apply(*interactive_marker_server_, marker.name);
   if(selectable)
+  {
     selectable_markers_[marker.name] = selectable_marker;
+  }
 
   if(publish)
   {
@@ -1269,7 +1436,7 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
 
   if(filter_req.trajectory.points.size() < 10)
   {
-    ROS_INFO("Short path");
+    ROS_INFO_THROTTLE(1.0, "Hacked for short path");
     filter_req.allowed_time = ros::Duration(0.01);
   }
   else
@@ -1328,4 +1495,86 @@ void PRW::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
 {
   ROS_INFO("trajectory done");
   arm_is_moving_ = false;
+}
+
+void PRW::makeMenu()
+{
+  // Allocate memory to each of the menu entry maps.
+  menu_entry_maps_["End Effector"] = MenuEntryMap();
+  menu_entry_maps_["End Effector Selection"] = MenuEntryMap();
+  menu_entry_maps_["Top Level"] = MenuEntryMap();
+  menu_entry_maps_["Collision Object"] = MenuEntryMap();
+  menu_entry_maps_["Collision Object Selection"] = MenuEntryMap();
+
+  // Allocate memory to the menu handlers
+  menu_handler_map_["End Effector"];
+  menu_handler_map_["End Effector Selection"];
+  menu_handler_map_["Top Level"];
+  menu_handler_map_["Collision Object"];
+  menu_handler_map_["Collision Object Selection"];
+
+
+  //end effector
+  menu_ee_last_good_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
+                                               "Go to last good state");
+
+
+
+  //always register as the last entry for end effector menu
+  menu_ee_start_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
+                                               "Go to start state");
+
+
+
+  //Top level
+  registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Create Pole");
+
+
+
+
+
+
+  InteractiveMarker int_marker;
+  int_marker.pose.position.z = 2.25;
+  int_marker.name = "top_level";
+  int_marker.description = "Personal Robotic Workspace Visualizer";
+  int_marker.header.frame_id = "/" + cm_->getWorldFrameId();
+
+  InteractiveMarkerControl control;
+  control.interaction_mode = InteractiveMarkerControl::MENU;
+  control.always_visible = true;
+
+  Marker labelMarker;
+  labelMarker.type = Marker::TEXT_VIEW_FACING;
+  labelMarker.text = "Command...";
+  labelMarker.color.r = 1.0;
+  labelMarker.color.g = 1.0;
+  labelMarker.color.b = 1.0;
+  labelMarker.color.a = 1.0;
+  labelMarker.scale.x = 0.5;
+  labelMarker.scale.y = 0.2;
+  labelMarker.scale.z = 0.1;
+  control.markers.push_back(labelMarker);
+
+  int_marker.controls.push_back(control);
+
+  interactive_marker_server_->insert(int_marker, process_menu_feedback_ptr_);
+  menu_handler_map_["Top Level"].apply(*interactive_marker_server_, int_marker.name);
+}
+
+MenuHandler::EntryHandle PRW::registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name)
+{
+  MenuHandler::EntryHandle toReturn = handler.insert(name, process_menu_feedback_ptr_);
+  map[toReturn] = name;
+  return toReturn;
+}
+
+void PRW::resetToLastGoodState(PlanningGroupData& gc)
+{
+  setNewEndEffectorPosition(gc, gc.last_good_state_, collision_aware_);
+  if (is_ik_control_active_)
+  {
+    selectMarker(selectable_markers_[current_group_name_ + "_selectable"],
+                 gc.end_state_->getLinkState(gc.ik_link_name_)->getGlobalLinkTransform());
+  }
 }

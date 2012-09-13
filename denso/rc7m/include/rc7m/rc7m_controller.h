@@ -98,6 +98,8 @@ public:
    */
   bool active();
 
+  bool setJointsSpeed(double speed);
+
 private:
   /**
    * Turn motor on/off.

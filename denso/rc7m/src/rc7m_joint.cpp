@@ -68,6 +68,7 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
   ROS_ASSERT(node_->node_handle_.getParam("joints/" + name_ + "/velocity_limit", velocity_limit_));
 
   ROS_INFO("velocity_limit_ %f", velocity_limit_);
+  parameter_velocity_limit_ = velocity_limit_;
   acceleration_limit_ = 1.0;
 
   //set position according to limit

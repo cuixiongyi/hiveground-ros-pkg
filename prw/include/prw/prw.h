@@ -59,6 +59,8 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 
+#include <std_msgs/String.h>
+
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 
@@ -69,6 +71,7 @@
 
 #include <qevent.h>
 #include <qdialog.h>
+#include <qmutex.h>
 
 #include "ui_prw.h"
 
@@ -264,6 +267,9 @@ public:
 
 typedef std::map<std::string, PlanningGroupData> PlanningGroupDataMap;
 
+typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryMap;
+typedef std::map<std::string, MenuEntryMap> MenuMap;
+typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
 class PRW : public QMainWindow
 {
@@ -275,7 +281,7 @@ public:
   bool initialize();
 
 private Q_SLOTS:
-  //Qt
+  //QtJointStateConstPtr
   void on_bt_go_clicked();
   void on_bt_reset_clicked();
   void on_cb_enable_teleop_clicked();
@@ -294,7 +300,8 @@ protected:
 
   //prw
   //callback
-  void jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state);
+  void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
+  void gestureCallback(const std_msgs::StringConstPtr& message);
 
   void processIKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
   void processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
@@ -323,6 +330,11 @@ protected:
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                               const control_msgs::FollowJointTrajectoryResultConstPtr& result);
 
+  void makeMenu();
+  interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name);
+
+  void resetToLastGoodState(PlanningGroupData& gc);
+
   inline bool isGroupName(const std::string& name)
   {
     return group_data_map_.find(name) != group_data_map_.end();
@@ -347,6 +359,9 @@ private:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   boost::recursive_mutex scene_mutex_;
+  boost::recursive_mutex ui_mutex_;
+
+
 
   planning_environment::CollisionModels* cm_;
   planning_models::KinematicState* robot_state_;
@@ -363,6 +378,8 @@ private:
   ros::Subscriber joint_state_subscriber_;
   std::map<std::string, double> robot_state_joint_values_;
 
+  ros::Subscriber gesture_subscriber_;
+
   //publisher
   ros::Publisher marker_publisher_;
   ros::Publisher marker_array_publisher_;
@@ -378,14 +395,23 @@ private:
   ros::ServiceClient planner_client_;
   ros::ServiceClient trajectory_filter_client_;
 
+  //arm control
   PlanningGroupDataMap group_data_map_;
   std::string current_group_name_;
 
-  std::map<std::string, SelectableMarker> selectable_markers_;
-
-
   arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
   bool arm_is_moving_;
+
+  //Menu, marker
+  std::map<std::string, SelectableMarker> selectable_markers_;
+  MenuHandlerMap menu_handler_map_;
+  MenuMap menu_entry_maps_;
+
+  //end effector menu handle
+  interactive_markers::MenuHandler::EntryHandle menu_ee_last_good_state_;
+  interactive_markers::MenuHandler::EntryHandle menu_ee_start_state_;
+
+
 
 
 };

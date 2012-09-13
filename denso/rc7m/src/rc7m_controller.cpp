@@ -522,6 +522,19 @@ bool RC7MController::active()
   return false;
 }
 
+bool RC7MController::setJointsSpeed(double speed)
+{
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  for (it = joints_.begin(); it != joints_.end(); it++)
+  {
+    if(speed <= (*it)->parameter_velocity_limit_)
+      (*it)->velocity_limit_ = speed;
+    else
+      ROS_WARN_STREAM("Cannot set " << (*it)->name_ << " velocity");
+  }
+  return true;
+}
+
 BCAP_HRESULT RC7MController::setMotor(bool on_off)
 {
   if (node_->simulate_)
@@ -630,6 +643,7 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
   //check points
   if (is_preempted_)
   {
+#if 1
     //search for nearest in new trajectory due to unpredictable delay in trajectory filter
     std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
     std::vector<double> joint_position;
@@ -677,11 +691,15 @@ void RC7MController::followJointGoalActionCallback(const control_msgs::FollowJoi
 
     //is_preempted_ = false;
     new_start_point_ = min_index;
+    is_preempted_ = false;
     /*
     if(new_start_point_ >= trajectory.points.size())
       new_start_point_ = trajectory.points.size() - 1;
     */
+#else
+    new_start_point_ = 0;
     is_preempted_ = false;
+#endif
   }
   else
   {
