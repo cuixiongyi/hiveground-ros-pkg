@@ -2,7 +2,7 @@
 #include <qdebug.h>
 
 ThreeAsixMoveGestureDetector::ThreeAsixMoveGestureDetector()
-  : GestureDetector(),
+  : GestureDetector(), 
     min_displacement_(0.1),
     offset_x_(0.15),
     offset_y_(-0.3),
@@ -69,12 +69,12 @@ void ThreeAsixMoveGestureDetector::lookForGesture()
   
   bool move_x = fabs(dx) > min_displacement_ ? true : false;
   bool move_y = fabs(dy) > min_displacement_ ? true : false;
-  bool move_z = fabs(dz) > min_displacement_ ? true : false;
+  bool move_z = fabs(dz) > min_displacement_*0.5 ? true : false;
   
-  QString gesture("MoveThreeAsixR");
-  if(move_x) dx > 0 ? gesture += "+X" : gesture += "-X";
-  if(move_y) dy > 0 ? gesture += "+Y" : gesture += "-Y";
-  if(move_z) dz > 0 ? gesture += "+Z" : gesture += "-Z";
+  QString gesture("MoveThreeAxis:");
+  if(move_x) dx >= 0 ? gesture += "+X" : gesture += "-X";
+  if(move_y) dy >= 0 ? gesture += "+Y" : gesture += "-Y";
+  if(move_z && !(move_x || move_y)) dz >= 0 ? gesture += "+Z" : gesture += "-Z";
 
   right_active_ = move_x || move_y || move_z;
 
@@ -87,12 +87,12 @@ void ThreeAsixMoveGestureDetector::lookForGesture()
   
   move_x = fabs(dx) > min_displacement_ ? true : false;
   move_y = fabs(dy) > min_displacement_ ? true : false;
-  move_z = fabs(dz) > min_displacement_ ? true : false;
+  move_z = fabs(dz) > min_displacement_*0.5 ? true : false;
   
-  gesture += "L";
-  if(move_x) dx > 0 ? gesture += "+X" : gesture += "-X";
-  if(move_y) dy > 0 ? gesture += "+Y" : gesture += "-Y";
-  if(move_z) dz > 0 ? gesture += "+Z" : gesture += "-Z";
+  gesture += ":";
+  if(move_x) dx >= 0 ? gesture += "+X" : gesture += "-X";
+  if(move_y) dy >= 0 ? gesture += "+Y" : gesture += "-Y";
+  if(move_z && !(move_x || move_y)) dz >= 0 ? gesture += "+Z" : gesture += "-Z";
 
   left_active_ = move_x || move_y || move_z;
 
