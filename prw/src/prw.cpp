@@ -557,7 +557,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
     case InteractiveMarkerFeedback::MENU_SELECT: break;
     case InteractiveMarkerFeedback::MOUSE_UP:
     {
-
+      /*
       if(arm_is_moving_)
       {
         ROS_WARN("Arm is moving!");
@@ -578,13 +578,15 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
         {
           FollowJointTrajectoryGoal goal;
           goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+
+
           goal.trajectory.header.stamp = ros::Time::now();// + dt;
           gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
           arm_is_moving_ = true;
           //ROS_INFO_STREAM("Total time " << dt);
         }
       }
-
+      */
       break;
     }
     case InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -616,22 +618,25 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           }
 
           setNewEndEffectorPosition(gc, cur, collision_aware_);
-          /*
+
           if (gc.good_ik_solution_)
           {
             planToEndEffectorState(gc, false, false);
-            filterPlannerTrajectory(gc, false, false);
-            if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
+            if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
             {
               FollowJointTrajectoryGoal goal;
-              goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+              goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
+
+              trajectory_msgs::JointTrajectoryPoint last = goal.trajectory.points.back();
+              goal.trajectory.points.clear();
+              goal.trajectory.points.push_back(last);
+
+
               goal.trajectory.header.stamp = ros::Time::now(); // + dt;
               gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-              arm_is_moving_ = true;
-              //ROS_INFO_STREAM("Total time " << dt);
             }
           }
-          */
+
 
           last_tf = cur;
         }
