@@ -1,0 +1,7 @@
+\subsubsection usage Usage
+\verbatim
+<node name="pcl_ros" pkg="point_cloud_transformer" type="pcl_ros">
+  <param name="test" type="bool" value="True" />
+</node>
+\endverbatim
+

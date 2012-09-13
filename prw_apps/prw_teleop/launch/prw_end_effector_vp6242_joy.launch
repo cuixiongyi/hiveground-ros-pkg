@@ -1,0 +1,64 @@
+<launch>
+  <arg name="robot" default="vp6242"/>
+
+  <!-- joy node -->
+  <!--
+  <node respawn="true" pkg="joy" type="joy" name="dualshock2_joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="autorepeat_rate" value="10"/>
+    <param name="deadzone" value="0.12"/>
+  </node>
+  -->
+    
+  <node respawn="true" pkg="joy" type="joy_node" name="dualshock3_joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="autorepeat_rate" value="10"/>
+    <param name="deadzone" value="0.12"/>
+  </node>
+   
+  <node pkg="prw_teleop" type="teleop_end_effector_joy" name="teleop_end_effector_$(arg robot)_joy" output="screen">
+    <!--param name="min_axes" value ="6"/-->
+    <!--param name="min_buttons" value ="4"/-->   
+    <param name="move_rate" value="0.01"/><!-- m/repeat rate -->
+    <param name="rotate_rate" value="0.05"/><!-- rad/repeat rate -->
+
+    <!--DualShock2-->    
+    
+    <param name="dead_man_button" value ="B_4">L2</param>
+    <param name="axis0" value ="A_4">x pad H</param>
+    <param name="axis0_flip" value ="true"/>
+    <param name="axis1" value ="A_5">y pad V</param>
+    <param name="axis1_flip" value ="false"/>
+    <param name="axis2" value ="A_1">z left analog v</param>
+    <param name="axis2_flip" value ="false"/>
+    <param name="axis3" value ="B_3_1">row triangle + corss</param>
+    <param name="axis3_flip" value ="true"/>
+    <param name="axis4" value ="B_0_2">pitch square + circle</param>
+    <param name="axis4_flip" value ="false"/>
+    <param name="axis5" value ="A_3">yaw righ analog v</param>
+    <param name="axis5_flip" value ="false"/>      
+    
+
+    <!--DualShock3-->
+    <!--param name="dead_man_button" value ="B_8">L2</param-->
+    <!--
+    <param name="dead_man_button" value ="A_8">L2</param>
+    <param name="dead_man_button_threshold" value="0.4"></param>
+    <param name="axis0" value ="B_7_5"/>
+    <param name="axis0_flip" value ="true"/>
+    <param name="axis1" value ="B_4_6"/>
+    <param name="axis1_flip" value ="false"/>
+    <param name="axis2" value ="A_1"/>
+    <param name="axis2_flip" value ="false"/>
+    <param name="axis3" value ="B_15_13"/>
+    <param name="axis3_flip" value ="true"/>
+    <param name="axis4" value ="B_12_14"/>
+    <param name="axis4_flip" value ="false"/>
+    <param name="axis5" value ="A_3"/>
+    <param name="axis5_flip" value ="false"/>      
+    -->
+       
+
+    <remap from="command" to="prw_end_effector_pose_relative" />    
+  </node>
+</launch>

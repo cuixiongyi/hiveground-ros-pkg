@@ -1,0 +1,18 @@
+<launch>
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+        <param name="video_device" value="/dev/video0" />
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="camera_frame_id" value="usb_cam" />
+        <param name="io_method" value="mmap"/>        
+        <param name="autofocus" value="false"/>
+        <rosparam param="D">[0.048328, -0.116072, -0.005996, 0.009159, 0.000000]</rosparam>
+        <rosparam param="K">[555.516335, 0.000000, 329.945850, 0.000000, 558.752759, 238.942776, 0.000000, 0.000000, 1.000000]</rosparam>
+        <rosparam param="R">[1.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 1.000000]</rosparam>
+        <rosparam param="P">[556.319946, 0.000000, 334.978916, 0.000000, 0.000000, 563.429688, 236.142845, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]</rosparam>
+    </node>
+</launch>
+
+
+

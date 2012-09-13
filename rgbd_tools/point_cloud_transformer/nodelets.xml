@@ -1,0 +1,7 @@
+<library path="lib/libpoint_cloud_transformer">
+  <class name="hg_pcl/PointCloundTransformer" type="PointCloundTransformer" base_class_type="nodelet::Nodelet">
+    <description>
+      Transform point cloud
+    </description>
+  </class>
+</library>
