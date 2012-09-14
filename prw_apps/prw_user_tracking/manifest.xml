@@ -1,0 +1,16 @@
+<package>
+  <description brief="prw_user_tracking">
+
+     prw_user_tracking
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/prw_user_tracking</url>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+
+</package>
+
+

@@ -1,0 +1,24 @@
+<launch>	
+   
+  <!-- RC7M -->
+  <node name="vp6242" pkg="hg_cpp" type="hg_ros" output="screen">
+    <param name="simulate" value="false"/>
+    <param name="loop_rate" value="50.0"/>
+    <param name="joint_publish_rate" value="10.0"/>
+    <param name="diagnostic_publish_rate" value="10.0"/>
+      
+    <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />
+    <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />    
+  </node>
+  
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >
+      <remap from="robot_description" to="/vp6242/robot_description" />
+      <!--remap from="joint_states" to="/arm1/joint_states" /-->
+  </node>
+	
+  <node pkg="rviz" type="rviz" name="rviz">
+      <remap from="robot_description" to="/vp6242/robot_description" />
+  </node>
+  
+    
+</launch>

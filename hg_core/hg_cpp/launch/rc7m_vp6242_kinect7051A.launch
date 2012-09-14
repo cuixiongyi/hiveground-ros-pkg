@@ -1,0 +1,64 @@
+<launch>
+  <!-- Kinect -->
+  <include file="$(find openni_launch)/launch/openni.launch">
+  	<arg name="camera" value="kinect7051A" />
+    <arg name="device_id" value="A00363807157051A" />
+  </include>
+	
+  <!-- PCL pipe line-->
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+  <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">
+    <!--<remap from="~input" to="/camera/rgb/points" />-->
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: 1.0
+      filter_limit_max: 2.0
+      filter_limit_negative: False
+      leaf_size: 0.01
+    </rosparam>
+  </node>  
+
+  <!-- Estimate point normals -->
+  <node pkg="nodelet" type="nodelet" name="normal_estimation" args="load pcl/NormalEstimation pcl_manager" output="screen">
+    <remap from="~input" to="/voxel_grid/output" />
+    <rosparam>
+      # -[ Mandatory parameters
+      k_search: 0
+      radius_search: 0.02
+      # Set the spatial locator. Possible values are: 0 (ANN), 1 (FLANN), 2 (organized)
+      spatial_locator: 0
+    </rosparam>
+  </node>
+
+   
+  <!-- RC7M -->
+  
+  <node name="arm1" pkg="hg_cpp" type="hg_ros" output="screen">
+    <param name="simulate" value="true"/>
+    <param name="loop_rate" value="50.0"/>
+    <param name="joint_publish_rate" value="10.0"/>
+    <param name="diagnostic_publish_rate" value="10.0"/>
+      
+    <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />
+    <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />    
+  </node>
+  
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >
+      <remap from="robot_description" to="/arm1/robot_description" />      
+  </node>
+  
+  <node pkg="tf" type="static_transform_publisher" name="table_broadcaster" 
+  args="-0.8013312048757147 -0.4705600194028853 1.879842401563593 1.580096886 -0.16322015961780161 3.210146698 kinect7051A_rgb_optical_frame table 100" />
+  
+  <node pkg="tf" type="static_transform_publisher" name="arm1_broadcaster" 
+  args="0.10 0.67 0.00 0 0 0 table base_link 100" />
+  	
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hg_cpp)/cfg/rc7m_vp6242_kinect_7051A.vcg">
+      <remap from="robot_description" to="/arm1/robot_description" />
+      
+  </node>
+  
+    
+</launch>
