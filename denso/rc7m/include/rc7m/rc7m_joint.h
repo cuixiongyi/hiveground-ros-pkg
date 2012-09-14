@@ -92,10 +92,9 @@ public:
   void callbackJointPositionDegree(const std_msgs::Float64& position);
   void callbackJointVelocity(const std_msgs::Float64& velocity);
 
-  ros::Subscriber subscriber_joint_position_;
-  ros::Subscriber subscriber_joint_position_relative_;
+
+
   ros::Subscriber subscriber_joint_position_degree_;
-  ros::Subscriber subscriber_joint_velocity_;
 
   double t0, t1;
 };

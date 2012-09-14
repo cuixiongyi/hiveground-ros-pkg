@@ -47,17 +47,14 @@ template <typename T> int sgn(T val) {
 RC7MJoint::RC7MJoint()
   : hg::Joint()
 {
-  //ROS_INFO_STREAM(__FUNCTION__);
 }
 
 RC7MJoint::~RC7MJoint()
 {
-  //ROS_INFO_STREAM(__FUNCTION__);
 }
 
 void RC7MJoint::initilize(hg::Node* node, const std::string& name)
 {
-  //ROS_INFO_STREAM(__FUNCTION__  << " rc7m");
   hg::Joint::initilize(node, name);
 
   //read parameters
@@ -69,15 +66,12 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
 
   ROS_INFO("velocity_limit_ %f", velocity_limit_);
   parameter_velocity_limit_ = velocity_limit_;
-  acceleration_limit_ = 1.0;
 
   //set position according to limit
   if(lower_limit_ > 0)
     position_ = desired_position_ = last_commanded_position_ = lower_limit_;
   else if(upper_limit_ < 0)
     position_ = desired_position_ = last_commanded_position_ = upper_limit_;
-
-
 
   //subscribers
   subscriber_joint_position_ =
@@ -101,20 +95,13 @@ double RC7MJoint::interpolate(double dt)
   //if position updated
   if (touched_)
   {
-#if 1
     mutex_.lock();
     double command = desired_position_ - last_commanded_position_;
     mutex_.unlock();
 
-
-
-
-    //ROS_INFO_STREAM_THROTTLE(1.0, name_ << " command " << command << "last " << last_commanded_position_);
-
     //check velocity limit
     double move_limit_dt = velocity_limit_ * dt;
 
-    //double acceleration =
     if (command > move_limit_dt)
     {
       command = move_limit_dt;
@@ -128,7 +115,6 @@ double RC7MJoint::interpolate(double dt)
 
     //check position limit
     command = last_commanded_position_ + command;
-    //ROS_INFO_STREAM_THROTTLE(1.0, name_ << " command " << command);
 
     if (command > upper_limit_)
     {
@@ -148,19 +134,13 @@ double RC7MJoint::interpolate(double dt)
     if (last_commanded_position_ == desired_position_)
     {
       touched_ = false; //stop the movement
-      //ROS_INFO_STREAM( name_ << " reached desired position: " << desired_position_);
-
     }
     return command;
-#endif
-
   }
   else
   {
     return desired_position_; //do not move and hold position
   }
-
-  return 0;
 }
 
 void RC7MJoint::setFeedbackData(double feedback)
@@ -228,6 +208,10 @@ void RC7MJoint::callbackJointPosition(const std_msgs::Float64& position)
   {
     setPosition(position.data);
   }
+  else
+  {
+    ROS_WARN("controller is active");
+  }
 }
 
 void RC7MJoint::callbackJointPositionRelative(const std_msgs::Float64& position)
@@ -236,6 +220,10 @@ void RC7MJoint::callbackJointPositionRelative(const std_msgs::Float64& position)
   if(!controller_->active())
   {
     setPositionRelative(position.data);
+  }
+  else
+  {
+    ROS_WARN("controller is active");
   }
 }
 
@@ -248,6 +236,10 @@ void RC7MJoint::callbackJointPositionDegree(const std_msgs::Float64& position)
   {
     ROS_INFO("start");
     setPosition((position.data * M_PI) / 180.0);
+  }
+  else
+  {
+    ROS_WARN("controller is active");
   }
 }
 

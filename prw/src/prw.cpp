@@ -557,7 +557,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
     case InteractiveMarkerFeedback::MENU_SELECT: break;
     case InteractiveMarkerFeedback::MOUSE_UP:
     {
-      /*
+
       if(arm_is_moving_)
       {
         ROS_WARN("Arm is moving!");
@@ -586,7 +586,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           //ROS_INFO_STREAM("Total time " << dt);
         }
       }
-      */
+
       break;
     }
     case InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -613,12 +613,14 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
         {
           if(arm_is_moving_)
           {
+            ROS_WARN("Arm is moving!");
             interactive_marker_server_->setPose(feedback->marker_name, toGeometryPose(last_tf));
             break;
           }
 
           setNewEndEffectorPosition(gc, cur, collision_aware_);
 
+          /*
           if (gc.good_ik_solution_)
           {
             planToEndEffectorState(gc, false, false);
@@ -636,7 +638,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
               gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
             }
           }
-
+          */
 
           last_tf = cur;
         }
@@ -964,6 +966,292 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
     interactive_marker_server_->applyChanges();
   }
 }
+
+void PRW::makeSelectableMarker(InteractiveMarkerType type,
+                                           tf::Transform transform,
+                                           const std::string& name,
+                                           const std::string& description,
+                                           float scale, bool publish)
+{
+  if(type == EndEffectorControlMarker)
+  {
+    ROS_WARN("handle separately");
+    return;
+  }
+
+
+
+  SelectableMarker selectable_marker;
+  selectable_marker.type_ = type;
+  selectable_marker.name_ = name + "_selectable";
+  selectable_marker.controlName_ = name;
+  selectable_marker.controlDescription_ = description;
+
+  InteractiveMarker marker;
+  marker.header.frame_id = "/" + cm_->getWorldFrameId();
+
+  marker.header.stamp = ros::Time::now();
+  marker.pose.position.x = transform.getOrigin().x();
+  marker.pose.position.y = transform.getOrigin().y();
+  marker.pose.position.z = transform.getOrigin().z();
+  marker.pose.orientation.w = transform.getRotation().w();
+  marker.pose.orientation.x = transform.getRotation().x();
+  marker.pose.orientation.y = transform.getRotation().y();
+  marker.pose.orientation.z = transform.getRotation().z();
+  marker.scale = scale;
+  marker.name = name + "_selectable";
+  marker.description = description;
+  InteractiveMarkerControl control;
+  control.interaction_mode = InteractiveMarkerControl::BUTTON;
+  control.always_visible = true;
+
+  switch (type)
+  {
+    case EndEffectorControlMarker:
+      break;
+    case CollisionObjectMarker:
+      control.markers.push_back(makeMarkerCylinder(marker, 1.0f));
+      marker.controls.push_back(control);
+      interactive_marker_server_->insert(marker);
+      interactive_marker_server_->setCallback(marker.name, process_marker_feedback_ptr_);
+      menu_handler_map_["Collision Object Selection"].apply(*interactive_marker_server_, marker.name);
+      break;
+    case JointControlMarker:
+      control.markers.push_back(makeMarkerBox(marker, 0.5f));
+      marker.controls.push_back(control);
+      interactive_marker_server_->insert(marker);
+      interactive_marker_server_->setCallback(marker.name, process_marker_feedback_ptr_);
+      menu_handler_map_["Joint Selection"].apply(*interactive_marker_server_, marker.name);
+      break;
+  }
+
+  selectable_markers_[marker.name] = selectable_marker;
+
+  if (publish)
+  {
+    interactive_marker_server_->applyChanges();
+  }
+
+}
+
+void PRW::makeSelectableCollisionObjectMarker(tf::Transform transform, CollisionObjectType type,
+                                              const std::string& name, std_msgs::ColorRGBA color, double a, double b,
+                                              double c, bool publish)
+{
+  SelectableMarker selectable_marker;
+  selectable_marker.type_ = CollisionObjectMarker;
+  selectable_marker.name_ = name + "_selectable";
+  selectable_marker.controlName_ = name;
+  selectable_marker.controlDescription_ = "";
+  selectable_marker.a_ = a;
+  selectable_marker.b_ = b;
+  selectable_marker.c_ = c;
+  selectable_marker.color_ = color;
+  selectable_marker.collision_object_type_ = type;
+  selectable_marker.pose_ = toGeometryPose(transform);
+
+  InteractiveMarker marker;
+  marker.header.frame_id = "/" + cm_->getWorldFrameId();
+  marker.header.stamp = ros::Time::now();
+  marker.pose.position.x = transform.getOrigin().x();
+  marker.pose.position.y = transform.getOrigin().y();
+  marker.pose.position.z = transform.getOrigin().z();
+  marker.pose.orientation.w = transform.getRotation().w();
+  marker.pose.orientation.x = transform.getRotation().x();
+  marker.pose.orientation.y = transform.getRotation().y();
+  marker.pose.orientation.z = transform.getRotation().z();
+  marker.scale = 1.0;
+  marker.name = selectable_marker.name_;
+  marker.description = "";
+
+  InteractiveMarkerControl control;
+  control.interaction_mode = InteractiveMarkerControl::BUTTON;
+  control.always_visible = true;
+  control.markers.push_back(createCollisionObjectMarker(type, a + 0.005, b + 0.005, c + 0.005, color));
+  marker.controls.push_back(control);
+  selectable_markers_[marker.name] = selectable_marker;
+  interactive_marker_server_->insert(marker);
+  interactive_marker_server_->setCallback(marker.name, process_marker_feedback_ptr_);
+  menu_handler_map_["Collision Object Selection"].apply(*interactive_marker_server_, marker.name);
+
+  if(publish)
+  {
+    interactive_marker_server_->applyChanges();
+  }
+
+}
+
+Marker PRW::makeMarkerCylinder(InteractiveMarker &msg, float alpha)
+{
+  Marker marker;
+  marker.type = Marker::CYLINDER;
+  // Scale is arbitrary
+  marker.scale.x = msg.scale * 0.11;
+  marker.scale.y = msg.scale * 0.11;
+  marker.scale.z = msg.scale * 1.1;
+  marker.color.r = 0.2;
+  marker.color.g = 0.9;
+  marker.color.b = 0.2;
+  marker.color.a = alpha;
+
+  return marker;
+}
+
+Marker PRW::makeMarkerBox(InteractiveMarker &msg, float alpha)
+{
+  Marker marker;
+  marker.type = Marker::CUBE;
+  // Scale is arbitrarily 1/4 of the marker's scale.
+  marker.scale.x = msg.scale * 0.25;
+  marker.scale.y = msg.scale * 0.25;
+  marker.scale.z = msg.scale * 0.25;
+  marker.color.r = 1.0;
+  marker.color.g = 1.0;
+  marker.color.b = 1.0;
+  marker.color.a = alpha;
+
+  return marker;
+}
+
+void PRW::makeInteractive6DOFMarker(bool fixed, tf::Transform transform, const std::string& name,
+                                                const std::string& description, float scale, bool object)
+{
+  InteractiveMarker marker;
+  marker.header.frame_id = "/" + cm_->getWorldFrameId();
+  marker.pose.position.x = transform.getOrigin().x();
+  marker.pose.position.y = transform.getOrigin().y();
+  marker.pose.position.z = transform.getOrigin().z();
+  marker.pose.orientation.w = transform.getRotation().w();
+  marker.pose.orientation.x = transform.getRotation().x();
+  marker.pose.orientation.y = transform.getRotation().y();
+  marker.pose.orientation.z = transform.getRotation().z();
+  marker.scale = scale;
+  marker.name = name;
+  marker.description = description;
+
+  if (!object)
+  {
+    makeInteractiveBoxControl(marker, 0.5f);
+  }
+  else
+  {
+    //ROS_INFO_STREAM("name: " << name);
+    makeInteractiveCollisionObjectControl(marker);
+  }
+
+  InteractiveMarkerControl control;
+
+  if (fixed)
+  {
+    control.orientation_mode = InteractiveMarkerControl::FIXED;
+  }
+
+  control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  control.always_visible = false;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  interactive_marker_server_->insert(marker);
+
+  control.interaction_mode = InteractiveMarkerControl::MENU;
+  //control.markers.push_back(makeMarkerSphere(marker));
+  marker.controls.push_back(control);
+
+  if (!object)
+  {
+    menu_handler_map_["End Effector"].apply(*interactive_marker_server_, marker.name);
+  }
+  else
+  {
+    menu_handler_map_["Collision Object"].apply(*interactive_marker_server_, marker.name);
+  }
+
+  interactive_marker_server_->setCallback(marker.name, process_marker_feedback_ptr_);
+}
+
+InteractiveMarkerControl& PRW::makeInteractiveBoxControl(InteractiveMarker &msg, float alpha)
+{
+  InteractiveMarkerControl control;
+  control.always_visible = true;
+  control.markers.push_back(makeMarkerBox(msg, alpha));
+  msg.controls.push_back(control);
+  return msg.controls.back();
+}
+
+InteractiveMarkerControl& PRW::makeInteractiveCylinderControl(InteractiveMarker &msg, float alpha)
+{
+  InteractiveMarkerControl control;
+  control.always_visible = true;
+  control.markers.push_back(makeMarkerCylinder(msg, alpha));
+  msg.controls.push_back(control);
+  return msg.controls.back();
+}
+
+InteractiveMarkerControl& PRW::makeInteractiveCollisionObjectControl(InteractiveMarker &msg)
+{
+
+  InteractiveMarkerControl control;
+  control.always_visible = true;
+  SelectableMarker& sm = selectable_markers_[msg.name+"_selectable"];
+  //ROS_INFO_STREAM("aaaa " << sm.name_ << " " << sm.a_  << " " << sm.b_  << " " << sm.c_);
+  control.markers.push_back(
+      createCollisionObjectMarker(sm.collision_object_type_, sm.a_ + 0.005, sm.b_ + 0.005, sm.c_ + 0.005, sm.color_));
+  msg.controls.push_back(control);
+  return msg.controls.back();
+}
+
+Marker PRW::createCollisionObjectMarker(CollisionObjectType type, double a, double b,
+                                                                        double c, std_msgs::ColorRGBA color)
+{
+  Marker marker;
+  switch (type)
+  {
+    case Sphere:
+      marker.type = Marker::SPHERE;
+      marker.scale.x = 2.0 * a;
+      marker.scale.y = 2.0 * a;
+      marker.scale.z = 2.0 * a;
+      break;
+    case Pole:
+      marker.type = Marker::CYLINDER;
+      marker.scale.x = 2.0 * a;
+      marker.scale.y = 2.0 * a;
+      marker.scale.z = b;
+      break;
+    case Box:
+      marker.type = Marker::CUBE;
+      marker.scale.x = a;
+      marker.scale.y = b;
+      marker.scale.z = c;
+      break;
+  }
+  marker.color = color;
+  return marker;
+}
+
 
 void PRW::moveEndEffectorMarkers(double vx, double vy, double vz, double vr, double vp, double vw, bool coll_aware)
 {
@@ -1293,6 +1581,71 @@ void PRW::sendMarkers()
   unlockScene();
 }
 
+void PRW::makeMenu()
+{
+  // Allocate memory to each of the menu entry maps.
+  menu_entry_maps_["End Effector"] = MenuEntryMap();
+  menu_entry_maps_["End Effector Selection"] = MenuEntryMap();
+  menu_entry_maps_["Top Level"] = MenuEntryMap();
+  menu_entry_maps_["Collision Object"] = MenuEntryMap();
+  menu_entry_maps_["Collision Object Selection"] = MenuEntryMap();
+
+  // Allocate memory to the menu handlers
+  menu_handler_map_["End Effector"];
+  menu_handler_map_["End Effector Selection"];
+  menu_handler_map_["Top Level"];
+  menu_handler_map_["Collision Object"];
+  menu_handler_map_["Collision Object Selection"];
+
+
+  //end effector
+  menu_ee_last_good_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
+                                               "Go to last good state");
+
+
+
+  //always register as the last entry for end effector menu
+  menu_ee_start_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
+                                               "Go to start state");
+
+
+
+  //Top level
+  registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Create Pole");
+
+
+
+
+
+
+  InteractiveMarker int_marker;
+  int_marker.pose.position.z = 2.25;
+  int_marker.name = "top_level";
+  int_marker.description = "Personal Robotic Workspace Visualizer";
+  int_marker.header.frame_id = "/" + cm_->getWorldFrameId();
+
+  InteractiveMarkerControl control;
+  control.interaction_mode = InteractiveMarkerControl::MENU;
+  control.always_visible = true;
+
+  Marker labelMarker;
+  labelMarker.type = Marker::TEXT_VIEW_FACING;
+  labelMarker.text = "Command...";
+  labelMarker.color.r = 1.0;
+  labelMarker.color.g = 1.0;
+  labelMarker.color.b = 1.0;
+  labelMarker.color.a = 1.0;
+  labelMarker.scale.x = 0.5;
+  labelMarker.scale.y = 0.2;
+  labelMarker.scale.z = 0.1;
+  control.markers.push_back(labelMarker);
+
+  int_marker.controls.push_back(control);
+
+  interactive_marker_server_->insert(int_marker, process_menu_feedback_ptr_);
+  menu_handler_map_["Top Level"].apply(*interactive_marker_server_, int_marker.name);
+}
+
 void PRW::moveThroughTrajectory(PlanningGroupData& gc, const string& source_name, int step)
 {
   lockScene();
@@ -1502,71 +1855,6 @@ void PRW::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
   arm_is_moving_ = false;
 }
 
-void PRW::makeMenu()
-{
-  // Allocate memory to each of the menu entry maps.
-  menu_entry_maps_["End Effector"] = MenuEntryMap();
-  menu_entry_maps_["End Effector Selection"] = MenuEntryMap();
-  menu_entry_maps_["Top Level"] = MenuEntryMap();
-  menu_entry_maps_["Collision Object"] = MenuEntryMap();
-  menu_entry_maps_["Collision Object Selection"] = MenuEntryMap();
-
-  // Allocate memory to the menu handlers
-  menu_handler_map_["End Effector"];
-  menu_handler_map_["End Effector Selection"];
-  menu_handler_map_["Top Level"];
-  menu_handler_map_["Collision Object"];
-  menu_handler_map_["Collision Object Selection"];
-
-
-  //end effector
-  menu_ee_last_good_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
-                                               "Go to last good state");
-
-
-
-  //always register as the last entry for end effector menu
-  menu_ee_start_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
-                                               "Go to start state");
-
-
-
-  //Top level
-  registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Create Pole");
-
-
-
-
-
-
-  InteractiveMarker int_marker;
-  int_marker.pose.position.z = 2.25;
-  int_marker.name = "top_level";
-  int_marker.description = "Personal Robotic Workspace Visualizer";
-  int_marker.header.frame_id = "/" + cm_->getWorldFrameId();
-
-  InteractiveMarkerControl control;
-  control.interaction_mode = InteractiveMarkerControl::MENU;
-  control.always_visible = true;
-
-  Marker labelMarker;
-  labelMarker.type = Marker::TEXT_VIEW_FACING;
-  labelMarker.text = "Command...";
-  labelMarker.color.r = 1.0;
-  labelMarker.color.g = 1.0;
-  labelMarker.color.b = 1.0;
-  labelMarker.color.a = 1.0;
-  labelMarker.scale.x = 0.5;
-  labelMarker.scale.y = 0.2;
-  labelMarker.scale.z = 0.1;
-  control.markers.push_back(labelMarker);
-
-  int_marker.controls.push_back(control);
-
-  interactive_marker_server_->insert(int_marker, process_menu_feedback_ptr_);
-  menu_handler_map_["Top Level"].apply(*interactive_marker_server_, int_marker.name);
-}
-
 MenuHandler::EntryHandle PRW::registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name)
 {
   MenuHandler::EntryHandle toReturn = handler.insert(name, process_menu_feedback_ptr_);
@@ -1583,3 +1871,65 @@ void PRW::resetToLastGoodState(PlanningGroupData& gc)
                  gc.end_state_->getLinkState(gc.ik_link_name_)->getGlobalLinkTransform());
   }
 }
+
+void PRW::createCollisionObject(geometry_msgs::Pose pose,
+                                CollisionObjectType type,
+                                std_msgs::ColorRGBA color,
+                                double a,
+                                double b,
+                                double c,
+                                bool selectable)
+{
+
+  arm_navigation_msgs::CollisionObject collision_object;
+  collision_object.operation.operation = arm_navigation_msgs::CollisionObjectOperation::ADD;
+  collision_object.header.stamp = ros::Time::now();
+  collision_object.header.frame_id = "/" + cm_->getWorldFrameId();
+
+  arm_navigation_msgs::Shape object;
+  stringstream id;
+  id << "object_" << getNextCollisionObjectId();
+
+  switch(type)
+  {
+    case Sphere:
+      object.type = arm_navigation_msgs::Shape::SPHERE;
+      object.dimensions.resize(1);
+      object.dimensions[0] = a;
+      id << "_sphere";
+      break;
+    case Pole:
+      object.type = arm_navigation_msgs::Shape::CYLINDER;
+      object.dimensions.resize(2);
+      object.dimensions[0] = a;
+      object.dimensions[1] = b;
+      id << "_pole";
+      break;
+    case Box:
+      object.type = arm_navigation_msgs::Shape::BOX;
+      object.dimensions.resize(3);
+      object.dimensions[0] = a;
+      object.dimensions[1] = b;
+      object.dimensions[2] = c;
+      id << "_box";
+      break;
+  }
+
+  collision_object.shapes.push_back(object);
+  collision_object.poses.push_back(pose);
+  collision_object.id = id.str();
+  collision_objects_[id.str()] = collision_object;
+
+  ROS_INFO_STREAM("Creating collision object: " << collision_object.id);
+
+
+
+
+  if(selectable)
+  {
+    tf::Transform cur = toBulletTransform(pose);
+    //makeSelectableCollisionObjectMarker(cur, type, collision_object.id, color, a, b, c);
+    makeSelectableCollisionObjectMarker(cur, type, collision_object.id, color, a, b, c);
+  }
+}
+

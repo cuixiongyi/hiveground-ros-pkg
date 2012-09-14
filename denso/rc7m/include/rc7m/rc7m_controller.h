@@ -126,7 +126,6 @@ public:
   uint32_t hAngleVariable;
   bool motor_on_;
   bool slave_mode_on_;
-  bool is_busy_;
   bool is_preempted_;
   int preempted_point_;
   int new_start_point_;

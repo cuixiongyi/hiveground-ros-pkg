@@ -271,6 +271,8 @@ typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> Men
 typedef std::map<std::string, MenuEntryMap> MenuMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
+typedef std::map<std::string, arm_navigation_msgs::CollisionObject> CollisionObjectMap;
+
 class PRW : public QMainWindow
 {
   Q_OBJECT
@@ -313,25 +315,53 @@ protected:
   void selectPlanningGroup(int group);
   PlanningGroupData* getPlanningGroup(unsigned int i);
 
+  //collision object
+  int getNextCollisionObjectId() { return last_collision_objects_id_++; }
+  void createCollisionObject(geometry_msgs::Pose pose,
+                             CollisionObjectType type,
+                             std_msgs::ColorRGBA color,
+                             double a = 0.1,
+                             double b = 0.0,
+                             double c = 0.0,
+                             bool selectable = true);
+
+  //interactive marker
   void makeIKControllerMarker(tf::Transform transform, const std::string& name, const std::string& description,
                               bool selectable, float scale = 1.0, bool publish = true);
+  void makeSelectableMarker(InteractiveMarkerType type, tf::Transform transform, const std::string& name,
+                              const std::string& description, float scale = 1.0f, bool publish = true);
+  void makeSelectableCollisionObjectMarker(tf::Transform transform, CollisionObjectType type, const std::string& name,
+                                           std_msgs::ColorRGBA color, double a, double b, double c, bool publish=true);
+  visualization_msgs::Marker makeMarkerCylinder(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::Marker makeMarkerBox(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  void makeInteractive6DOFMarker(bool fixed, tf::Transform transform, const std::string& name, const std::string& description, float scale = 1.0f, bool object = false);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveBoxControl(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveCylinderControl(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveCollisionObjectControl(visualization_msgs::InteractiveMarker &msg);
+  visualization_msgs::Marker createCollisionObjectMarker(CollisionObjectType type, double a, double b, double c, std_msgs::ColorRGBA color);
+
+
+  void deselectMarker(SelectableMarker& marker, tf::Transform transform);
+  void selectMarker(SelectableMarker& marker, tf::Transform transform);
+  void moveThroughTrajectory(PlanningGroupData& gc, const std::string& source_name, int step);
+
+  void makeMenu();
+    interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name);
+
+
+
+  //end effector
   void moveEndEffectorMarkers(double vx, double vy, double vz, double vr, double vp, double vw, bool coll_aware = true);
   void setNewEndEffectorPosition(PlanningGroupData& gc, tf::Transform& cur, bool coll_aware);
   bool solveIKForEndEffectorPose(PlanningGroupData& gc, bool coll_aware = true, bool constrain_pitch_and_roll = false,
                                  double change_redundancy = 0.0);
 
-  void deselectMarker(SelectableMarker& marker, tf::Transform transform);
-  void selectMarker(SelectableMarker& marker, tf::Transform transform);
-  void moveThroughTrajectory(PlanningGroupData& gc, const std::string& source_name, int step);
 
 
   bool planToEndEffectorState(PlanningGroupData& gc, bool show, bool play);
   bool filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                               const control_msgs::FollowJointTrajectoryResultConstPtr& result);
-
-  void makeMenu();
-  interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name);
 
   void resetToLastGoodState(PlanningGroupData& gc);
 
@@ -412,6 +442,10 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_ee_start_state_;
 
 
+  //collision object
+  /// Map of collision objects names to messages sent to ROS.
+  CollisionObjectMap collision_objects_;
+  int last_collision_objects_id_;
 
 
 };
