@@ -36,7 +36,7 @@
 #include <ros/ros.h>
 #include <prw/prw.h>
 #include <QDebug>
-
+#include <qinputdialog.h>
 
 
 using namespace std;
@@ -47,6 +47,7 @@ using namespace arm_navigation_msgs;
 using namespace kinematics_msgs;
 using namespace interactive_markers;
 using namespace control_msgs;
+using namespace geometry_msgs;
 
 static const string SET_PLANNING_SCENE_DIFF_NAME = "/environment_server/set_planning_scene_diff";
 static const string PLANNER_SERVICE_NAME = "/ompl_planning/plan_kinematic_path";
@@ -77,6 +78,7 @@ PRW::PRW(QWidget *parent, Qt::WFlags flags) :
   connect(ui.sb_pitch, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
   connect(ui.sb_yaw, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
 
+  connect(this, SIGNAL(signalCreateNewCollisionObject(const QString&)), this, SLOT(createNewCollisionObject(const QString&)));
 
 }
 
@@ -103,6 +105,7 @@ bool PRW::initialize()
   is_joint_control_active_ = false;
   is_ik_control_active_ = true;
   arm_is_moving_ = false;
+  last_collision_objects_id_ = 0;
 
   //subscriber
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &PRW::jointStateCallback, this);
@@ -194,6 +197,35 @@ bool PRW::initialize()
 
   selectPlanningGroup(0);
   solveIKForEndEffectorPose(*getPlanningGroup(0));
+
+
+  Pose pose;
+  pose.position.x = 2.0f;
+  pose.position.z = 1.0f;
+  pose.position.y = 0.0f;
+  pose.orientation.x = 0.0f;
+  pose.orientation.y = 0.0f;
+  pose.orientation.z = 0.0f;
+  pose.orientation.w = 1.0f;
+  std_msgs::ColorRGBA color;
+  color.a = 0.5;
+  color.r = 1.0;
+  color.g = 0.0;
+  color.b = 0.0;
+
+  //createCollisionPole(0, polePose);
+  //createCollisionObject(pose, Pole, color, 0.05, 1.0, 0, true);
+  //pose.position.y = 1.0;
+  //color.g = 1.0;
+  createCollisionObject(pose, Box, color, 0.1, 0.1, 0.1, true);
+  //pose.position.y = -1.0;
+  //color.g = 0.0;
+  //color.b = 1.0;
+  //createCollisionObject(pose, Sphere, color, 0.1, 0.0, 0.0, true);
+
+  sendPlanningScene();
+
+
 
   ROS_INFO_STREAM("Initialized");
   return true;
@@ -320,6 +352,42 @@ void PRW::endEffectorValueUpdate()
   ui.hs_yaw->setValue(ui.sb_yaw->value() / ui.sb_yaw->maximum() * 1000);
   //if(ui.cb_real_time_update->isChecked())
     //on_bt_go_clicked();
+}
+
+void PRW::createNewCollisionObject(const QString& type)
+{
+  Pose pose;
+  pose.position.x = 2.0f;
+  pose.position.z = 1.0f;
+  pose.position.y = 0.0f;
+  pose.orientation.x = 0.0f;
+  pose.orientation.y = 0.0f;
+  pose.orientation.z = 0.0f;
+  pose.orientation.w = 1.0f;
+  std_msgs::ColorRGBA color;
+  color.a = 0.5;
+  color.r = 1.0;
+  color.g = 0.0;
+  color.b = 0.0;
+
+  if(type == "Create Pole")
+  {
+    double r = QInputDialog::getDouble(this, "Enter Pole Radius", "Radius in meter:", 0.05, 0.01, 2);
+    double l = QInputDialog::getDouble(this, "Enter Pole Lenght", "Lenght in meter:", 0.1, 0.01, 2);
+    createCollisionObject(pose, Pole, color, r, l, 0);
+  }
+  if (type == "Create Box")
+  {
+    double x = QInputDialog::getDouble(this, "Enter Box X", "X in meter:", 0.1, 0.01, 2);
+    double y = QInputDialog::getDouble(this, "Enter Box Y", "Y in meter:", 0.1, 0.01, 2);
+    double z = QInputDialog::getDouble(this, "Enter Box Z", "Z in meter:", 0.1, 0.01, 2);
+    createCollisionObject(pose, Box, color, x, y, z);
+  }
+  if (type == "Create Sphere")
+  {
+    double r = QInputDialog::getDouble(this, "Enter Sphere Radius", "Radius in meter:", 0.05, 0.01, 2);
+    createCollisionObject(pose, Sphere, color, r, 0, 0);
+  }
 }
 
 
@@ -619,26 +687,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           }
 
           setNewEndEffectorPosition(gc, cur, collision_aware_);
-
-          /*
-          if (gc.good_ik_solution_)
-          {
-            planToEndEffectorState(gc, false, false);
-            if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
-            {
-              FollowJointTrajectoryGoal goal;
-              goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
-
-              trajectory_msgs::JointTrajectoryPoint last = goal.trajectory.points.back();
-              goal.trajectory.points.clear();
-              goal.trajectory.points.push_back(last);
-
-
-              goal.trajectory.header.stamp = ros::Time::now(); // + dt;
-              gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-            }
-          }
-          */
+          last_end_effector_poses_[current_group_name_] = feedback->pose;
 
           last_tf = cur;
         }
@@ -654,7 +703,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
 
 void PRW::processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
-  ROS_INFO("%s %d", __FUNCTION__, feedback->event_type);
+  ROS_INFO("%s %d %s", __FUNCTION__, feedback->event_type, feedback->marker_name.c_str());
   PlanningGroupData& gc = group_data_map_[current_group_name_];
   switch (feedback->event_type)
   {
@@ -662,26 +711,52 @@ void PRW::processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbac
     case InteractiveMarkerFeedback::MENU_SELECT:
     {
       MenuHandler::EntryHandle handle;
-      ROS_INFO_STREAM("Selected " << feedback->marker_name);
-      if(is_ik_control_active_ && isGroupName(feedback->marker_name))
+
+      ROS_INFO_STREAM("Menu selected: " << feedback->marker_name);
+      if (is_ik_control_active_ && isGroupName(feedback->marker_name))
       {
         handle = feedback->menu_entry_id;
-        if(handle == menu_ee_last_good_state_)
+        if (handle == menu_ee_last_good_state_)
         {
           ROS_INFO_STREAM("Set group " << current_group_name_ << " to last good state");
           resetToLastGoodState(gc);
         }
-        else if(handle == menu_ee_start_state_)
+        else if (handle == menu_ee_save_state_)
         {
-
+          if(gc.good_ik_solution_)
+          {
+            ROS_INFO_STREAM("Save " << feedback->pose);
+            saved_ee_state_.push_back(feedback->pose);
+          }
+        }
+        else if(handle == menu_ee_play_save_state_)
+        {
+          boost::thread move_thread(boost::bind(&PRW::moveThroughSavedState, this));
         }
       }
-
-
-
-
-
-
+      else if(feedback->marker_name.rfind("_selectable") != string::npos)
+      {
+        if(feedback->marker_name.rfind("object_") != string::npos)
+        {
+          handle = feedback->menu_entry_id;
+          //menu_entry_maps_[handle];
+          ROS_DEBUG_STREAM("object " << feedback->marker_name << ":" << menu_entry_maps_["Collision Object"][handle]);
+          if(menu_entry_maps_["Collision Object Selectable"][handle] == "Remove")
+          {
+            ROS_INFO_STREAM("remove " << feedback->marker_name);
+            removeCollisionObjectByName(feedback->marker_name.substr(0, feedback->marker_name.rfind("_selectable")));
+            selectable_markers_.erase(feedback->marker_name);
+            interactive_marker_server_->erase(feedback->marker_name);
+            refreshEnvironment();
+          }
+        }
+      }
+      else if (feedback->marker_name == "top_level")
+      {
+        handle = feedback->menu_entry_id;
+        ROS_INFO_STREAM("Top level:" <<  menu_entry_maps_["Top Level"][handle]);
+        Q_EMIT signalCreateNewCollisionObject(menu_entry_maps_["Top Level"][handle].c_str());
+      }
       break;
     }
     case InteractiveMarkerFeedback::MOUSE_UP: break;
@@ -693,7 +768,54 @@ void PRW::processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbac
 
 void PRW::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
+  ROS_DEBUG("%s %d", __FUNCTION__, feedback->event_type);
+  PlanningGroupData& gc = group_data_map_[current_group_name_];
+  switch (feedback->event_type)
+  {
+    case InteractiveMarkerFeedback::BUTTON_CLICK:
+    {
+      ROS_INFO_STREAM(feedback->marker_name);
+      if (feedback->marker_name.rfind("_selectable") != string::npos)
+      {
+        tf::Transform cur = toBulletTransform(feedback->pose);
+        if (feedback->marker_name.rfind("object_") != string::npos)
+        {
+          ROS_INFO_STREAM(
+              "select: " << feedback->marker_name << " " << selectable_markers_[feedback->marker_name].type_);
+          selectMarker(selectable_markers_[feedback->marker_name], cur);
 
+          //deselect other markers
+          std::map<std::string, SelectableMarker>::iterator it = selectable_markers_.begin();
+          while (it != selectable_markers_.end())
+          {
+            if ((it->second.type_ == CollisionObjectMarker) && (it->first != feedback->marker_name))
+            {
+              deselectMarker(it->second, toBulletTransform(it->second.pose_));
+            }
+            it++;
+          }
+        }
+      }
+    }
+    break;
+    case InteractiveMarkerFeedback::MENU_SELECT:
+
+      break;
+    case InteractiveMarkerFeedback::MOUSE_UP:
+      if (feedback->marker_name.rfind("object_") != string::npos
+          && feedback->marker_name.rfind("_selectable") == string::npos)
+      {
+        ROS_INFO_STREAM("mouse up: " << feedback->marker_name);
+        collision_objects_[feedback->marker_name].poses[0] = feedback->pose;
+        selectable_markers_[feedback->marker_name + "_selectable"].pose_ = feedback->pose;
+        refreshEnvironment();
+      }
+      break;
+    case InteractiveMarkerFeedback::MOUSE_DOWN: break;
+    case InteractiveMarkerFeedback::POSE_UPDATE: break;
+
+  }
+  interactive_marker_server_->applyChanges();
 }
 
 void PRW::sendPlanningScene()
@@ -703,6 +825,32 @@ void PRW::sendPlanningScene()
 
   arm_navigation_msgs::GetPlanningScene::Request planning_scene_req;
   arm_navigation_msgs::GetPlanningScene::Response planning_scene_res;
+
+  vector<string> removals;
+  // Handle additions and removals of planning scene objects.
+  for (CollisionObjectMap::const_iterator it = collision_objects_.begin();
+      it != collision_objects_.end(); it++)
+  {
+    string name = it->first;
+    arm_navigation_msgs::CollisionObject object = it->second;
+
+    // Add or remove objects.
+    if (object.operation.operation != arm_navigation_msgs::CollisionObjectOperation::REMOVE)
+    {
+      ROS_INFO("Adding Collision Object %s", object.id.c_str());
+      planning_scene_req.planning_scene_diff.collision_objects.push_back(object);
+    }
+    else
+    {
+      removals.push_back(it->first);
+    }
+  }
+
+  // Delete collision poles from the map which were removed.
+  for (size_t i = 0; i < removals.size(); i++)
+  {
+    collision_objects_.erase(removals[i]);
+  }
 
   //get current robot state
   convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(),
@@ -1014,7 +1162,7 @@ void PRW::makeSelectableMarker(InteractiveMarkerType type,
       marker.controls.push_back(control);
       interactive_marker_server_->insert(marker);
       interactive_marker_server_->setCallback(marker.name, process_marker_feedback_ptr_);
-      menu_handler_map_["Collision Object Selection"].apply(*interactive_marker_server_, marker.name);
+      menu_handler_map_["Collision Object"].apply(*interactive_marker_server_, marker.name);
       break;
     case JointControlMarker:
       control.markers.push_back(makeMarkerBox(marker, 0.5f));
@@ -1072,7 +1220,8 @@ void PRW::makeSelectableCollisionObjectMarker(tf::Transform transform, Collision
   selectable_markers_[marker.name] = selectable_marker;
   interactive_marker_server_->insert(marker);
   interactive_marker_server_->setCallback(marker.name, process_marker_feedback_ptr_);
-  menu_handler_map_["Collision Object Selection"].apply(*interactive_marker_server_, marker.name);
+  ROS_INFO_STREAM(__FUNCTION__ << " " << marker.name);
+  menu_handler_map_["Collision Object Selectable"].apply(*interactive_marker_server_, marker.name);
 
   if(publish)
   {
@@ -1224,7 +1373,7 @@ InteractiveMarkerControl& PRW::makeInteractiveCollisionObjectControl(Interactive
 }
 
 Marker PRW::createCollisionObjectMarker(CollisionObjectType type, double a, double b,
-                                                                        double c, std_msgs::ColorRGBA color)
+                                        double c, std_msgs::ColorRGBA color)
 {
   Marker marker;
   switch (type)
@@ -1434,7 +1583,6 @@ void PRW::deselectMarker(SelectableMarker& marker, tf::Transform transform)
       makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, true, 0.5f);
       break;
     case CollisionObjectMarker:
-      /*
       {
         makeSelectableCollisionObjectMarker(transform,
                                             marker.collision_object_type_,
@@ -1442,7 +1590,6 @@ void PRW::deselectMarker(SelectableMarker& marker, tf::Transform transform)
                                             marker.color_,
                                             marker.a_, marker.b_, marker.c_);
       }
-      */
       break;
     case JointControlMarker:
       //makeSelectableMarker(marker.type_, transform, marker.controlName_, marker.controlDescription_, 0.225);
@@ -1476,12 +1623,10 @@ void PRW::selectMarker(SelectableMarker& marker, tf::Transform transform)
         makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, false, 0.5f);
         break;
       case CollisionObjectMarker:
-        /*
         {
           double scale = std::max(marker.a_, std::max(marker.b_, marker.c_));
           makeInteractive6DOFMarker(false, transform, marker.controlName_, marker.controlDescription_, scale*2.0, true);
         }
-        */
         break;
       case JointControlMarker:
         //makeInteractive6DOFMarker(false, transform, marker.controlName_, marker.controlDescription_, 0.225f, false);
@@ -1548,6 +1693,28 @@ void PRW::sendMarkers()
       cm_->getAllCollisionPointMarkers(*robot_state_, arr, bad_color, ros::Duration(.2));
     }
 
+    for(int i = 0; i < saved_ee_state_.size(); i++)
+    {
+      Marker marker;
+      marker.type = Marker::ARROW;
+      marker.header.frame_id = "/" + cm_->getWorldFrameId();
+      marker.ns ="saved_ee_state";
+      marker.id = i;
+      //marker.action = visualization_msgs::Marker::ADD;
+
+      // Scale is arbitrarily 1/4 of the marker's scale.
+      marker.scale.x = 0.1;
+      marker.scale.y = 0.2;
+      marker.scale.z = 0.2;
+      marker.color.r = 1.0;
+      marker.color.g = 1.0;
+      marker.color.b = 1.0;
+      marker.color.a = 1.0;
+      marker.pose = saved_ee_state_[i];
+      arr.markers.push_back(marker);
+    }
+
+    /*
     for (TrajectoryDataMap::iterator it = gc.trajectory_data_map_.begin(); it != gc.trajectory_data_map_.end(); it++)
     {
 
@@ -1575,6 +1742,7 @@ void PRW::sendMarkers()
 
       }
     }
+    */
   }
 
   marker_array_publisher_.publish(arr);
@@ -1585,38 +1753,34 @@ void PRW::makeMenu()
 {
   // Allocate memory to each of the menu entry maps.
   menu_entry_maps_["End Effector"] = MenuEntryMap();
-  menu_entry_maps_["End Effector Selection"] = MenuEntryMap();
   menu_entry_maps_["Top Level"] = MenuEntryMap();
   menu_entry_maps_["Collision Object"] = MenuEntryMap();
-  menu_entry_maps_["Collision Object Selection"] = MenuEntryMap();
+  menu_entry_maps_["Collision Object Selectable"] = MenuEntryMap();
 
   // Allocate memory to the menu handlers
   menu_handler_map_["End Effector"];
-  menu_handler_map_["End Effector Selection"];
   menu_handler_map_["Top Level"];
   menu_handler_map_["Collision Object"];
-  menu_handler_map_["Collision Object Selection"];
+  menu_handler_map_["Collision Object Selectable"];
 
-
-  //end effector
-  menu_ee_last_good_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
-                                               "Go to last good state");
-
-
+  menu_ee_save_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"], "Save state");
+  menu_ee_play_save_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"], "Play saved state");
 
   //always register as the last entry for end effector menu
-  menu_ee_start_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"],
-                                               "Go to start state");
+  menu_ee_last_good_state_ = registerMenuEntry(menu_handler_map_["End Effector"], menu_entry_maps_["End Effector"], "Go to last good state");
 
+
+
+
+  //collision object
+  registerMenuEntry(menu_handler_map_["Collision Object"], menu_entry_maps_["Collision Object"],"Hello");
+  registerMenuEntry(menu_handler_map_["Collision Object Selectable"], menu_entry_maps_["Collision Object Selectable"],"Remove");
 
 
   //Top level
   registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Create Pole");
-
-
-
-
-
+  registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Create Box");
+  registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Create Sphere");
 
   InteractiveMarker int_marker;
   int_marker.pose.position.z = 2.25;
@@ -1679,6 +1843,14 @@ void PRW::moveThroughTrajectory(PlanningGroupData& gc, const string& source_name
   disp.state_->setKinematicState(joint_values);
   unlockScene();
 }
+
+void PRW::removeCollisionObjectByName(string id)
+{
+  ROS_INFO("Removing collision object %s", id.c_str());
+  arm_navigation_msgs::CollisionObject& object = collision_objects_[id];
+  object.operation.operation = arm_navigation_msgs::CollisionObjectOperation::REMOVE;
+}
+
 
 bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
 {
@@ -1862,6 +2034,66 @@ MenuHandler::EntryHandle PRW::registerMenuEntry(interactive_markers::MenuHandler
   return toReturn;
 }
 
+void PRW::moveThroughSavedState()
+{
+  if (!saved_ee_state_.empty())
+  {
+    PlanningGroupData& gc = group_data_map_[current_group_name_];
+    for (int i = 0; i < saved_ee_state_.size(); i++)
+    {
+
+      tf::Transform cur = toBulletTransform(saved_ee_state_[i]);
+      int retry = 0;
+      for(retry = 0; retry < 100; retry++)
+      {
+        setNewEndEffectorPosition(gc, cur, collision_aware_);
+        if (gc.good_ik_solution_)
+        {
+          ROS_INFO("Found path after %d try", retry);
+          break;
+        }
+      }
+
+      if (gc.good_ik_solution_)
+      {
+        ROS_INFO("Play state %d ...", i);
+        interactive_marker_server_->setPose(current_group_name_, saved_ee_state_[i]);
+        interactive_marker_server_->applyChanges();
+
+        //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
+        planToEndEffectorState(gc, false, false);
+        filterPlannerTrajectory(gc, false, false);
+        //ros::Duration dt = ros::Time(ros::WallTime::now().toSec()) - startTime;
+
+        if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
+        {
+          FollowJointTrajectoryGoal goal;
+          goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
+
+          goal.trajectory.header.stamp = ros::Time::now(); // + dt;
+          gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+          arm_is_moving_ = true;
+          while (arm_is_moving_)
+          {
+            ros::Duration(0.1).sleep();
+          }
+          //ROS_INFO_STREAM("Total time " << dt);
+        }
+        ROS_INFO("succeeded");
+      }
+      else
+      {
+        ROS_INFO("failed");
+      }
+    }
+
+  }
+  else
+  {
+    ROS_WARN("No end effector state saved");
+  }
+}
+
 void PRW::resetToLastGoodState(PlanningGroupData& gc)
 {
   setNewEndEffectorPosition(gc, gc.last_good_state_, collision_aware_);
@@ -1922,14 +2154,19 @@ void PRW::createCollisionObject(geometry_msgs::Pose pose,
 
   ROS_INFO_STREAM("Creating collision object: " << collision_object.id);
 
-
-
-
   if(selectable)
   {
     tf::Transform cur = toBulletTransform(pose);
-    //makeSelectableCollisionObjectMarker(cur, type, collision_object.id, color, a, b, c);
     makeSelectableCollisionObjectMarker(cur, type, collision_object.id, color, a, b, c);
   }
 }
 
+void PRW::refreshEnvironment()
+{
+  PlanningGroupData& gc = group_data_map_[current_group_name_];
+  sendPlanningScene();
+  moveEndEffectorMarkers(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false);
+
+  tf::Transform cur = toBulletTransform(last_end_effector_poses_[current_group_name_]);
+  setNewEndEffectorPosition(gc, cur, collision_aware_);
+}

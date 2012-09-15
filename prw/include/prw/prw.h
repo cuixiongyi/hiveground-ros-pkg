@@ -270,7 +270,6 @@ typedef std::map<std::string, PlanningGroupData> PlanningGroupDataMap;
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryMap;
 typedef std::map<std::string, MenuEntryMap> MenuMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
-
 typedef std::map<std::string, arm_navigation_msgs::CollisionObject> CollisionObjectMap;
 
 class PRW : public QMainWindow
@@ -295,6 +294,11 @@ private Q_SLOTS:
   //prw
   void endEffectorSlideUpdate();
   void endEffectorValueUpdate();
+
+  void createNewCollisionObject(const QString& type);
+
+Q_SIGNALS:
+  void signalCreateNewCollisionObject(const QString& type);
 
 protected:
   void closeEvent(QCloseEvent *event);
@@ -344,6 +348,7 @@ protected:
   void deselectMarker(SelectableMarker& marker, tf::Transform transform);
   void selectMarker(SelectableMarker& marker, tf::Transform transform);
   void moveThroughTrajectory(PlanningGroupData& gc, const std::string& source_name, int step);
+  void removeCollisionObjectByName(std::string id);
 
   void makeMenu();
     interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name);
@@ -363,7 +368,16 @@ protected:
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                               const control_msgs::FollowJointTrajectoryResultConstPtr& result);
 
+  void moveThroughSavedState();
+
   void resetToLastGoodState(PlanningGroupData& gc);
+  void refreshEnvironment();
+
+
+  inline bool isCollisionObjectName(const std::string& name)
+  {
+    return collision_objects_.find(name) != collision_objects_.end();
+  }
 
   inline bool isGroupName(const std::string& name)
   {
@@ -428,6 +442,8 @@ private:
   //arm control
   PlanningGroupDataMap group_data_map_;
   std::string current_group_name_;
+  std::map<std::string, geometry_msgs::Pose> last_end_effector_poses_;
+
 
   arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
   bool arm_is_moving_;
@@ -438,8 +454,11 @@ private:
   MenuMap menu_entry_maps_;
 
   //end effector menu handle
+  interactive_markers::MenuHandler::EntryHandle menu_ee_save_state_;
+  interactive_markers::MenuHandler::EntryHandle menu_ee_play_save_state_;
   interactive_markers::MenuHandler::EntryHandle menu_ee_last_good_state_;
-  interactive_markers::MenuHandler::EntryHandle menu_ee_start_state_;
+  std::vector<geometry_msgs::Pose> saved_ee_state_;
+
 
 
   //collision object
