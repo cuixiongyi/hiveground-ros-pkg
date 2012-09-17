@@ -79,7 +79,11 @@ PRW::PRW(QWidget *parent, Qt::WFlags flags) :
   connect(ui.sb_yaw, SIGNAL(valueChanged(double)), this, SLOT(endEffectorValueUpdate()));
 
   connect(this, SIGNAL(signalCreateNewCollisionObject(const QString&)), this, SLOT(createNewCollisionObject(const QString&)));
+  connect(this, SIGNAL(signalUpdateEndEffectorPosition()), this, SLOT(endEffectorMoved()));
 
+  connect(ui.tree_saved_state, SIGNAL(itemSelectionChanged()), this, SLOT(savedStateSelection()));
+  qRegisterMetaType<geometry_msgs::Pose>("geometry_msgs::Pose");
+  connect(this, SIGNAL(signalAddState(const geometry_msgs::Pose&)), this, SLOT(addState(const geometry_msgs::Pose&)));
 }
 
 PRW::~PRW()
@@ -106,6 +110,9 @@ bool PRW::initialize()
   is_ik_control_active_ = true;
   arm_is_moving_ = false;
   last_collision_objects_id_ = 0;
+  last_saved_end_effector_state_id_ = 0;
+  selected_saved_state_id_ = -1;
+  selected_saved_state_item_ = 0;
 
   //subscriber
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &PRW::jointStateCallback, this);
@@ -200,8 +207,8 @@ bool PRW::initialize()
 
 
   Pose pose;
-  pose.position.x = 2.0f;
-  pose.position.z = 1.0f;
+  pose.position.x = 0.4f;
+  pose.position.z = -0.03f;
   pose.position.y = 0.0f;
   pose.orientation.x = 0.0f;
   pose.orientation.y = 0.0f;
@@ -217,7 +224,7 @@ bool PRW::initialize()
   //createCollisionObject(pose, Pole, color, 0.05, 1.0, 0, true);
   //pose.position.y = 1.0;
   //color.g = 1.0;
-  createCollisionObject(pose, Box, color, 0.1, 0.1, 0.1, true);
+  createCollisionObject(pose, Box, color, 0.8, 1.4, 0.02, false);
   //pose.position.y = -1.0;
   //color.g = 0.0;
   //color.b = 1.0;
@@ -269,24 +276,19 @@ void PRW::on_bt_go_clicked()
 
     //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
     planToEndEffectorState(gc, false, false);
+    filterPlannerTrajectory(gc, false, false);
 
-    if (gc.trajectory_data_map_["planner"].has_joint_trajectory_)
+    if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
     {
       FollowJointTrajectoryGoal goal;
-      goal.trajectory = gc.trajectory_data_map_["planner"].joint_trajectory_;
+      goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
       trajectory_msgs::JointTrajectoryPoint last = goal.trajectory.points.back();
       goal.trajectory.points.clear();
       goal.trajectory.points.push_back(last);
       goal.trajectory.header.stamp = ros::Time::now(); // + dt;
       gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
       arm_is_moving_ = true;
-      //ROS_INFO_STREAM("Total time " << dt);
     }
-
-
-
-
-
   }
   else
   {
@@ -354,6 +356,19 @@ void PRW::endEffectorValueUpdate()
     //on_bt_go_clicked();
 }
 
+void PRW::endEffectorMoved()
+{
+  tf::Transform cur = toBulletTransform(last_end_effector_poses_[current_group_name_]);
+  ui.sb_move_x->setValue(cur.getOrigin().x());
+  ui.sb_move_y->setValue(cur.getOrigin().y());
+  ui.sb_move_z->setValue(cur.getOrigin().z());
+  double rpy[3];
+  tf::Matrix3x3(cur.getRotation()).getRPY(rpy[0], rpy[1], rpy[2]);
+  ui.sb_roll->setValue(RAD2DEG(rpy[0]));
+  ui.sb_pitch->setValue(RAD2DEG(rpy[1]));
+  ui.sb_yaw->setValue(RAD2DEG(rpy[2]));
+}
+
 void PRW::createNewCollisionObject(const QString& type)
 {
   Pose pose;
@@ -390,6 +405,96 @@ void PRW::createNewCollisionObject(const QString& type)
   }
 }
 
+void PRW::savedStateSelection()
+{
+  QList<QTreeWidgetItem*> selected_items = ui.tree_saved_state->selectedItems();
+  if(!selected_items.isEmpty())
+  {
+    if(selected_items[0]->childCount() != 0)
+    {
+      bool ok;
+      int id = selected_items[0]->child(0)->data(1,Qt::DisplayRole).toInt(&ok);
+      selected_saved_state_item_ = selected_items[0];
+      selected_saved_state_id_ = id;
+    }
+    else
+    {
+      selected_saved_state_item_ = 0;
+      selected_saved_state_id_ = -1;
+    }
+  }
+
+}
+
+void PRW::addState(const geometry_msgs::Pose& pose)
+{
+  if(saved_end_effector_state_.empty())
+  {
+    ui.tree_saved_state->clear();
+    ui.tree_saved_state->setColumnCount(2);
+    ui.tree_saved_state->setColumnWidth(0, 200);
+    selected_saved_state_id_ = 0;
+  }
+  QString state_name = QInputDialog::getText(this, "Enter state name", "State name:", QLineEdit::Normal, QString("State%1").arg(last_saved_end_effector_state_id_));
+
+  QTreeWidgetItem* name_item = new QTreeWidgetItem(QStringList(state_name));
+  name_item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+  //name_item->setToolTip(0, name_item->text(0));
+  ui.tree_saved_state->insertTopLevelItem(ui.tree_saved_state->topLevelItemCount(), name_item);
+
+  QStringList id_list;
+  id_list.append("ID");
+  id_list.append(QString("%1").arg(last_saved_end_effector_state_id_));
+  QTreeWidgetItem* id_item = new QTreeWidgetItem(id_list);
+  name_item->insertChild(0, id_item);
+
+  QPair<QString, geometry_msgs::Pose> state(state_name, pose);
+
+  ui_mutex_.lock();
+  saved_end_effector_state_[last_saved_end_effector_state_id_] = state;
+  ui_mutex_.unlock();
+
+  last_saved_end_effector_state_id_++;
+}
+
+void PRW::on_bt_move_to_saved_state_clicked()
+{
+  if(selected_saved_state_id_ != -1)
+  {
+    PlanningGroupData& gc = group_data_map_[current_group_name_];
+    moveEndEffector(gc, saved_end_effector_state_[selected_saved_state_id_].second, true, 100);
+  }
+}
+
+void PRW::on_bt_play_saved_state_clicked()
+{
+  if(!saved_end_effector_state_.isEmpty())
+  {
+    play_saved_state_ = true;
+    boost::thread move_thread(boost::bind(&PRW::moveThroughSavedState, this));
+  }
+}
+
+void PRW::on_bt_stop_play_saved_stated_clicked()
+{
+  play_saved_state_ = false;
+}
+
+void PRW::on_bt_delete_saved_state_clicked()
+{
+  if((selected_saved_state_id_ != -1) && (selected_saved_state_item_ != 0))
+  {
+    ui_mutex_.lock();
+    int idx = ui.tree_saved_state->indexOfTopLevelItem(selected_saved_state_item_);
+    ROS_INFO_STREAM("idx " << idx);
+    QTreeWidgetItem* item = ui.tree_saved_state->takeTopLevelItem(idx);
+    if(item) delete item;
+    saved_end_effector_state_.remove(selected_saved_state_id_);
+    selected_saved_state_id_ = -1;
+    selected_saved_state_item_ = 0;
+    ui_mutex_.unlock();
+  }
+}
 
 void PRW::on_cb_enable_teleop_clicked()
 {
@@ -625,36 +730,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
     case InteractiveMarkerFeedback::MENU_SELECT: break;
     case InteractiveMarkerFeedback::MOUSE_UP:
     {
-
-      if(arm_is_moving_)
-      {
-        ROS_WARN("Arm is moving!");
-        break;
-      }
-
-      tf::Transform cur = toBulletTransform(feedback->pose);
-      setNewEndEffectorPosition(gc, cur, collision_aware_);
-      if(gc.good_ik_solution_)
-      {
-        //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
-        planToEndEffectorState(gc, false, false);
-        filterPlannerTrajectory(gc, false, false);
-        //ros::Duration dt = ros::Time(ros::WallTime::now().toSec()) - startTime;
-
-
-        if(gc.trajectory_data_map_["filter"].has_joint_trajectory_)
-        {
-          FollowJointTrajectoryGoal goal;
-          goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-
-
-          goal.trajectory.header.stamp = ros::Time::now();// + dt;
-          gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-          arm_is_moving_ = true;
-          //ROS_INFO_STREAM("Total time " << dt);
-        }
-      }
-
+      moveEndEffector(gc, feedback->pose);
       break;
     }
     case InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -688,7 +764,6 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
 
           setNewEndEffectorPosition(gc, cur, collision_aware_);
           last_end_effector_poses_[current_group_name_] = feedback->pose;
-
           last_tf = cur;
         }
       }
@@ -726,7 +801,8 @@ void PRW::processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbac
           if(gc.good_ik_solution_)
           {
             ROS_INFO_STREAM("Save " << feedback->pose);
-            saved_ee_state_.push_back(feedback->pose);
+            //saved_ee_state_.push_back(feedback->pose);
+            Q_EMIT signalAddState(feedback->pose);
           }
         }
         else if(handle == menu_ee_play_save_state_)
@@ -1693,7 +1769,10 @@ void PRW::sendMarkers()
       cm_->getAllCollisionPointMarkers(*robot_state_, arr, bad_color, ros::Duration(.2));
     }
 
-    for(int i = 0; i < saved_ee_state_.size(); i++)
+    ui_mutex_.lock();
+    EndEffectorStateMap::iterator it;
+    int i = 0;
+    for (it = saved_end_effector_state_.begin(); it != saved_end_effector_state_.end(); it++, i++)
     {
       Marker marker;
       marker.type = Marker::ARROW;
@@ -1710,9 +1789,10 @@ void PRW::sendMarkers()
       marker.color.g = 1.0;
       marker.color.b = 1.0;
       marker.color.a = 1.0;
-      marker.pose = saved_ee_state_[i];
+      marker.pose = it->second;
       arr.markers.push_back(marker);
     }
+    ui_mutex_.unlock();
 
     /*
     for (TrajectoryDataMap::iterator it = gc.trajectory_data_map_.begin(); it != gc.trajectory_data_map_.end(); it++)
@@ -1851,6 +1931,69 @@ void PRW::removeCollisionObjectByName(string id)
   object.operation.operation = arm_navigation_msgs::CollisionObjectOperation::REMOVE;
 }
 
+
+bool PRW::moveEndEffector(PlanningGroupData& gc,
+                          const geometry_msgs::Pose& pose,
+                          bool filter,
+                          int retry,
+                          bool block,
+                          bool update_marker)
+{
+  if(arm_is_moving_)
+  {
+    ROS_WARN("Arm is moving!");
+    return false;
+  }
+
+  tf::Transform cur = toBulletTransform(pose);
+  int i = 0;
+  while(i < retry)
+  {
+    setNewEndEffectorPosition(gc, cur, collision_aware_);
+    i++;
+    if (gc.good_ik_solution_)
+      break;
+  }
+
+  if(i != 1)
+  {
+    ROS_INFO("found IK after %d retry", i);
+  }
+
+  if (gc.good_ik_solution_)
+  {
+    if(update_marker)
+    {
+      interactive_marker_server_->setPose(current_group_name_, pose);
+      interactive_marker_server_->applyChanges();
+    }
+
+    Q_EMIT signalUpdateEndEffectorPosition();
+    planToEndEffectorState(gc, false, false);
+    if(filter)
+      filterPlannerTrajectory(gc, false, false);
+
+    if (gc.trajectory_data_map_[filter ? "filter" : "planner"].has_joint_trajectory_)
+    {
+      FollowJointTrajectoryGoal goal;
+      goal.trajectory = gc.trajectory_data_map_[filter ? "filter" : "planner"].joint_trajectory_;
+      goal.trajectory.header.stamp = ros::Time::now();
+      gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+      arm_is_moving_ = true;
+
+      if(block)
+      {
+        while(arm_is_moving_)
+        {
+          ros::Duration(0.001).sleep();
+        }
+      }
+
+    }
+    return true;
+  }
+  return false;
+}
 
 bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
 {
@@ -2036,63 +2179,34 @@ MenuHandler::EntryHandle PRW::registerMenuEntry(interactive_markers::MenuHandler
 
 void PRW::moveThroughSavedState()
 {
-  if (!saved_ee_state_.empty())
+  boost::recursive_mutex::scoped_lock(ui_mutex_);
+  if (!saved_end_effector_state_.empty())
   {
     PlanningGroupData& gc = group_data_map_[current_group_name_];
-    for (int i = 0; i < saved_ee_state_.size(); i++)
+    EndEffectorStateMap::iterator it;
+    int i = 0;
+    for (it = saved_end_effector_state_.begin(); it != saved_end_effector_state_.end(); it++, i++)
     {
-
-      tf::Transform cur = toBulletTransform(saved_ee_state_[i]);
-      int retry = 0;
-      for(retry = 0; retry < 100; retry++)
+      ROS_INFO("Play state %d ...", i);
+      if(moveEndEffector(gc, it->second, true, 100, true, true))
       {
-        setNewEndEffectorPosition(gc, cur, collision_aware_);
-        if (gc.good_ik_solution_)
-        {
-          ROS_INFO("Found path after %d try", retry);
-          break;
-        }
-      }
-
-      if (gc.good_ik_solution_)
-      {
-        ROS_INFO("Play state %d ...", i);
-        interactive_marker_server_->setPose(current_group_name_, saved_ee_state_[i]);
-        interactive_marker_server_->applyChanges();
-
-        //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
-        planToEndEffectorState(gc, false, false);
-        filterPlannerTrajectory(gc, false, false);
-        //ros::Duration dt = ros::Time(ros::WallTime::now().toSec()) - startTime;
-
-        if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
-        {
-          FollowJointTrajectoryGoal goal;
-          goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-
-          goal.trajectory.header.stamp = ros::Time::now(); // + dt;
-          gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-          arm_is_moving_ = true;
-          while (arm_is_moving_)
-          {
-            ros::Duration(0.1).sleep();
-          }
-          //ROS_INFO_STREAM("Total time " << dt);
-        }
         ROS_INFO("succeeded");
       }
       else
       {
         ROS_INFO("failed");
       }
+      if(!play_saved_state_)
+        return;
     }
-
   }
   else
   {
     ROS_WARN("No end effector state saved");
   }
 }
+
+
 
 void PRW::resetToLastGoodState(PlanningGroupData& gc)
 {

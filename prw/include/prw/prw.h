@@ -271,6 +271,7 @@ typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> Men
 typedef std::map<std::string, MenuEntryMap> MenuMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 typedef std::map<std::string, arm_navigation_msgs::CollisionObject> CollisionObjectMap;
+typedef QMap<int, QPair<QString, geometry_msgs::Pose> > EndEffectorStateMap;
 
 class PRW : public QMainWindow
 {
@@ -294,14 +295,25 @@ private Q_SLOTS:
   //prw
   void endEffectorSlideUpdate();
   void endEffectorValueUpdate();
+  void endEffectorMoved();
 
   void createNewCollisionObject(const QString& type);
 
+  void savedStateSelection();
+  void addState(const geometry_msgs::Pose& pose);
+  void on_bt_move_to_saved_state_clicked();
+  void on_bt_play_saved_state_clicked();
+  void on_bt_stop_play_saved_stated_clicked();
+  void on_bt_delete_saved_state_clicked();
+
 Q_SIGNALS:
   void signalCreateNewCollisionObject(const QString& type);
+  void signalUpdateEndEffectorPosition();
+  void signalAddState(const geometry_msgs::Pose& pose);
 
 protected:
   void closeEvent(QCloseEvent *event);
+
 
 
   //prw
@@ -363,12 +375,18 @@ protected:
 
 
 
+  bool moveEndEffector(PlanningGroupData& gc,
+                       const geometry_msgs::Pose& pose,
+                       bool filter=true,
+                       int retry = 20,
+                       bool block = false,
+                       bool update_marker = false);
   bool planToEndEffectorState(PlanningGroupData& gc, bool show, bool play);
   bool filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                               const control_msgs::FollowJointTrajectoryResultConstPtr& result);
-
   void moveThroughSavedState();
+
 
   void resetToLastGoodState(PlanningGroupData& gc);
   void refreshEnvironment();
@@ -457,7 +475,14 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_ee_save_state_;
   interactive_markers::MenuHandler::EntryHandle menu_ee_play_save_state_;
   interactive_markers::MenuHandler::EntryHandle menu_ee_last_good_state_;
-  std::vector<geometry_msgs::Pose> saved_ee_state_;
+
+  //std::vector<geometry_msgs::Pose> saved_ee_state_;
+
+  EndEffectorStateMap saved_end_effector_state_;
+  int last_saved_end_effector_state_id_;
+  int selected_saved_state_id_;
+  QTreeWidgetItem* selected_saved_state_item_;
+  bool play_saved_state_;
 
 
 
