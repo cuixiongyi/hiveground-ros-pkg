@@ -6,7 +6,27 @@
     <arg name="depth_registration" value="true" />
   </include>
   
-  <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="-0.741438 -0.660471 1.866350 0.698840 0.713028 -0.041199 -0.038949 kinect7051A_rgb_optical_frame world 50"/>
+  <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="-0.749529 -0.666167 1.862034 0.698622 0.713423 -0.0391633 -0.0377135 kinect7051A_rgb_optical_frame world 10"/>
+  
+  <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />      
+    <remap from="~input_info" to="/kinect7051A/rgb/camera_info" />
+    <rosparam>
+      output_frame: /world
+      filter_limit_min_z: -0.05
+      filter_limit_max_z: 2.0
+      filter_limit_min_y: -5.0
+      filter_limit_max_y: 5.0
+      filter_limit_min_x: -1.0
+      filter_limit_max_x: 0.76
+      filter_limit_negative: False
+      leaf_size: 0.009            
+      ec_distance_threshold: 0.025
+      ec_cluster_tolerance: 0.02
+      ec_min_size: 50
+      ec_max_size: 500
+    </rosparam>
+  </node>
   
   <!-- PCL pipeline -->
   <!--node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" /-->

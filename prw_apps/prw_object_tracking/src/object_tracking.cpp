@@ -50,12 +50,10 @@ ObjectTracking::ObjectTracking(ros::NodeHandle & nh, QWidget *parent, Qt::WFlags
   cloud_publisher_ = nh_.advertise<sensor_msgs::PointCloud2>("cloud_output", 1);
   object_publisher_ = nh_.advertise<prw_message::Objects>("object_output", 1);
 
-
-  cloud_subscriber_.subscribe(nh_, "input", 5);
-  camera_info_subscriber_.subscribe(nh_, "input_info", 5);
+  cloud_subscriber_.subscribe(nh_, "input", 1);
+  camera_info_subscriber_.subscribe(nh_, "input_info", 1);
   approximate_sync_.reset(new ApproximateSync(ApproximatePolicy(5), cloud_subscriber_, camera_info_subscriber_));
   approximate_sync_->registerCallback(boost::bind(&ObjectTracking::cameraCallback, this, _1, _2));
-
 
   image_timer_ = new QTimer(this);
   connect(image_timer_, SIGNAL(timeout()), this, SLOT(onImageUpdate()));
