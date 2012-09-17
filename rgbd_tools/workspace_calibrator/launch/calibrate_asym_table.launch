@@ -1,12 +1,18 @@
-<launch>  
+<launch>
+  <arg name="camera" default="/camera/rgb"/>  
   <arg name="chessboard" default="false" />
-  <arg name="x_step" default="6" />
-  <arg name="y_step" default="8" />
-  <arg name="size" default="0.04" />
-  <node name="workspace_calibrator" pkg="workspace_calibrator" type="workspace_calibrator" output="screen">  
+  <arg name="x_step" default="3" />
+  <arg name="y_step" default="4" />
+  <arg name="size" default="0.08" />
+  <arg name="x_gap" default="0.432" />
+  <arg name="y_gap" default="0.892" />
+  <node name="workspace_calibrator" pkg="workspace_calibrator" type="workspace_calibrator" output="screen"> 
+    <param name="camera" value="$(arg camera)"/>
   	<param name="chessboard" value="$(arg chessboard)"/>
   	<param name="x_step" value="$(arg x_step)"/>
   	<param name="y_step" value="$(arg y_step)"/>
   	<param name="size" value="$(arg size)"/>
+  	<param name="x_gap" value="$(arg x_gap)" />
+    <param name="y_gap" value="$(arg y_gap)" />    
   </node>  
 </launch>

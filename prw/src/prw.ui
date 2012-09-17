@@ -397,14 +397,39 @@
      <string>New Scene</string>
     </property>
    </widget>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>130</x>
-      <y>260</y>
-      <width>126</width>
-      <height>108</height>
+      <x>290</x>
+      <y>220</y>
+      <width>159</width>
+      <height>58</height>
      </rect>
+    </property>
+    <property name="title">
+     <string>Gesture Control</string>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_5">
+     <item>
+      <widget class="QCheckBox" name="cb_enable_gesture">
+       <property name="text">
+        <string>Enable Gesture</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_3">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>220</y>
+      <width>150</width>
+      <height>142</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Teleoperation</string>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
@@ -441,28 +466,6 @@
        </property>
        <property name="text">
         <string>Tool</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QGroupBox" name="groupBox_2">
-    <property name="geometry">
-     <rect>
-      <x>310</x>
-      <y>230</y>
-      <width>161</width>
-      <height>58</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Gesture Control</string>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout_5">
-     <item>
-      <widget class="QCheckBox" name="cb_enable_gesture">
-       <property name="text">
-        <string>Enable</string>
        </property>
       </widget>
      </item>
