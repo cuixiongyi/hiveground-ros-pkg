@@ -16,6 +16,26 @@ static const int g_IntensityShiftByPlayerR[] = { 1, 2, 0, 2, 0, 0, 2, 0 };
 static const int g_IntensityShiftByPlayerG[] = { 1, 2, 2, 0, 2, 0, 0, 1 };
 static const int g_IntensityShiftByPlayerB[] = { 1, 0, 2, 2, 0, 2, 0, 2 };
 
+// Some smoothing with little latency (defaults).
+// Only filters out small jitters.
+// Good for gesture recognition.
+const NUI_TRANSFORM_SMOOTH_PARAMETERS SMOOTH_DEFAULT = 
+{0.5f, 0.5f, 0.5f, 0.05f, 0.04f};
+ 
+// Smoothed with some latency.
+// Filters out medium jitters.
+// Good for a menu system that needs to be smooth but
+// doesn't need the reduced latency as much as gesture recognition does.
+const NUI_TRANSFORM_SMOOTH_PARAMETERS SMOOTH_MORE = 
+{0.5f, 0.1f, 0.5f, 0.1f, 0.1f};
+ 
+// Very smooth, but with a lot of latency.
+// Filters out large jitters.
+// Good for situations where smooth data is absolutely required
+// and latency is not an issue.
+const NUI_TRANSFORM_SMOOTH_PARAMETERS SMOOTH_VERY = 
+{0.7f, 0.3f, 1.0f, 1.0f, 1.0f};
+
 // Safe release for interfaces
 template<class Interface>
 inline void SafeRelease( Interface *& pInterfaceToRelease )
@@ -68,9 +88,9 @@ kinect_server::kinect_server(ros::NodeHandle& nh, QWidget *parent, Qt::WFlags fl
 
 
   gesture_pub_ = nh_.advertise<std_msgs::String>("kinect_gesture", 10);
-  connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
-  connect(&double_swipe_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
-  connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
+  //connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
+  //connect(&double_swipe_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
+  //connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
 
 
   nuiInit();
@@ -104,6 +124,7 @@ void kinect_server::setting_range_triggered(QAction* action)
   ROS_INFO("set range");
 }
 
+/*
 void kinect_server::publish_gesture(const QString& gesture)
 {
   if(!gesture.isNull())
@@ -113,7 +134,7 @@ void kinect_server::publish_gesture(const QString& gesture)
     gesture_pub_.publish(msg); 
   }
 }
-
+*/
 void kinect_server::closeEvent(QCloseEvent *event)
 {
   quit_threads_ = true;
@@ -536,17 +557,21 @@ void kinect_server::nuiDrawSkeleton(QPainter& painter, const NUI_SKELETON_DATA &
   nuiDrawBone(painter, skel, NUI_SKELETON_POSITION_ANKLE_RIGHT, NUI_SKELETON_POSITION_FOOT_RIGHT );
 
   // Draw the joints in a different color
+  QPen pen;
+  pen.setWidth(2);
   for ( i = 0; i < NUI_SKELETON_POSITION_COUNT; i++ )
   {
     if ( skel.eSkeletonPositionTrackingState[i] == NUI_SKELETON_POSITION_INFERRED )
     {
-      painter.setPen(Qt::red);
-      painter.drawEllipse(points_[i], 3, 3);
+      pen.setColor(Qt::red);
+      painter.setPen(pen);
+      painter.drawEllipse(points_[i], 6, 6);
     }
     else if ( skel.eSkeletonPositionTrackingState[i] == NUI_SKELETON_POSITION_TRACKED )
     {
-      painter.setPen(Qt::green);
-      painter.drawEllipse(points_[i], 3, 3);
+      pen.setColor(Qt::green);
+      painter.setPen(pen);      
+      painter.drawEllipse(points_[i], 6, 6);
     }
 
   }
@@ -581,7 +606,7 @@ bool kinect_server::nuiGotSkeletonAlert()
   }
 
   // smooth out the skeleton data
-  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame,NULL);
+  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_MORE);
   if ( FAILED(hr) )
   {
     return false;
@@ -602,27 +627,45 @@ bool kinect_server::nuiGotSkeletonAlert()
 
     if ( trackingState == NUI_SKELETON_TRACKED )
     {
-      // We're tracking the skeleton, draw it
-      //swipe_gesture_.addSkeleton(
-      GestureDetector::Positions positions;
-      positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT]);
-      positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_LEFT]);
-      positions.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_CENTER]);
-      
-      three_axis_gesture_.addSkeleton(positions);
-      three_axis_gesture_.drawInteractiveUi(painter);
-      three_axis_gesture_.drawHistory(painter);
-      //double_swipe_gesture_.addSkeleton(positions);
-      //double_swipe_gesture_.drawHistory(painter);
-      //swipe_gesture_.addSkeleton(positions);
-      //swipe_gesture_.drawHistory(painter);
+      QString gesture;
 
-      /*
-      qDebug() << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].w
-               << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].x
-               << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].y
-               << SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].z;
-      */
+      GestureDetector::Positions positions0;
+      positions0.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT]);
+      positions0.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_HAND_LEFT]);
+      positions0.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_CENTER]);
+            
+      if((SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[NUI_SKELETON_POSITION_HAND_RIGHT] == NUI_SKELETON_POSITION_TRACKED) &&
+         (SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[NUI_SKELETON_POSITION_HAND_LEFT] == NUI_SKELETON_POSITION_TRACKED)) //&&
+         //(SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[NUI_SKELETON_POSITION_SHOULDER_RIGHT] == NUI_SKELETON_POSITION_TRACKED) &&
+         //(SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[NUI_SKELETON_POSITION_SHOULDER_LEFT] == NUI_SKELETON_POSITION_TRACKED))
+      {
+        three_axis_gesture_.addSkeleton(positions0);
+        three_axis_gesture_.drawInteractiveUi(painter);
+        three_axis_gesture_.drawHistory(painter);
+        if(gesture != "") gesture += "_";
+        gesture += three_axis_gesture_.getDetectedGesture();
+      }
+
+      GestureDetector::Positions positions1;
+      positions1.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_CENTER]);
+      positions1.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_RIGHT]);
+      positions1.push_back(SkeletonFrame.SkeletonData[i].SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_LEFT]);
+      twist_body_gesture_.addSkeleton(positions1);
+      twist_body_gesture_.drawInteractiveUi(painter);
+      twist_body_gesture_.drawHistory(painter);
+      if(gesture != "") gesture += "_";
+      gesture += twist_body_gesture_.getDetectedGesture();
+
+      ROS_INFO_STREAM_THROTTLE(1.0, gesture.toStdString());
+
+
+      if(!gesture.isNull())
+      {
+        std_msgs::String msg;
+        msg.data = gesture.toStdString();
+        gesture_pub_.publish(msg); 
+      }
+      // We're tracking the skeleton, draw it
       nuiDrawSkeleton(painter, SkeletonFrame.SkeletonData[i], width, height );
     }
     else if ( trackingState == NUI_SKELETON_POSITION_ONLY )

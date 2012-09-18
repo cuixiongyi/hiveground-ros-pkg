@@ -85,6 +85,12 @@
     <ClCompile Include="gesture_three_axis_move_detector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gesture_lean_body.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gesture_twist_body.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="kinect_server.h">
@@ -108,6 +114,12 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="gesture_three_axis_move_detector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gesture_lean_body.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gesture_twist_body.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

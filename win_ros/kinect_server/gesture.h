@@ -11,6 +11,12 @@
 #include <qdatetime.h>
 #include <qpainter.h>
 
+inline float fast_sign(float f) 
+{
+    if (f > 0) return 1;
+    return (f == 0) ? 0 : -1;
+}
+
 class GestureDetector : public QObject
 {
   Q_OBJECT
@@ -32,6 +38,8 @@ public:
 
   virtual void addSkeleton(const QVector<Vector4>& skeleton_positions); 
   virtual void lookForGesture() = 0;
+
+  QString getDetectedGesture() { return detected_gesture_; }
   
 signals:
   void gestureDetected(const QString& gesture);
@@ -45,7 +53,7 @@ protected:
   QDateTime last_gesture_detected_time_;
   PositionsStampedList entries_;
   PositionsStampedList gesture_history_;
-  
+  QString detected_gesture_;
 
 };
 
