@@ -186,7 +186,7 @@ bool PRW::initialize()
   {
 
     makeIKControllerMarker(tf::Transform(tf::Quaternion(0.0f, 0.0f, 0.0f, 1.0f), tf::Vector3(0.0f, 0.0f, 0.0f)),
-                           it->first, it->first, true, 0.5f);
+                           it->first, it->first, true, 0.2f);
     cmd++;
   }
 
@@ -416,9 +416,19 @@ void PRW::savedStateSelection()
       int id = selected_items[0]->child(0)->data(1,Qt::DisplayRole).toInt(&ok);
       selected_saved_state_item_ = selected_items[0];
       selected_saved_state_id_ = id;
+      if(ok)
+      {
+        ROS_INFO("selected %d", id);
+      }
+      else
+      {
+        ROS_INFO("A");
+      }
+
     }
     else
     {
+      ROS_INFO("B");
       selected_saved_state_item_ = 0;
       selected_saved_state_id_ = -1;
     }
@@ -461,8 +471,9 @@ void PRW::on_bt_move_to_saved_state_clicked()
 {
   if(selected_saved_state_id_ != -1)
   {
+    ROS_INFO("move to %d", selected_saved_state_id_);
     PlanningGroupData& gc = group_data_map_[current_group_name_];
-    moveEndEffector(gc, saved_end_effector_state_[selected_saved_state_id_].second, true, 100);
+    moveEndEffector(gc, saved_end_effector_state_[selected_saved_state_id_].second, true, 100, false, true);
   }
 }
 
@@ -485,14 +496,24 @@ void PRW::on_bt_delete_saved_state_clicked()
   if((selected_saved_state_id_ != -1) && (selected_saved_state_item_ != 0))
   {
     ui_mutex_.lock();
+    saved_end_effector_state_.remove(selected_saved_state_id_);
+    ui_mutex_.unlock();
+
+
     int idx = ui.tree_saved_state->indexOfTopLevelItem(selected_saved_state_item_);
     ROS_INFO_STREAM("idx " << idx);
     QTreeWidgetItem* item = ui.tree_saved_state->takeTopLevelItem(idx);
     if(item) delete item;
-    saved_end_effector_state_.remove(selected_saved_state_id_);
-    selected_saved_state_id_ = -1;
-    selected_saved_state_item_ = 0;
-    ui_mutex_.unlock();
+
+    int index_to_select = idx;
+    if(index_to_select >= ui.tree_saved_state->topLevelItemCount())
+    {
+      index_to_select--;
+    }
+    if(index_to_select >= 0)
+    {
+      ui.tree_saved_state->topLevelItem(index_to_select)->setSelected(true);
+    }
   }
 }
 
@@ -1109,7 +1130,7 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
   marker.pose.orientation.x = transform.getRotation().x();
   marker.pose.orientation.y = transform.getRotation().y();
   marker.pose.orientation.z = transform.getRotation().z();
-  marker.scale = 0.225f;
+  marker.scale = 0.225f * scale;
   if(selectable)
     marker.name = name + "_selectable";
   else
@@ -1136,17 +1157,17 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
 
   Marker marker2;
   marker2.type = Marker::CUBE;
-  marker2.scale.x = .2;
-  marker2.scale.y = .15;
-  marker2.scale.z = .002;
-  marker2.pose.position.x = .1;
+  marker2.scale.x = .2 * scale;
+  marker2.scale.y = .15 * scale;
+  marker2.scale.z = .002 * scale;
+  marker2.pose.position.x = .1 * scale;
   marker2.color.r = 0;
   marker2.color.g = 0;
   marker2.color.b = 0.5;
   marker2.color.a = 1;
   control2.markers.push_back(marker2);
-  marker2.scale.x = .1;
-  marker2.scale.y = .35;
+  marker2.scale.x = .1  * scale;
+  marker2.scale.y = .35  * scale;
   marker2.pose.position.x = 0;
   control2.markers.push_back(marker2);
 
@@ -1162,17 +1183,17 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
 
   Marker marker3;
   marker3.type = Marker::CUBE;
-  marker3.scale.x = .2;
-  marker3.scale.y = .002;
-  marker3.scale.z = .15;
-  marker3.pose.position.x = .1;
+  marker3.scale.x = .2 * scale;
+  marker3.scale.y = .002 * scale;
+  marker3.scale.z = .15 * scale;
+  marker3.pose.position.x = .1 * scale;
   marker3.color.r = 0;
   marker3.color.g = .5;
   marker3.color.b = 0;
   marker3.color.a = 1;
   control3.markers.push_back(marker3);
-  marker3.scale.x = .1;
-  marker3.scale.z = .35;
+  marker3.scale.x = .1 * scale;
+  marker3.scale.z = .35 * scale;
   marker3.pose.position.x = 0;
   control3.markers.push_back(marker3);
 
@@ -1202,8 +1223,6 @@ void PRW::makeSelectableMarker(InteractiveMarkerType type,
     ROS_WARN("handle separately");
     return;
   }
-
-
 
   SelectableMarker selectable_marker;
   selectable_marker.type_ = type;
@@ -1656,7 +1675,7 @@ void PRW::deselectMarker(SelectableMarker& marker, tf::Transform transform)
   switch (marker.type_)
   {
     case EndEffectorControlMarker:
-      makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, true, 0.5f);
+      makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, true, 0.2f);
       break;
     case CollisionObjectMarker:
       {
@@ -1775,6 +1794,7 @@ void PRW::sendMarkers()
     for (it = saved_end_effector_state_.begin(); it != saved_end_effector_state_.end(); it++, i++)
     {
       Marker marker;
+      marker.lifetime = ros::Duration(0.1);
       marker.type = Marker::ARROW;
       marker.header.frame_id = "/" + cm_->getWorldFrameId();
       marker.ns ="saved_ee_state";
@@ -1785,9 +1805,19 @@ void PRW::sendMarkers()
       marker.scale.x = 0.1;
       marker.scale.y = 0.2;
       marker.scale.z = 0.2;
-      marker.color.r = 1.0;
-      marker.color.g = 1.0;
-      marker.color.b = 1.0;
+
+      if(it.key() == selected_saved_state_id_)
+      {
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+      }
+      else
+      {
+        marker.color.r = 0.5;
+        marker.color.g = 0.5;
+        marker.color.b = 0.5;
+      }
       marker.color.a = 1.0;
       marker.pose = it->second;
       arr.markers.push_back(marker);
