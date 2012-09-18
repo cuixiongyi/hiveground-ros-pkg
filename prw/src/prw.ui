@@ -1,0 +1,611 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PRW</class>
+ <widget class="QMainWindow" name="PRW">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1118</width>
+    <height>802</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Personal Robotic Workspace</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QGroupBox" name="groupBox_4">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>220</y>
+      <width>381</width>
+      <height>441</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Saved State</string>
+    </property>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>50</y>
+       <width>351</width>
+       <height>194</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_10">
+      <item>
+       <widget class="QTreeWidget" name="tree_saved_state">
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <widget class="QPushButton" name="bt_move_to_saved_state">
+          <property name="text">
+           <string>Move to</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="bt_play_saved_state">
+          <property name="text">
+           <string>Play</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="bt_stop_play_saved_stated">
+          <property name="text">
+           <string>Stop</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="bt_delete_saved_state">
+          <property name="text">
+           <string>Delete</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>9</y>
+      <width>862</width>
+      <height>182</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_9">
+     <item>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="title">
+        <string>End Effector Control (meter, degree)</string>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout">
+              <item>
+               <widget class="QLabel" name="label">
+                <property name="text">
+                 <string>X</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="hs_move_x">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>-1000</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="sb_move_x">
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+                <property name="minimum">
+                 <double>-1.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>1.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.001000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.280000000000000</double>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <widget class="QLabel" name="label_2">
+                <property name="text">
+                 <string>Y</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="hs_move_y">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>-1000</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="sb_move_y">
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+                <property name="minimum">
+                 <double>-1.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>1.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.001000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.000000000000000</double>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <item>
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>Z</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="hs_move_z">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>-1000</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="sb_move_z">
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+                <property name="minimum">
+                 <double>-1.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>1.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.001000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.560000000000000</double>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <widget class="QLabel" name="label_4">
+                <property name="text">
+                 <string>R</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="hs_roll">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>-1000</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="sb_roll">
+                <property name="minimum">
+                 <double>-180.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>180.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.010000000000000</double>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <item>
+               <widget class="QLabel" name="label_5">
+                <property name="text">
+                 <string>P</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="hs_pitch">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>-1000</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="sb_pitch">
+                <property name="minimum">
+                 <double>-180.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>180.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.010000000000000</double>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <item>
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>Y</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="hs_yaw">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>-1000</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="sb_yaw">
+                <property name="minimum">
+                 <double>-180.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>180.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.010000000000000</double>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
+          <item>
+           <widget class="QCheckBox" name="cb_real_time_update">
+            <property name="text">
+             <string>Real-time update</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="bt_go">
+            <property name="text">
+             <string>Go</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="bt_reset">
+            <property name="text">
+             <string>Reset</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupBox_3">
+       <property name="title">
+        <string>Teleoperation</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <widget class="QCheckBox" name="cb_enable_teleop">
+          <property name="text">
+           <string>Enable Teleop</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_teleop_arm">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Arm</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_teleop_end_effector">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>End Effector</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_teleop_tool">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Tool</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="title">
+        <string>Gesture Control</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <widget class="QCheckBox" name="cb_enable_gesture">
+          <property name="text">
+           <string>Enable Gesture</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1118</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionQuit"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuPlanning">
+    <property name="title">
+     <string>Planning</string>
+    </property>
+    <addaction name="actionNew_Scene"/>
+    <addaction name="actionNew_Request"/>
+    <addaction name="actionNew_Trajectory"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuPlanning"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionNew_Scene">
+   <property name="text">
+    <string>New Scene</string>
+   </property>
+  </action>
+  <action name="actionNew_Request">
+   <property name="text">
+    <string>New Request</string>
+   </property>
+  </action>
+  <action name="actionNew_Trajectory">
+   <property name="text">
+    <string>New Trajectory</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>actionQuit</sender>
+   <signal>activated()</signal>
+   <receiver>PRW</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>374</x>
+     <y>200</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

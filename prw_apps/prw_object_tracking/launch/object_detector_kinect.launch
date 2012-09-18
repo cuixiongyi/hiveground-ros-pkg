@@ -1,0 +1,60 @@
+<launch>  
+  <!-- Kinect -->
+  <include file="$(find openni_launch)/launch/openni.launch">    
+    <arg name="camera" value="kinect7051A" />
+    <arg name="device_id" value="A00363807157051A" />
+    <arg name="depth_registration" value="true" />
+  </include>
+  
+  <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="-0.749529 -0.666167 1.862034 0.698622 0.713423 -0.0391633 -0.0377135 kinect7051A_rgb_optical_frame world 10"/>
+  
+  <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />      
+    <remap from="~input_info" to="/kinect7051A/rgb/camera_info" />
+    <rosparam>
+      output_frame: /world
+      filter_limit_min_z: -0.05
+      filter_limit_max_z: 2.0
+      filter_limit_min_y: -5.0
+      filter_limit_max_y: 5.0
+      filter_limit_min_x: -1.0
+      filter_limit_max_x: 0.76
+      filter_limit_negative: False
+      leaf_size: 0.009            
+      ec_distance_threshold: 0.025
+      ec_cluster_tolerance: 0.02
+      ec_min_size: 50
+      ec_max_size: 500
+    </rosparam>
+  </node>
+  
+  <!-- PCL pipeline -->
+  <!--node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" /-->
+
+  <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
+  <!-- node pkg="nodelet" type="nodelet" name="voxel_grid_z" args="load pcl/VoxelGrid pcl_manager" output="screen">    
+    <remap from="~input" to="/kinect7051A/depth_registered/points" />
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: -0.05
+      filter_limit_max: 2.0
+      filter_limit_negative: False
+      leaf_size: 0.01
+      output_frame: /world
+    </rosparam>
+  </node-->
+  
+  <!--node pkg="nodelet" type="nodelet" name="voxel_grid_x" args="load pcl/VoxelGrid pcl_manager" output="screen">   
+    <remap from="~input" to="/voxel_grid_z/output" />
+    <rosparam>
+      filter_field_name: x
+      filter_limit_min: -1.0
+      filter_limit_max: 0.76
+      filter_limit_negative: False
+      leaf_size: 0.001      
+    </rosparam>
+  </node-->
+  
+
+</launch>  
+  
