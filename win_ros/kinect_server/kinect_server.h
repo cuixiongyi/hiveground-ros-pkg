@@ -10,6 +10,7 @@
 #include "glwidget.h"
 #include "gesture.h"
 #include "gesture_three_axis_move_detector.h"
+#include "gesture_twist_body.h"
 
 #include <ros/ros.h>
 #include <boost/thread.hpp>
@@ -31,7 +32,7 @@ protected slots:
   void setting_track_mode_triggered(QAction* action);
   void setting_tracked_skeleton_triggered(QAction* action);
   void setting_range_triggered(QAction* action);
-  void publish_gesture(const QString& gesture);
+  //void publish_gesture(const QString& gesture);
 
 signals:
   void showImage(const QImage &image);
@@ -106,6 +107,7 @@ private:
   OnePointSwipeGestureDetector swipe_gesture_;
   TwoPointSwipeGestureDetector double_swipe_gesture_;
   ThreeAsixMoveGestureDetector three_axis_gesture_;
+  TwistBodyGestureDetector twist_body_gesture_;
     
   
 };
