@@ -62,7 +62,8 @@ protected:
   void voxelFilter(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr in,
                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr out);
   void sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in);
-  void objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in, pcl::PointCloud<pcl::PointXYZRGB>::Ptr out);
+  void objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
+                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr out);
 
 
   void closeEvent(QCloseEvent *event);

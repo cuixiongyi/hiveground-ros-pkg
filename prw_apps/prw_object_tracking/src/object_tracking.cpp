@@ -89,6 +89,7 @@ bool ObjectTracking::initialize()
   sac_segmentator_.setOptimizeCoefficients(true);
   sac_segmentator_.setModelType(pcl::SACMODEL_PLANE);
   sac_segmentator_.setMethodType(pcl::SAC_RANSAC);
+  sac_segmentator_.setMaxIterations (1000);
 
 
   connectUi();

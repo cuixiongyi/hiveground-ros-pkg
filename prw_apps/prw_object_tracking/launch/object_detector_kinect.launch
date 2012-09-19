@@ -10,7 +10,7 @@
   </include>
   
   <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" 
-    args="-0.749529 -0.666167 1.862034 0.698622 0.713423 -0.0391633 -0.0377135 $(arg camera_name)_rgb_optical_frame world 10"/>  
+    args="-0.706582 -0.604632 1.869532 0.703863 0.709375 -0.0362909 -0.00688766 $(arg camera_name)_rgb_optical_frame world 10"/>  
 
   <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
     <param name="camera" value="$(arg camera_name)"/>
@@ -18,12 +18,12 @@
       output_frame: /world
       filter_limit_min_z: 0.0
       filter_limit_max_z: 2.0
-      filter_limit_min_y: -0.7
-      filter_limit_max_y: 0.11
-      filter_limit_min_x: -0.8
-      filter_limit_max_x: 0.63
+      filter_limit_min_y: -0.65
+      filter_limit_max_y: 0.16
+      filter_limit_min_x: -0.75
+      filter_limit_max_x: 0.66
       filter_limit_negative: False
-      leaf_size: 0.009            
+      leaf_size: 0.01            
       ec_distance_threshold: 0.025
       ec_cluster_tolerance: 0.02
       ec_min_size: 50
