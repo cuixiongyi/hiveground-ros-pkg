@@ -1,2 +1,2 @@
 from ._Object import *
-from ._Objects import *
+from ._ObjectArray import *

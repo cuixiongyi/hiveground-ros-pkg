@@ -57,6 +57,6 @@ void OpenCVImage::mousePressEvent(QGraphicsSceneMouseEvent *event)
   //QGraphicsItem::mousePressEvent(event);
   QColor pixel(q_image_.pixel(event->pos().toPoint()));
   //qDebug() << pixel;
-  emit mouseClicked(event->pos(), q_image_.pixel(event->pos().toPoint()));
+  Q_EMIT mouseClicked(event->pos(), q_image_.pixel(event->pos().toPoint()));
 
 }

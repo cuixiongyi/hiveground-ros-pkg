@@ -34,10 +34,10 @@ public:
   bool getColorRange(const QString& name, ColorRange& color_range);
   QString getCurrentColorName() { return current_color_; }
 
-public slots:
+public Q_SLOTS:
   void setCol(int h, int s);
 
-signals:
+Q_SIGNALS:
   void newCol(int h, int s);
 
 protected:
@@ -70,12 +70,12 @@ public:
     ColorLuminancePicker(QWidget* parent=0);
     ~ColorLuminancePicker();
 
-public slots:
+public Q_SLOTS:
     void setCol(int h, int s, int v);
     void setCol(int h, int s);
     void setRange(int v_min, int v_max);
 
-signals:
+Q_SIGNALS:
     void newHsv(int h, int s, int v);
     void newRange(int v_min, int v_max);
 

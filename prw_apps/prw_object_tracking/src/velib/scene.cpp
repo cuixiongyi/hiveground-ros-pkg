@@ -111,7 +111,7 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent* event)
       if (event->buttons() == Qt::LeftButton)
       {
         qDebug() << "add new node";
-        emit signal_node_added(event->scenePos());
+        Q_EMIT signal_node_added(event->scenePos());
       }
     }
 
@@ -162,7 +162,7 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
       if (event->buttons() == !Qt::LeftButton)
       {
         if (node != node_out_temp_)
-          emit signal_nodes_linked(node_out_temp_, node);
+          Q_EMIT signal_nodes_linked(node_out_temp_, node);
       }
     }
 
