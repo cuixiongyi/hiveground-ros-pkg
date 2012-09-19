@@ -41,7 +41,7 @@ public:
     //virtual QRectF input_link_rect(int line) const;
     //virtual QRectF output_link_rect(int line) const;
 
-public slots:
+public Q_SLOTS:
     //void set_name(const QString& name) { setObjectName(name); update(); }
     void set_scene_roi(const QRectF& scene_roi) { }
 

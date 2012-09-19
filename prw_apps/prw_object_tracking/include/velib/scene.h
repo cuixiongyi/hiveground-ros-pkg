@@ -29,10 +29,10 @@ public:
   //public signal interface
   void emit_signal_node_deleted(QObject* deleted_node)
   {
-    emit signal_node_deleted(deleted_node);
+    Q_EMIT signal_node_deleted(deleted_node);
   }
 
-signals:
+Q_SIGNALS:
   void signal_object_selected(QObject* object);
   void signal_object_deselected();
   void signal_node_added(QPointF scene_position);

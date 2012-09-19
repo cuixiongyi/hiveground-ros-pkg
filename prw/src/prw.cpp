@@ -263,34 +263,9 @@ void PRW::on_bt_go_clicked()
   }
 
   PlanningGroupData& gc = group_data_map_[current_group_name_];
-  tf::Transform cur = toBulletTransform(pose);
-  setNewEndEffectorPosition(gc, cur, collision_aware_);
 
 
-
-
-  if(gc.good_ik_solution_)
-  {
-    interactive_marker_server_->setPose(current_group_name_, pose);
-    interactive_marker_server_->applyChanges();
-
-    //ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
-    planToEndEffectorState(gc, false, false);
-    filterPlannerTrajectory(gc, false, false);
-
-    if (gc.trajectory_data_map_["filter"].has_joint_trajectory_)
-    {
-      FollowJointTrajectoryGoal goal;
-      goal.trajectory = gc.trajectory_data_map_["filter"].joint_trajectory_;
-      trajectory_msgs::JointTrajectoryPoint last = goal.trajectory.points.back();
-      goal.trajectory.points.clear();
-      goal.trajectory.points.push_back(last);
-      goal.trajectory.header.stamp = ros::Time::now(); // + dt;
-      gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
-      arm_is_moving_ = true;
-    }
-  }
-  else
+  if(!moveEndEffector(gc, pose, true, 20, false, true))
   {
     double ryp[3];
     tf::Transform good_state = gc.last_good_state_;
@@ -308,11 +283,7 @@ void PRW::on_bt_go_clicked()
     ui.sb_pitch->setValue(RAD2DEG(ryp[1]));
     ui.sb_yaw->setValue(RAD2DEG(ryp[2]));
 
-
-
     ui.cb_real_time_update->setChecked(checked);
-    resetToLastGoodState(gc);
-    interactive_marker_server_->applyChanges();
   }
 
 }
@@ -358,7 +329,8 @@ void PRW::endEffectorValueUpdate()
 
 void PRW::endEffectorMoved()
 {
-  tf::Transform cur = toBulletTransform(last_end_effector_poses_[current_group_name_]);
+  PlanningGroupData& gc = group_data_map_[current_group_name_];
+  tf::Transform cur = gc.last_good_state_;
   ui.sb_move_x->setValue(cur.getOrigin().x());
   ui.sb_move_y->setValue(cur.getOrigin().y());
   ui.sb_move_z->setValue(cur.getOrigin().z());
@@ -416,19 +388,9 @@ void PRW::savedStateSelection()
       int id = selected_items[0]->child(0)->data(1,Qt::DisplayRole).toInt(&ok);
       selected_saved_state_item_ = selected_items[0];
       selected_saved_state_id_ = id;
-      if(ok)
-      {
-        ROS_INFO("selected %d", id);
-      }
-      else
-      {
-        ROS_INFO("A");
-      }
-
     }
     else
     {
-      ROS_INFO("B");
       selected_saved_state_item_ = 0;
       selected_saved_state_id_ = -1;
     }
@@ -464,6 +426,8 @@ void PRW::addState(const geometry_msgs::Pose& pose)
   saved_end_effector_state_[last_saved_end_effector_state_id_] = state;
   ui_mutex_.unlock();
 
+  ui.tree_saved_state->clearSelection();
+  name_item->setSelected(true);
   last_saved_end_effector_state_id_++;
 }
 
@@ -501,7 +465,6 @@ void PRW::on_bt_delete_saved_state_clicked()
 
 
     int idx = ui.tree_saved_state->indexOfTopLevelItem(selected_saved_state_item_);
-    ROS_INFO_STREAM("idx " << idx);
     QTreeWidgetItem* item = ui.tree_saved_state->takeTopLevelItem(idx);
     if(item) delete item;
 
@@ -651,7 +614,6 @@ void PRW::gestureCallback(const std_msgs::StringConstPtr& message)
       if(gesture.contains("MoveThreeAxis"))
       {
         QStringList move_list = gesture.split(":");
-        //qDebug() << move_list;
         if(move_list.size() == 3)
         {
           boost::recursive_mutex::scoped_lock lock(ui_mutex_);
@@ -784,7 +746,7 @@ void PRW::processIKControllerCallback(const visualization_msgs::InteractiveMarke
           }
 
           setNewEndEffectorPosition(gc, cur, collision_aware_);
-          last_end_effector_poses_[current_group_name_] = feedback->pose;
+          //last_end_effector_poses_[current_group_name_] = feedback->pose;
           last_tf = cur;
         }
       }
@@ -1987,8 +1949,16 @@ bool PRW::moveEndEffector(PlanningGroupData& gc,
 
   if(i != 1)
   {
-    ROS_INFO("found IK after %d retry", i);
+    if (gc.good_ik_solution_)
+      ROS_INFO("found IK after %d retry", i);
+    else
+    {
+      ROS_INFO("IK not found after %d retry", i);
+      resetToLastGoodState(gc);
+      return false;
+    }
   }
+
 
   if (gc.good_ik_solution_)
   {
@@ -1998,7 +1968,6 @@ bool PRW::moveEndEffector(PlanningGroupData& gc,
       interactive_marker_server_->applyChanges();
     }
 
-    Q_EMIT signalUpdateEndEffectorPosition();
     planToEndEffectorState(gc, false, false);
     if(filter)
       filterPlannerTrajectory(gc, false, false);
@@ -2020,6 +1989,7 @@ bool PRW::moveEndEffector(PlanningGroupData& gc,
       }
 
     }
+    Q_EMIT signalUpdateEndEffectorPosition();
     return true;
   }
   return false;
@@ -2311,6 +2281,5 @@ void PRW::refreshEnvironment()
   sendPlanningScene();
   moveEndEffectorMarkers(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false);
 
-  tf::Transform cur = toBulletTransform(last_end_effector_poses_[current_group_name_]);
-  setNewEndEffectorPosition(gc, cur, collision_aware_);
+  setNewEndEffectorPosition(gc, gc.last_good_state_, collision_aware_);
 }

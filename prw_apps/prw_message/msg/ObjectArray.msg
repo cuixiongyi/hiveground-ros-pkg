@@ -1,2 +1,2 @@
 # A representation of all detected object
-Object[] objects
+Object[] object_array

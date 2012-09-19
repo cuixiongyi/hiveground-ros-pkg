@@ -460,7 +460,7 @@ private:
   //arm control
   PlanningGroupDataMap group_data_map_;
   std::string current_group_name_;
-  std::map<std::string, geometry_msgs::Pose> last_end_effector_poses_;
+  //std::map<std::string, geometry_msgs::Pose> last_end_effector_poses_;
 
 
   arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
