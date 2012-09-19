@@ -28,7 +28,7 @@ public:
 	void initialize();
     void prepare_for_delete();
 
-public slots:
+public Q_SLOTS:
     //void set_name(const QString& name) { setObjectName(name); update(); }
 
 

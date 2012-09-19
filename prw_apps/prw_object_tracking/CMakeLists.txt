@@ -24,7 +24,7 @@ set( QT_USE_QTGUI TRUE )
 #set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 
-#ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
 #The reason is the define I added for QT_NO_KEYWORDS. Either remove that or replace slots with Q_SLOTS, etc.
 
 set(qt_srcs
@@ -80,8 +80,8 @@ rosbuild_add_boost_directories()
 #target_link_libraries(prwve ${QT_LIBRARIES})
 
 set(srcs
-     src/object_tracking.cpp 
-     src/object_tracking_utils.cpp
+	 src/main.cpp
+     src/object_tracking.cpp     
      src/simple_color_object_tracker.cpp
      src/lut_color_object_tracker.cpp)
 
