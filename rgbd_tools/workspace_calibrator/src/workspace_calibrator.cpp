@@ -457,8 +457,5 @@ int main(int argc, char* argv[])
 
   cv::namedWindow(WINDOW_NAME);
   cv::setMouseCallback(WINDOW_NAME, onMouse, 0 );
-
-  //ROS_INFO("Subscribe to image topic");
-  //ros::Subscriber sub = n.subscribe("image", 3, &imageCallback);
   ros::spin();
 }

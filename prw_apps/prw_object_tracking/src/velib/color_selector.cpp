@@ -168,7 +168,7 @@ void ColorPicker::mouseMoveEvent(QMouseEvent *m)
   setCol(p);
   if (!current_color_.isNull())
     updateColorRange(current_color_, hue, sat);
-  emit newCol(hue, sat);
+  Q_EMIT newCol(hue, sat);
 }
 
 void ColorPicker::mousePressEvent(QMouseEvent *m)
@@ -177,7 +177,7 @@ void ColorPicker::mousePressEvent(QMouseEvent *m)
   setCol(p);
   if (!current_color_.isNull())
     updateColorRange(current_color_, hue, sat);
-  emit newCol(hue, sat);
+  Q_EMIT newCol(hue, sat);
 }
 
 void ColorPicker::paintEvent(QPaintEvent*)
@@ -332,7 +332,7 @@ void ColorLuminancePicker::setVal(int v)
   delete pix;
   pix = 0;
   repaint();
-  emit newHsv(hue, sat, val);
+  Q_EMIT newHsv(hue, sat, val);
 }
 
 //receives from a hue,sat chooser and relays.
@@ -348,7 +348,7 @@ void ColorLuminancePicker::setRange(int v_min, int v_max)
   val_min = qMax(0, qMin(v_min, 255));
   val_max = qMax(0, qMin(v_max, 255));
   repaint();
-  emit newRange(val_min, val_max);
+  Q_EMIT newRange(val_min, val_max);
 }
 
 void ColorLuminancePicker::paintEvent(QPaintEvent *)
@@ -412,6 +412,6 @@ void ColorLuminancePicker::setCol(int h, int s, int v)
   delete pix;
   pix = 0;
   repaint();
-  emit newHsv(h, s, val);
+  Q_EMIT newHsv(h, s, val);
 }
 
