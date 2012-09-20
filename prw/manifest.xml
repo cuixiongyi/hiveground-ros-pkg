@@ -20,6 +20,8 @@
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
    
+  <depend package="prw_message"/>
+   
 
 </package>
 

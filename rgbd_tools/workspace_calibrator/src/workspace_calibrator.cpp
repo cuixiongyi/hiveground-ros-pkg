@@ -37,6 +37,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 
 
 using namespace std;
@@ -63,6 +64,12 @@ std::vector<cv::Point3f> marker_points_;
 std::vector<cv::Point3f> object_points_;
 int state_ = 0;
 cv::Point markers_[4];
+
+int dx_, dy_, dz_, rx_, ry_, rz_;
+
+string source_frames_;
+string target_frames_;
+tf::TransformBroadcaster* broadcaster_;
 
 void onMouse( int event, int x, int y, int, void* )
 {
@@ -132,6 +139,11 @@ cv::Mat_<double> getQuaternion(const cv::Point3d &vec, float angle)
   quat(2, 0) = (vec.z * sinAngle);
   quat(3, 0) = std::cos(angle);
   return quat;
+}
+
+void onSlider(int value, void* data)
+{
+
 }
 
 void infoCallBack(const sensor_msgs::CameraInfoConstPtr& info)
@@ -225,11 +237,55 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
       if ((all_blobs.size() == object_points_.size()) && got_camera_info_)
       {
         ROS_INFO_THROTTLE(1.0, "got all blobs");
-        cv::Mat_<double> rvec, tvec, q, rotation_matrix;
+        cv::Mat_<double> rvec, tvec;
         cv::solvePnP(object_points_, all_blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
         ROS_INFO_STREAM_THROTTLE(1.0, "tvec: " << tvec);
         ROS_INFO_STREAM_THROTTLE(1.0, "rvec: " << rvec);
 
+        double* rptr = rvec.ptr<double>(0);
+        double* tptr = tvec.ptr<double>(0);
+
+        tf::Quaternion q;
+        q.setRPY(rptr[0],rptr[1],rptr[2]);
+
+        tf::Transform tf(q, tf::Vector3(tptr[0], tptr[1], tptr[2]));
+
+        tf::Quaternion dq;
+        double droll, dpitch, dyaw, dx, dy, dz;
+        droll = ((rx_ - 500) / 500.0) * M_PI;
+        dpitch = ((ry_ - 500) / 500.0) * M_PI;
+        dyaw = ((rz_ - 500) / 500.0) * M_PI;
+        dx = ((dx_ - 500) / 500.0);
+        dy = ((dy_ - 500) / 500.0);
+        dz = ((dz_ - 500) / 500.0);
+        dq.setRPY(droll + M_PI, dpitch, dyaw + M_PI/2);
+
+        tf::Transform dtf(dq, tf::Vector3(dx, dy, dz));
+
+        //ROS_INFO_THROTTLE(1.0, "%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", droll, dpitch, dyaw, dx, dy, dz);
+        ROS_INFO_THROTTLE(1.0, "tf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",
+                          tf.getOrigin().x(), tf.getOrigin().y(), tf.getOrigin().z(),
+                          tf.getRotation().x(), tf.getRotation().y(), tf.getRotation().z(), tf.getRotation().w());
+
+
+        ROS_INFO_THROTTLE(1.0, "dtf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",
+                          dtf.getOrigin().x(), dtf.getOrigin().y(), dtf.getOrigin().z(),
+                          dtf.getRotation().x(), dtf.getRotation().y(), dtf.getRotation().z(), dtf.getRotation().w());
+
+
+        tf::Transform result = tf * dtf;
+        ROS_INFO_THROTTLE(1.0, "result\t %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f",
+                          result.getOrigin().x(), result.getOrigin().y(), result.getOrigin().z(),
+                          result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
+
+
+        tf::StampedTransform stf(result, ros::Time::now(), source_frames_, target_frames_);
+        broadcaster_->sendTransform(stf);
+
+
+
+
+        /*
         tf::Quaternion quat;
 
         double* rptr = rvec.ptr<double>(0);
@@ -247,6 +303,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
         quat = quat * r1;
 
         ROS_INFO_STREAM_THROTTLE(1.0, "new quaternion: " << quat.getX() << " " << quat.getY() << " " << quat.getZ() << " " << quat.getW());
+        */
       }//if all blob
     }//if state == 4
   }//if chessboard
@@ -371,8 +428,27 @@ int main(int argc, char* argv[])
     ROS_INFO_STREAM("y gap: " << y_gap_);
   }
 
+
+  nh_private.param("source_frames", source_frames_, string("camera_rgb_optical_frame"));
+  nh_private.param("target_frames", target_frames_, string("world"));
+  ROS_INFO_STREAM("source_frames: " << source_frames_);
+  ROS_INFO_STREAM("source_frames: " << target_frames_);
+
+  dx_ = dy_ = dz_ = rx_ = ry_ = rz_ = 500;
+
+  cv::namedWindow(WINDOW_NAME);
+  cv::setMouseCallback(WINDOW_NAME, onMouse, 0);
+  cv::createTrackbar("dx", WINDOW_NAME, &dx_, 1000, onSlider, 0);
+  cv::createTrackbar("dy", WINDOW_NAME, &dy_, 1000, onSlider, 0);
+  cv::createTrackbar("dz", WINDOW_NAME, &dz_, 1000, onSlider, 0);
+  cv::createTrackbar("rx", WINDOW_NAME, &rx_, 1000, onSlider, 0);
+  cv::createTrackbar("ry", WINDOW_NAME, &ry_, 1000, onSlider, 0);
+  cv::createTrackbar("rz", WINDOW_NAME, &rz_, 1000, onSlider, 0);
+
+  broadcaster_ = new tf::TransformBroadcaster();
   ros::Subscriber sub_image = nh.subscribe(camera_ + "/image_mono", 3, &imageCallback);
   ros::Subscriber sub_info = nh.subscribe(camera_ + "/camera_info", 3, &infoCallBack);
+
 
 
 
@@ -455,7 +531,9 @@ int main(int argc, char* argv[])
     }
   }//chessboard check
 
-  cv::namedWindow(WINDOW_NAME);
-  cv::setMouseCallback(WINDOW_NAME, onMouse, 0 );
+
+
+
+
   ros::spin();
 }

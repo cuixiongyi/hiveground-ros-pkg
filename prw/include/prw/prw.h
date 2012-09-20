@@ -68,6 +68,8 @@
 #include <geometry_msgs/Pose.h>
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 
+#include <prw_message/Object.h>
+#include <prw_message/ObjectArray.h>
 
 #include <qevent.h>
 #include <qdialog.h>
@@ -320,6 +322,7 @@ protected:
   //callback
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
   void gestureCallback(const std_msgs::StringConstPtr& message);
+  void objectTrackingCallback(const prw_message::ObjectArrayConstPtr& message);
 
   void processIKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
   void processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
@@ -386,10 +389,13 @@ protected:
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                               const control_msgs::FollowJointTrajectoryResultConstPtr& result);
   void moveThroughSavedState();
+  void followObject(PlanningGroupData& gc, const geometry_msgs::Pose& pose, double offset);
 
 
   void resetToLastGoodState(PlanningGroupData& gc);
   void refreshEnvironment();
+
+
 
 
   inline bool isCollisionObjectName(const std::string& name)
@@ -422,6 +428,7 @@ private:
   ros::NodeHandle nh_private_;
   boost::recursive_mutex scene_mutex_;
   boost::recursive_mutex ui_mutex_;
+  boost::recursive_mutex tracked_object_mutex_;
 
 
 
@@ -441,6 +448,7 @@ private:
   std::map<std::string, double> robot_state_joint_values_;
 
   ros::Subscriber gesture_subscriber_;
+  ros::Subscriber object_tracking_subscriber_;
 
   //publisher
   ros::Publisher marker_publisher_;
@@ -490,6 +498,10 @@ private:
   /// Map of collision objects names to messages sent to ROS.
   CollisionObjectMap collision_objects_;
   int last_collision_objects_id_;
+
+
+  //tracked object
+  std::vector<tf::Transform> tracked_objects_;
 
 
 };
