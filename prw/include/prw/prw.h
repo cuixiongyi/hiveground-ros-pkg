@@ -502,7 +502,7 @@ private:
 
   //tracked object
   std::vector<tf::Transform> tracked_objects_;
-
+  tf::Transform following_point_;
 
 };
 

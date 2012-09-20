@@ -38,7 +38,6 @@
 #include <QDebug>
 #include <qinputdialog.h>
 
-
 using namespace std;
 using namespace planning_environment;
 using namespace planning_models;
@@ -221,7 +220,7 @@ bool PRW::initialize()
   color.g = 0.0;
   color.b = 0.0;
 
-  createCollisionObject(pose, Box, color, 0.8, 1.4, 0.02, false);
+  //createCollisionObject(pose, Box, color, 0.8, 1.4, 0.02, false);
 
   sendPlanningScene();
 
@@ -701,6 +700,8 @@ void PRW::objectTrackingCallback(const prw_message::ObjectArrayConstPtr& message
   ROS_INFO_THROTTLE(1.0, "got object trackign message");
   tf::StampedTransform stf;
 
+
+
   if(message->object_array.size() == 0) return;
 
   transform_listener_.lookupTransform(cm_->getWorldFrameId(), message->object_array[0].header.frame_id, ros::Time(0), stf);
@@ -712,13 +713,29 @@ void PRW::objectTrackingCallback(const prw_message::ObjectArrayConstPtr& message
 
   boost::recursive_mutex::scoped_lock(tracked_object_mutex_);
   tracked_objects_.clear();
+  static tf::Transform last_tf;
   for(int i = 0;i < message->object_array.size(); i++)
   {
     tf::Transform tf = toBulletTransform(message->object_array[i].pose);
     tf = tf * stf;
-    //tf.getOrigin().length();
-    tracked_objects_.push_back(tf);
-    //ROS_INFO_STREAM("frame:" << message->object_array[i].header.frame_id << ":" << message->object_array[i].pose);
+
+    if(tf.getOrigin().x() > 0.4)
+    {
+      if(!current_group_name_.empty())
+      {
+          if((last_tf.getOrigin() - tf.getOrigin()).length() > 0.01)
+          {
+            PlanningGroupData& gc = group_data_map_[current_group_name_];
+            if(ui.cb_enable_tracking->isChecked())
+            {
+              followObject(gc, toGeometryPose(tf), 0.3);
+            }
+            last_tf = tf;
+          }
+      }
+    }
+
+
   }
 }
 
@@ -859,8 +876,21 @@ void PRW::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedb
         if (feedback->marker_name.rfind("object_") != string::npos)
         {
           ROS_INFO_STREAM(
-              "select: " << feedback->marker_name << " " << selectable_markers_[feedback->marker_name].type_);
-          selectMarker(selectable_markers_[feedback->marker_name], cur);
+              "select: " << feedback->marker_name << " " << selectable_markers_[feedback->marker_name].type_ << " " << feedback->header.frame_id);
+
+          //if()
+
+
+          if(feedback->header.frame_id != ("/" + cm_->getWorldFrameId()))
+          {
+            tf::StampedTransform stf;
+            transform_listener_.lookupTransform("/" + cm_->getWorldFrameId(), feedback->header.frame_id, ros::Time(0), stf);
+            selectMarker(selectable_markers_[feedback->marker_name], cur*stf);
+          }
+          else
+          {
+            selectMarker(selectable_markers_[feedback->marker_name], cur);
+          }
 
           //deselect other markers
           std::map<std::string, SelectableMarker>::iterator it = selectable_markers_.begin();
@@ -886,6 +916,7 @@ void PRW::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedb
         ROS_INFO_STREAM("mouse up: " << feedback->marker_name);
         collision_objects_[feedback->marker_name].poses[0] = feedback->pose;
         selectable_markers_[feedback->marker_name + "_selectable"].pose_ = feedback->pose;
+        followObject(gc, feedback->pose, 0.5);
         refreshEnvironment();
       }
       break;
@@ -1339,7 +1370,7 @@ Marker PRW::makeMarkerBox(InteractiveMarker &msg, float alpha)
 }
 
 void PRW::makeInteractive6DOFMarker(bool fixed, tf::Transform transform, const std::string& name,
-                                                const std::string& description, float scale, bool object)
+                                    const std::string& description, float scale, bool object)
 {
   InteractiveMarker marker;
   marker.header.frame_id = "/" + cm_->getWorldFrameId();
@@ -1827,6 +1858,28 @@ void PRW::sendMarkers()
     }
     tracked_object_mutex_.unlock();
 
+    Marker marker;
+    marker.lifetime = ros::Duration(0.1);
+    marker.type = Marker::ARROW;
+    marker.header.frame_id = "/" + cm_->getWorldFrameId();
+    marker.ns = "following_point";
+    marker.id = 0;
+    //marker.action = visualization_msgs::Marker::ADD;
+
+    // Scale is arbitrarily 1/4 of the marker's scale.
+    marker.scale.x = 0.2;
+    marker.scale.y = 0.2;
+    marker.scale.z = 0.2;
+
+
+    marker.color.r = 1.0;
+    marker.color.g = 0.5;
+    marker.color.b = 0.0;
+
+    marker.color.a = 1.0;
+    marker.pose = toGeometryPose(following_point_);
+    arr.markers.push_back(marker);
+
 
     /*
     for (TrajectoryDataMap::iterator it = gc.trajectory_data_map_.begin(); it != gc.trajectory_data_map_.end(); it++)
@@ -2019,11 +2072,21 @@ bool PRW::moveEndEffector(PlanningGroupData& gc,
       FollowJointTrajectoryGoal goal;
       goal.trajectory = gc.trajectory_data_map_[filter ? "filter" : "planner"].joint_trajectory_;
       goal.trajectory.header.stamp = ros::Time::now();
+
+      if(!filter)
+      {
+        trajectory_msgs::JointTrajectoryPoint last_point = goal.trajectory.points.back();
+        goal.trajectory.points.clear();
+        goal.trajectory.points.push_back(last_point);
+      }
+
+
       gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
       arm_is_moving_ = true;
 
       if(block)
       {
+
         while(arm_is_moving_)
         {
           ros::Duration(0.001).sleep();
@@ -2208,7 +2271,7 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
 void PRW::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                  const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
-  ROS_INFO("trajectory done");
+  ROS_DEBUG("trajectory done");
   arm_is_moving_ = false;
 }
 
@@ -2248,13 +2311,49 @@ void PRW::moveThroughSavedState()
   }
 }
 
-void followObject(PlanningGroupData& gc, const geometry_msgs::Pose& pose, double offset)
+void PRW::followObject(PlanningGroupData& gc, const geometry_msgs::Pose& pose, double offset)
 {
+  if(arm_is_moving_) return;
+
   //get end effector position
+  tf::Transform ee_tf = gc.last_good_state_;
+  tf::Transform target_tf = toBulletTransform(pose);
+
+  ROS_DEBUG_THROTTLE(1.0, "ee_tf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",
+                    ee_tf.getOrigin().x(), ee_tf.getOrigin().y(), ee_tf.getOrigin().z(),
+                    ee_tf.getRotation().x(), ee_tf.getRotation().y(), ee_tf.getRotation().z(), ee_tf.getRotation().w());
+
 
   //compute vector
+  //tf::Vector3 vector_to_target = target_tf.getOrigin() - ee_tf.getOrigin();
+  tf::Vector3 vector_to_target = target_tf.getOrigin() - tf::Vector3(0, 0, 0.5);
+  tf::Vector3 up(1, 0, 0);
+  //tf::Matrix3x3 rotation_matrix(ee_tf.getRotation());
+  //up = rotation_matrix * up;
+  ROS_DEBUG_THROTTLE(1.0, "target\t %6.3f %6.3f %6.3f", vector_to_target.x(), vector_to_target.y(), vector_to_target.z());
+  ROS_DEBUG_THROTTLE(1.0, "up\t %6.3f %6.3f %6.3f", up.x(), up.y(), up.z());
+
+  tf::Vector3 rotate_axis = up.cross(vector_to_target);
+  double theta = acos(vector_to_target.normalized().dot(up));
+
+  ROS_DEBUG_THROTTLE(1.0, "theta: %f", theta);
+  //tf::Vector3 up_vector(1.0, 0, 0);
+  //double theta = acos(vector_to_target.dot(up_vector));
+
+  //target_q.setRotation()
+  //vector_to_target.
+  tf::Quaternion q(rotate_axis.normalized(), theta);
+
+  tf::Transform tf(q, tf::Vector3(0, 0, 0.5) + (vector_to_target.normalize() * (vector_to_target.length() - offset)));
+
+
+  following_point_ = tf;
+
+
+
 
   //move end effector along the computed vector with "offset" distance from pose
+  moveEndEffector(gc, toGeometryPose(following_point_), false, 20, true, true);
 
 
 }
