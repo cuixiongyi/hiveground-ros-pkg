@@ -117,6 +117,7 @@ bool PRW::initialize()
   //subscriber
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &PRW::jointStateCallback, this);
   gesture_subscriber_ = nh_.subscribe("kinect_gesture", 1, &PRW::gestureCallback, this);
+  object_tracking_subscriber_ = nh_.subscribe("object_tracking", 1, &PRW::objectTrackingCallback, this);
 
   //publisher
   marker_publisher_ = nh_.advertise<Marker>("prw_workspace_editor", 128);
@@ -208,7 +209,7 @@ bool PRW::initialize()
 
   Pose pose;
   pose.position.x = 0.4f;
-  pose.position.z = -0.03f;
+  pose.position.z = -0.01f;
   pose.position.y = 0.0f;
   pose.orientation.x = 0.0f;
   pose.orientation.y = 0.0f;
@@ -220,15 +221,7 @@ bool PRW::initialize()
   color.g = 0.0;
   color.b = 0.0;
 
-  //createCollisionPole(0, polePose);
-  //createCollisionObject(pose, Pole, color, 0.05, 1.0, 0, true);
-  //pose.position.y = 1.0;
-  //color.g = 1.0;
   createCollisionObject(pose, Box, color, 0.8, 1.4, 0.02, false);
-  //pose.position.y = -1.0;
-  //color.g = 0.0;
-  //color.b = 1.0;
-  //createCollisionObject(pose, Sphere, color, 0.1, 0.0, 0.0, true);
 
   sendPlanningScene();
 
@@ -700,6 +693,32 @@ void PRW::gestureCallback(const std_msgs::StringConstPtr& message)
 
 
     //ROS_INFO_STREAM(1.0, gesture->data);
+  }
+}
+
+void PRW::objectTrackingCallback(const prw_message::ObjectArrayConstPtr& message)
+{
+  ROS_INFO_THROTTLE(1.0, "got object trackign message");
+  tf::StampedTransform stf;
+
+  if(message->object_array.size() == 0) return;
+
+  transform_listener_.lookupTransform(cm_->getWorldFrameId(), message->object_array[0].header.frame_id, ros::Time(0), stf);
+
+
+//  ROS_INFO_THROTTLE(1.0, "result\t %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f",
+//                    trans_form.getOrigin().x(), trans_form.getOrigin().y(), trans_form.getOrigin().z(),
+//                    trans_form.getRotation().x(), trans_form.getRotation().y(), trans_form.getRotation().z(), trans_form.getRotation().w());
+
+  boost::recursive_mutex::scoped_lock(tracked_object_mutex_);
+  tracked_objects_.clear();
+  for(int i = 0;i < message->object_array.size(); i++)
+  {
+    tf::Transform tf = toBulletTransform(message->object_array[i].pose);
+    tf = tf * stf;
+    //tf.getOrigin().length();
+    tracked_objects_.push_back(tf);
+    //ROS_INFO_STREAM("frame:" << message->object_array[i].header.frame_id << ":" << message->object_array[i].pose);
   }
 }
 
@@ -1764,7 +1783,7 @@ void PRW::sendMarkers()
       //marker.action = visualization_msgs::Marker::ADD;
 
       // Scale is arbitrarily 1/4 of the marker's scale.
-      marker.scale.x = 0.1;
+      marker.scale.x = 0.2;
       marker.scale.y = 0.2;
       marker.scale.z = 0.2;
 
@@ -1785,6 +1804,29 @@ void PRW::sendMarkers()
       arr.markers.push_back(marker);
     }
     ui_mutex_.unlock();
+
+
+    tracked_object_mutex_.lock();
+    for(int i = 0; i < tracked_objects_.size(); i++)
+    {
+      Marker marker;
+      marker.lifetime = ros::Duration(0.1);
+      marker.type = Marker::SPHERE;
+      marker.header.frame_id = "/" + cm_->getWorldFrameId();
+      marker.ns = "tracked_objects";
+      marker.id = i;
+      marker.pose = toGeometryPose(tracked_objects_[i]);
+      marker.scale.x = 0.1;
+      marker.scale.y = 0.1;
+      marker.scale.z = 0.1;
+      marker.color.r = 0.5;
+      marker.color.g = 1.0;
+      marker.color.b = 0.0;
+      marker.color.a = 1.0;
+      arr.markers.push_back(marker);
+    }
+    tracked_object_mutex_.unlock();
+
 
     /*
     for (TrajectoryDataMap::iterator it = gc.trajectory_data_map_.begin(); it != gc.trajectory_data_map_.end(); it++)
@@ -2206,6 +2248,16 @@ void PRW::moveThroughSavedState()
   }
 }
 
+void followObject(PlanningGroupData& gc, const geometry_msgs::Pose& pose, double offset)
+{
+  //get end effector position
+
+  //compute vector
+
+  //move end effector along the computed vector with "offset" distance from pose
+
+
+}
 
 
 void PRW::resetToLastGoodState(PlanningGroupData& gc)

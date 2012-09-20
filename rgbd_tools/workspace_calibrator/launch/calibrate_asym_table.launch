@@ -5,7 +5,9 @@
   <arg name="y_step" default="4" />
   <arg name="size" default="0.08" />
   <arg name="x_gap" default="0.432" />
-  <arg name="y_gap" default="0.892" />
+  <arg name="y_gap" default="0.892" />  
+  <arg name="source_frame" default="camera_rgb_optical_frame" />
+  <arg name="target_frame" default="world" />
   <node name="workspace_calibrator" pkg="workspace_calibrator" type="workspace_calibrator" output="screen"> 
     <param name="camera" value="$(arg camera)"/>
   	<param name="chessboard" value="$(arg chessboard)"/>
@@ -13,6 +15,8 @@
   	<param name="y_step" value="$(arg y_step)"/>
   	<param name="size" value="$(arg size)"/>
   	<param name="x_gap" value="$(arg x_gap)" />
-    <param name="y_gap" value="$(arg y_gap)" />    
+    <param name="y_gap" value="$(arg y_gap)" />
+    <param name="source_frame" value="$(arg source_frame)" />    
+    <param name="target_frame" value="$(arg target_frame)" />
   </node>  
 </launch>

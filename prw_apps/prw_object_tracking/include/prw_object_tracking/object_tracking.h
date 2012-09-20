@@ -61,7 +61,10 @@ protected:
 
   void voxelFilter(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr in,
                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr out);
-  void sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in);
+  void sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
+                       pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_planar,
+                       pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_objects);
+
   void objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr out);
 
