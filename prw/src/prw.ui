@@ -122,7 +122,7 @@
      <rect>
       <x>9</x>
       <y>9</y>
-      <width>862</width>
+      <width>865</width>
       <height>191</height>
      </rect>
     </property>
@@ -549,6 +549,13 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_enable_tracking">
+          <property name="text">
+           <string>Enable Tracking</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
