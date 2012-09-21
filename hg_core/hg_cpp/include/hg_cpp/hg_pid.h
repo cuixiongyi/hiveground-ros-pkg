@@ -31,79 +31,100 @@
  * Author: Mahisorn Wongphati
  */
 
-#ifndef HG_RC7M_JOINT_H_
-#define HG_RC7M_JOINT_H_
+#include <iostream>
+#include <boost/thread.hpp>
 
-#include <pluginlib/class_list_macros.h>
-#include <std_msgs/Float64.h>
-
-
-#include <hg_cpp/hg_joint.h>
-
-namespace hg_plugins
+namespace hg
 {
 
-class RC7MJoint : public hg::Joint
+class PID
 {
 public:
-  /**
-   * A default constructor.
-   */
-  RC7MJoint();
+  double p_err, d_err, i_err;
+  double kp, ki, kd, il;
+  boost::mutex mutex;
 
-  /**
-   * A destructor.
-   */
-  ~RC7MJoint();
+  PID() :
+      p_err(0), d_err(0), i_err(0), kp(0), ki(0), kd(0), il(0)
+  {
+  }
 
-  /**
-   * An initializing function.
-   */
-  void initilize(hg::Node* node, const std::string& name);
+  PID(double p, double i, double d, double l) :
+      p_err(0), d_err(0), i_err(0), kp(p), ki(i), kd(d), il(l)
+  {
+  }
 
-  /**
-   * Load joint information from URDF.
-   */
-  bool getJointInformationUrdf();
-  /**
-   * Interpolate joint position after dt.
-   */
-  double interpolate(double dt);
-  double interpolate2(double dt);
+  PID(const PID& pid) :
+      kp(pid.kp), ki(pid.ki), kd(pid.kd), il(pid.il)
+  {
+  }
 
-  /**
-   * Set feedback data from sensor (encoder, camera, ...).
-   */
-  void setFeedbackData(double feedback);
+  inline void updateGain(double p, double i, double d, double l)
+  {
+    kp = p;
+    ki = i;
+    kd = d;
+    il = l;
+    resetError();
+  }
 
-  /**
-   * Set joint position.
-   */
-  double setPosition(double position);
-  double setPositionRelative(double position);
+  inline void updateP(double p)
+  {
+    boost::mutex::scoped_lock(mutex);
+    kp = p;
+    resetError();
+  }
 
-  /**
-   * Get a diagnostics message for this joint.
-   */
-  diagnostic_msgs::DiagnosticStatus getDiagnostics();
+  inline void updateI(double i)
+  {
+    boost::mutex::scoped_lock(mutex);
+    ki = i;
+    resetError();
+  }
 
-  //callback
-  void callbackJointPosition(const std_msgs::Float64& position);
-  void callbackJointPositionRelative(const std_msgs::Float64& position);
-  void callbackJointPositionDegree(const std_msgs::Float64& position);
-  void callbackJointVelocity(const std_msgs::Float64& velocity);
+  inline void updateD(double d)
+  {
+    boost::mutex::scoped_lock(mutex);
+    kd = d;
+    resetError();
+  }
 
+  inline void updateIL(double l)
+  {
+    boost::mutex::scoped_lock(mutex);
+    il = l;
+    resetError();
+  }
 
+  inline void resetError()
+  {
+    p_err = 0;
+    d_err = 0;
+    i_err = 0;
+  }
 
-  ros::Subscriber subscriber_joint_position_degree_;
+  inline double update(double err)
+  {
+    boost::mutex::scoped_lock(mutex);
+    d_err = err - p_err;
+    p_err = err;
+    i_err += d_err;
 
-  double t_to_zero_, t_acc_, t_const_, t_dacc_;
-  double current_velocity_;
-  double total_time_;
+    if (fabs(i_err) > il)
+    {
+      if (i_err > 0)
+        i_err = il;
+      else
+        i_err = -il;
+    }
+    return (kp * p_err) + (kd * d_err) + (ki * i_err);
+  }
+
+  ///Support for output stream operator
+  friend std::ostream& operator <<(std::ostream& os, const PID& p)
+  {
+    return os << p.kp << " " << p.ki << " " << p.kd << " " << p.il << " " << p.p_err << " " << p.i_err << " " << p.d_err;
+  }
 };
 
 }
-
-
-
-#endif

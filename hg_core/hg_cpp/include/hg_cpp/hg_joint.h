@@ -39,6 +39,8 @@
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <urdf/model.h>
 #include <boost/thread.hpp>
+#include <hg_cpp/hg_pid.h>
+#include <hg_cpp/hg_velocity_control.h>
 
 namespace hg
 {

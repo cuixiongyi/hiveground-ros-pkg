@@ -1,33 +1,24 @@
-<launch>  
+<launch>
 
+  <include file="$(find prw_teleop)/launch/prw_arm_vp6242_joy.launch"/>
 
-  <!-- RC7M -->
-  <node name="arm1" pkg="hg_cpp" type="hg_ros" output="screen">
-    <param name="simulate" value="true"/>
-    <param name="loop_rate" value="50.0"/>
-    <param name="joint_publish_rate" value="10.0"/>
-    <param name="diagnostic_publish_rate" value="10.0"/>
-      
-    <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />
-    <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />    
+  <arg name="simulated_robot" default="true"/>
+  
+  <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />
+  
+
+  <node name="vp6242" pkg="hg_cpp" type="hg_ros" output="screen">
+    <param name="simulate" value="$(arg simulated_robot)"/>
+    <param name="loop_rate" value="100.0"/>
+    <param name="joint_publish_rate" value="50.0"/>
+    <param name="diagnostic_publish_rate" value="10.0"/>      
+    <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />    
   </node>
   
-  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >
-      <remap from="robot_description" to="/arm1/robot_description" />
-      <!--remap from="joint_states" to="/arm1/joint_states" /-->
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" output="screen">      
   </node>
-  
-  <!-- fk/ik solver http://www.ros.org/wiki/arm_kinematics -->
-  <node pkg="arm_kinematics" type="arm_kinematics" name="arm_kinematics" output="screen">
-    <param name="root_name" value="base_link" />
-    <param name="tip_name" value="link5" />
-    <remap from="robot_description" to="/arm1/robot_description" />
-  </node >
-  
-	
-  <node pkg="rviz" type="rviz" name="rviz">
-      <remap from="robot_description" to="/arm1/robot_description" />
-  </node>
+  	
+  <node pkg="rviz" type="rviz" name="rviz"></node>
   
     
 </launch>
