@@ -449,6 +449,8 @@ private:
 
   ros::Subscriber gesture_subscriber_;
   ros::Subscriber object_tracking_subscriber_;
+  //ros::Subscriber object_tracking_subscriber_;
+
 
   //publisher
   ros::Publisher marker_publisher_;

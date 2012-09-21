@@ -31,79 +31,84 @@
  * Author: Mahisorn Wongphati
  */
 
-#ifndef HG_RC7M_JOINT_H_
-#define HG_RC7M_JOINT_H_
-
-#include <pluginlib/class_list_macros.h>
-#include <std_msgs/Float64.h>
-
-
-#include <hg_cpp/hg_joint.h>
-
-namespace hg_plugins
+namespace hg
 {
 
-class RC7MJoint : public hg::Joint
+class TrapezoidalVelocityControl
 {
 public:
-  /**
-   * A default constructor.
-   */
-  RC7MJoint();
+  double target, current;
+  double max_vel;
+  double max_acc;
 
-  /**
-   * A destructor.
-   */
-  ~RC7MJoint();
+  TrapezoidalVelocityControl() :
+      target(0), current(0), max_vel(0), max_acc(0.0)
+  {
+  }
 
-  /**
-   * An initializing function.
-   */
-  void initilize(hg::Node* node, const std::string& name);
+  TrapezoidalVelocityControl(double v, double a) :
+      target(0), current(0), max_vel(v), max_acc(a)
+  {
+  }
 
-  /**
-   * Load joint information from URDF.
-   */
-  bool getJointInformationUrdf();
-  /**
-   * Interpolate joint position after dt.
-   */
-  double interpolate(double dt);
-  double interpolate2(double dt);
+  void updateControlLimit(double a, double v)
+  {
+    max_acc = a;
+    max_vel = v;
+  }
 
-  /**
-   * Set feedback data from sensor (encoder, camera, ...).
-   */
-  void setFeedbackData(double feedback);
+  void updateMaxAcceleration(double a)
+  {
+    max_acc = a;
+  }
 
-  /**
-   * Set joint position.
-   */
-  double setPosition(double position);
-  double setPositionRelative(double position);
+  void updateMaxVelopcity(double a)
+  {
+    max_acc = a;
+  }
 
-  /**
-   * Get a diagnostics message for this joint.
-   */
-  diagnostic_msgs::DiagnosticStatus getDiagnostics();
+  void updateTargetVelocity(double v)
+  {
+    target = v;
+  }
 
-  //callback
-  void callbackJointPosition(const std_msgs::Float64& position);
-  void callbackJointPositionRelative(const std_msgs::Float64& position);
-  void callbackJointPositionDegree(const std_msgs::Float64& position);
-  void callbackJointVelocity(const std_msgs::Float64& velocity);
+  void reset()
+  {
+    target = 0;
+    current = 0;
+  }
 
+  double getNextVelocity()
+  {
+    double tmp;
+    if (target > current)
+      tmp = current + max_acc;
+    else if (target < current)
+      tmp = current - max_acc;
+    else
+      tmp = current;
 
+    if (fabs(tmp) > max_vel)
+    {
+      if (tmp > 0)
+        tmp = max_vel;
+      else
+        tmp = -max_vel;
+    }
+    current = tmp;
+    return current;
+  }
 
-  ros::Subscriber subscriber_joint_position_degree_;
+  double getVelocityError(double real)
+  {
+    return current - real;
+  }
 
-  double t_to_zero_, t_acc_, t_const_, t_dacc_;
-  double current_velocity_;
-  double total_time_;
+  ///Support for output stream operator
+  friend std::ostream& operator <<(std::ostream& os, const TrapezoidalVelocityControl& v)
+  {
+    return os << v.max_vel << " " << v.max_acc << " " << v.target << " " << v.current;
+  }
 };
 
 }
-
-
-
-#endif

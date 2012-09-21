@@ -596,6 +596,7 @@ void PRW::jointStateCallback(const sensor_msgs::JointStateConstPtr& message)
 
 void PRW::gestureCallback(const std_msgs::StringConstPtr& message)
 {
+  ROS_INFO_THROTTLE(1.0, "got object trackign message");
   if(ui.cb_enable_gesture->isChecked())
   {
     QString gesture_string = message->data.c_str();
@@ -916,7 +917,7 @@ void PRW::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedb
         ROS_INFO_STREAM("mouse up: " << feedback->marker_name);
         collision_objects_[feedback->marker_name].poses[0] = feedback->pose;
         selectable_markers_[feedback->marker_name + "_selectable"].pose_ = feedback->pose;
-        followObject(gc, feedback->pose, 0.5);
+        //followObject(gc, feedback->pose, 0.5);
         refreshEnvironment();
       }
       break;
@@ -2086,7 +2087,6 @@ bool PRW::moveEndEffector(PlanningGroupData& gc,
 
       if(block)
       {
-
         while(arm_is_moving_)
         {
           ros::Duration(0.001).sleep();
@@ -2353,7 +2353,7 @@ void PRW::followObject(PlanningGroupData& gc, const geometry_msgs::Pose& pose, d
 
 
   //move end effector along the computed vector with "offset" distance from pose
-  moveEndEffector(gc, toGeometryPose(following_point_), false, 20, true, true);
+  moveEndEffector(gc, toGeometryPose(following_point_), false, 20, false, true);
 
 
 }
