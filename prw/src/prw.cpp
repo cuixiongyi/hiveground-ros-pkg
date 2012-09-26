@@ -240,6 +240,8 @@ void PRW::on_bt_go_clicked()
     return;
   }
 
+  //boost::recursive_mutex::scoped_lock lock(ui_mutex_);
+
   geometry_msgs::Pose pose;
   tf::Quaternion quat;
   {
@@ -257,7 +259,7 @@ void PRW::on_bt_go_clicked()
   PlanningGroupData& gc = group_data_map_[current_group_name_];
 
 
-  if(!moveEndEffector(gc, pose, true, 20, false, true))
+  if(!moveEndEffector(gc, pose, ui.cb_filter_path->isChecked(), 20, false, true))
   {
     double ryp[3];
     tf::Transform good_state = gc.last_good_state_;
@@ -282,7 +284,8 @@ void PRW::on_bt_go_clicked()
 
 void PRW::on_bt_reset_clicked()
 {
-  //qDebug() << __FUNCTION__;
+  qDebug() << __FUNCTION__;
+  boost::recursive_mutex::scoped_lock lock(ui_mutex_);
   ui.sb_move_x->setValue(0.28);
   ui.sb_move_y->setValue(0.0);
   ui.sb_move_z->setValue(0.565);
@@ -295,32 +298,58 @@ void PRW::on_bt_reset_clicked()
 
 void PRW::endEffectorSlideUpdate()
 {
-  boost::recursive_mutex::scoped_lock lock(ui_mutex_);
-  ui.sb_move_x->setValue(ui.hs_move_x->value() * 0.001 * ui.sb_move_x->maximum());
-  ui.sb_move_y->setValue(ui.hs_move_y->value() * 0.001 * ui.sb_move_y->maximum());
-  ui.sb_move_z->setValue(ui.hs_move_z->value() * 0.001 * ui.sb_move_z->maximum());
-  ui.sb_roll->setValue(ui.hs_roll->value() * 0.001 * ui.sb_roll->maximum());
-  ui.sb_pitch->setValue(ui.hs_pitch->value() * 0.001 * ui.sb_pitch->maximum());
-  ui.sb_yaw->setValue(ui.hs_yaw->value() * 0.001 * ui.sb_yaw->maximum());
+  //qDebug() << __FUNCTION__;
+  //boost::recursive_mutex::scoped_lock lock(ui_mutex_);
+  if(ui.sb_move_x->value() != ui.hs_move_x->value())
+    ui.sb_move_x->setValue(ui.hs_move_x->value() * 0.001 * ui.sb_move_x->maximum());
+
+  if(ui.sb_move_y->value() != ui.hs_move_y->value())
+    ui.sb_move_y->setValue(ui.hs_move_y->value() * 0.001 * ui.sb_move_y->maximum());
+
+  if(ui.sb_move_z->value() != ui.hs_move_z->value())
+    ui.sb_move_z->setValue(ui.hs_move_z->value() * 0.001 * ui.sb_move_z->maximum());
+
+  if(ui.sb_roll->value() != ui.hs_roll->value())
+    ui.sb_roll->setValue(ui.hs_roll->value() * 0.001 * ui.sb_roll->maximum());
+
+  if(ui.sb_pitch->value() != ui.hs_pitch->value())
+    ui.sb_pitch->setValue(ui.hs_pitch->value() * 0.001 * ui.sb_pitch->maximum());
+
+  if(ui.sb_yaw->value() != ui.hs_yaw->value())
+    ui.sb_yaw->setValue(ui.hs_yaw->value() * 0.001 * ui.sb_yaw->maximum());
+
   if(ui.cb_real_time_update->isChecked())
     on_bt_go_clicked();
 }
 
 void PRW::endEffectorValueUpdate()
 {
-  boost::recursive_mutex::scoped_lock lock(ui_mutex_);
-  ui.hs_move_x->setValue(ui.sb_move_x->value() / ui.sb_move_x->maximum() * 1000);
-  ui.hs_move_y->setValue(ui.sb_move_y->value() / ui.sb_move_y->maximum() * 1000);
-  ui.hs_move_z->setValue(ui.sb_move_z->value() / ui.sb_move_z->maximum() * 1000);
-  ui.hs_roll->setValue(ui.sb_roll->value() / ui.sb_roll->maximum() * 1000);
-  ui.hs_pitch->setValue(ui.sb_pitch->value() / ui.sb_pitch->maximum() * 1000);
-  ui.hs_yaw->setValue(ui.sb_yaw->value() / ui.sb_yaw->maximum() * 1000);
+  //qDebug() << __FUNCTION__;
+  //boost::recursive_mutex::scoped_lock lock(ui_mutex_);
+  if(ui.sb_move_x->value() != ui.hs_move_x->value())
+    ui.hs_move_x->setValue(ui.sb_move_x->value() / ui.sb_move_x->maximum() * 1000);
+
+  if(ui.sb_move_y->value() != ui.hs_move_y->value())
+    ui.hs_move_y->setValue(ui.sb_move_y->value() / ui.sb_move_y->maximum() * 1000);
+
+  if(ui.sb_move_z->value() != ui.hs_move_z->value())
+    ui.hs_move_z->setValue(ui.sb_move_z->value() / ui.sb_move_z->maximum() * 1000);
+
+  if(ui.sb_roll->value() != ui.hs_roll->value())
+    ui.hs_roll->setValue(ui.sb_roll->value() / ui.sb_roll->maximum() * 1000);
+
+  if(ui.sb_pitch->value() != ui.hs_pitch->value())
+    ui.hs_pitch->setValue(ui.sb_pitch->value() / ui.sb_pitch->maximum() * 1000);
+
+  if(ui.sb_yaw->value() != ui.hs_yaw->value())
+    ui.hs_yaw->setValue(ui.sb_yaw->value() / ui.sb_yaw->maximum() * 1000);
   //if(ui.cb_real_time_update->isChecked())
     //on_bt_go_clicked();
 }
 
 void PRW::endEffectorMoved()
 {
+  boost::recursive_mutex::scoped_lock lock(ui_mutex_);
   PlanningGroupData& gc = group_data_map_[current_group_name_];
   tf::Transform cur = gc.last_good_state_;
   ui.sb_move_x->setValue(cur.getOrigin().x());
@@ -611,30 +640,6 @@ void PRW::gestureCallback(const std_msgs::StringConstPtr& message)
         {
           boost::recursive_mutex::scoped_lock lock(ui_mutex_);
 
-          /*
-          //Right hand
-          if(move_list[1].indexOf("X") != -1)
-          {
-
-          }
-          if(move_list[1].indexOf("Y") != -1)
-          {
-
-          }
-          if(move_list[1].indexOf("Z") != -1)
-          {
-
-          }
-          */
-          /*
-          if(!move_list[1].isEmpty())
-          {
-            ROS_WARN_THROTTLE(1.0, "put right hand in center position");
-            return;
-          }
-          */
-
-
           if(move_list[1] != move_list[2])
           {
             ROS_WARN_THROTTLE(1.0, "both hands need to be synchronized");
@@ -659,26 +664,10 @@ void PRW::gestureCallback(const std_msgs::StringConstPtr& message)
           }
           if((index = move_list[2].indexOf("Z")) != -1)
           {
-            value = ui.sb_move_x->value();
-            value += (move_list[2].at(index - 1) == '+') ? 0.001 : -0.001;
-            ui.sb_move_x->setValue(value);
+            //value = ui.sb_move_x->value();
+            //value += (move_list[2].at(index - 1) == '+') ? 0.001 : -0.001;
+            //ui.sb_move_x->setValue(value);
           }
-
-          /*
-          //Left hand
-          if(move_list[2].indexOf("X") != -1)
-          {
-
-          }
-          if(move_list[2].indexOf("Y") != -1)
-          {
-
-          }
-          if(move_list[2].indexOf("Z") != -1)
-          {
-
-          }
-          */
 
         }
         //ROS_INFO_STREAM("Move axis: " << move_list);
@@ -2218,7 +2207,7 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
     filter_req.allowed_time = ros::Duration(0.01);
   }
   else
-    filter_req.allowed_time = ros::Duration(0.1);
+    filter_req.allowed_time = ros::Duration(0.2);
 
 
   ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
@@ -2284,7 +2273,7 @@ MenuHandler::EntryHandle PRW::registerMenuEntry(interactive_markers::MenuHandler
 
 void PRW::moveThroughSavedState()
 {
-  boost::recursive_mutex::scoped_lock(ui_mutex_);
+  //boost::recursive_mutex::scoped_lock(ui_mutex_);
   if (!saved_end_effector_state_.empty())
   {
     PlanningGroupData& gc = group_data_map_[current_group_name_];
