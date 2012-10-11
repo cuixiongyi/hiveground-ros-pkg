@@ -55,6 +55,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="bt_gen_path">
+           <property name="text">
+            <string>Gen Path</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="bt_stop_play_saved_stated">
            <property name="text">
             <string>Stop</string>
@@ -98,16 +105,16 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="bt_load_saved_state">
+          <widget class="QPushButton" name="bt_save_saved_state">
            <property name="text">
-            <string>Load</string>
+            <string>Save</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="bt_save_saved_state">
+          <widget class="QPushButton" name="bt_load_saved_state">
            <property name="text">
-            <string>Save</string>
+            <string>Load</string>
            </property>
           </widget>
          </item>

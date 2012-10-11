@@ -34,9 +34,18 @@
 #include <unistd.h>
 
 #include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <rosbag/message_instance.h>
+#include <std_msgs/Int32.h>
+
+
 #include <prw/prw.h>
 #include <QDebug>
 #include <qinputdialog.h>
+#include <qfiledialog.h>
+
+#include <boost/foreach.hpp>
 
 using namespace std;
 using namespace planning_environment;
@@ -471,6 +480,151 @@ void PRW::on_bt_play_saved_state_clicked()
   }
 }
 
+void PRW::on_bt_gen_path_clicked()
+{
+  if (saved_end_effector_state_.isEmpty())
+  {
+    ROS_WARN("no saved state");
+    return;
+  }
+
+  kinematics_msgs::PositionIKRequest ik_request;
+
+
+  trajectory_msgs::JointTrajectory joint_trajectory;
+
+  PlanningGroupData& gc = group_data_map_[current_group_name_];
+  joint_trajectory.joint_names = gc.joint_names_;
+
+  trajectory_msgs::JointTrajectoryPoint point;
+  const KinematicState::JointStateGroup* jsg = robot_state_->getJointStateGroup(gc.name_);
+  jsg->getKinematicStateValues(point.positions);
+  joint_trajectory.points.push_back(point);
+
+
+  ik_request.ik_link_name = gc.ik_link_name_;
+  ik_request.pose_stamped.header.frame_id = cm_->getWorldFrameId();
+
+  EndEffectorStateMap::iterator it;
+  int i = 0;
+  for (it = saved_end_effector_state_.begin(); it != saved_end_effector_state_.end(); it++, i++)
+  {
+    ik_request.pose_stamped.header.stamp = ros::Time::now();
+    ik_request.pose_stamped.pose = it->second;
+
+
+    convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(), ik_request.robot_state);
+    ik_request.ik_seed_state = ik_request.robot_state;
+
+    map<string, double> joint_values;
+    vector<string> joint_names;
+
+    kinematics_msgs::GetPositionIK::Request ik_req;
+    kinematics_msgs::GetPositionIK::Response ik_res;
+
+    ik_req.ik_request = ik_request;
+    ik_req.timeout = ros::Duration(2.0);
+    if (!gc.ik_non_collision_aware_client_.call(ik_req, ik_res))
+    {
+      ROS_INFO("Problem with ik service call");
+      return;
+    }
+    if (ik_res.error_code.val != ik_res.error_code.SUCCESS)
+    {
+      ROS_DEBUG_STREAM("Call yields bad error code " << ik_res.error_code.val);
+      return;
+    }
+    //joint_names = ik_res.solution.joint_state.name;
+    //gc.joint_names_.clear();
+    //gc.joint_names_ = joint_names;
+
+    trajectory_msgs::JointTrajectoryPoint point;
+    point.positions = ik_res.solution.joint_state.position;
+    joint_trajectory.points.push_back(point);
+
+    //cout << ik_res.solution.joint_state;
+
+  }
+
+  ROS_INFO("point path %d", joint_trajectory.points.size());
+
+
+
+
+  FilterJointTrajectoryWithConstraints::Request filter_req;
+  FilterJointTrajectoryWithConstraints::Response filter_res;
+
+  convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(), filter_req.start_state);
+  filter_req.trajectory = joint_trajectory;
+  filter_req.group_name = gc.name_;
+
+  arm_navigation_msgs::ArmNavigationErrorCodes trajectory_error_code;
+  vector<ArmNavigationErrorCodes> trajectory_error_codes;
+
+  cm_->isJointTrajectoryValid(*robot_state_,
+                              filter_req.trajectory,
+                              filter_req.goal_constraints,
+                              filter_req.path_constraints,
+                              trajectory_error_code,
+                              trajectory_error_codes, false);
+
+  if (trajectory_error_code.val != trajectory_error_code.SUCCESS)
+  {
+    ROS_WARN("Bad point = %d", trajectory_error_codes.size());
+    return;
+  }
+
+  filter_req.allowed_time = ros::Duration(2.0);
+
+
+  ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
+  if (!trajectory_filter_client_.call(filter_req, filter_res))
+  {
+    ROS_INFO("Problem with trajectory filter");
+    return;
+  }
+  ROS_INFO_STREAM(ros::Time(ros::WallTime::now().toSec()) - startTime);
+
+  if (filter_res.error_code.val != filter_res.error_code.SUCCESS)
+  {
+    ROS_INFO_STREAM("Bad trajectory_filter error code " << filter_res.error_code.val);
+    return;
+  }
+
+
+  //cout << filter_res.trajectory.points.size();
+  ROS_INFO("point filter %d", filter_res.trajectory.points.size());
+
+
+
+  FollowJointTrajectoryGoal goal;
+  goal.trajectory = filter_res.trajectory;
+  goal.trajectory.header.stamp = ros::Time::now();
+
+  gc.arm_controller_->sendGoal(goal, boost::bind(&PRW::controllerDoneCallback, this, _1, _2));
+  arm_is_moving_ = true;
+
+
+
+
+
+
+
+
+
+
+  /*
+  for (unsigned int i = 0; i < ik_res.solution.joint_state.name.size(); i++)
+  {
+    joint_values[ik_res.solution.joint_state.name[i]] = ik_res.solution.joint_state.position[i];
+  }
+  */
+
+
+
+
+}
+
 void PRW::on_bt_stop_play_saved_stated_clicked()
 {
   play_saved_state_ = false;
@@ -499,6 +653,145 @@ void PRW::on_bt_delete_saved_state_clicked()
       ui.tree_saved_state->topLevelItem(index_to_select)->setSelected(true);
     }
   }
+}
+
+void PRW::on_bt_save_saved_state_clicked()
+{
+  if(saved_end_effector_state_.isEmpty())
+  {
+    ROS_WARN("no saved state");
+    return;
+  }
+
+
+  QString file_name = QFileDialog::getSaveFileName(this, tr("Save File"),
+                                                  "~/.ros",
+                                                  tr("Bag File (*.bag)"));
+  if(file_name.isNull())
+  {
+    ROS_WARN("not file selected");
+    return;
+  }
+
+  rosbag::Bag bag;
+  bag.open(file_name.toStdString(), rosbag::bagmode::Write);
+  std_msgs::String name;
+  std_msgs::Int32 id;
+
+
+  EndEffectorStateMap::iterator it;
+  int i = 0;
+  for (it = saved_end_effector_state_.begin(); it != saved_end_effector_state_.end(); it++, i++)
+  {
+    id.data = it.key();
+    name.data = it->first.toStdString();
+    //std::cout << id;
+    //std::cout << name;
+    //std::cout << it->second;
+    ros::Time t = ros::Time::now();
+    bag.write("id", t, id);
+    bag.write("name", t, name);
+    bag.write("pose", t, it->second);
+  }
+
+
+  bag.close();
+}
+
+void PRW::on_bt_load_saved_state_clicked()
+{
+  QString file_name = QFileDialog::getOpenFileName(this, tr("Open Bag File"),
+                                                   "~/.ros",
+                                                   tr("Bag File (*.bag)"));
+
+  if(file_name.isNull())
+  {
+    ROS_WARN("not file selected");
+    return;
+  }
+
+
+  rosbag::Bag bag;
+  bag.open(file_name.toStdString(), rosbag::bagmode::Read);
+
+  std::vector<std::string> topics;
+  topics.push_back(std::string("id"));
+  topics.push_back(std::string("name"));
+  topics.push_back(std::string("pose"));
+
+  rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+  int count = 0;
+  std::vector<std_msgs::Int32> id;
+  std::vector<std_msgs::String> name;
+  std::vector<geometry_msgs::Pose> pose;
+  BOOST_FOREACH(rosbag::MessageInstance const m, view)
+  {
+    std_msgs::Int32::ConstPtr id_ptr = m.instantiate<std_msgs::Int32>();
+    std_msgs::String::ConstPtr name_ptr = m.instantiate<std_msgs::String>();
+    geometry_msgs::Pose::ConstPtr pose_ptr = m.instantiate<geometry_msgs::Pose>();
+
+    if(id_ptr != NULL)
+    {
+      id.push_back(*id_ptr);
+    }
+
+    if(name_ptr != NULL)
+    {
+      name.push_back(*name_ptr);
+    }
+
+    if(pose_ptr != NULL)
+    {
+      pose.push_back(*pose_ptr);
+    }
+
+  }
+  bag.close();
+
+
+  ui_mutex_.lock();
+  if(id.size() != 0)
+  {
+    saved_end_effector_state_.clear();
+  }
+  else
+  {
+    ui_mutex_.unlock();
+    return;
+  }
+
+  ui.tree_saved_state->clear();
+  ui.tree_saved_state->setColumnCount(2);
+  ui.tree_saved_state->setColumnWidth(0, 200);
+  selected_saved_state_id_ = id[0].data;
+
+  for(int i = 0; i < id.size(); i++)
+  {
+    QTreeWidgetItem* name_item = new QTreeWidgetItem(QStringList(name[i].data.c_str()));
+    name_item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    ui.tree_saved_state->insertTopLevelItem(ui.tree_saved_state->topLevelItemCount(), name_item);
+
+    QStringList id_list;
+    id_list.append("ID");
+    id_list.append(QString("%1").arg(id[i].data));
+    QTreeWidgetItem* id_item = new QTreeWidgetItem(id_list);
+    name_item->insertChild(0, id_item);
+
+    QPair<QString, geometry_msgs::Pose> state(name[i].data.c_str(), pose[i]);
+
+    ui_mutex_.lock();
+    saved_end_effector_state_[id[i].data] = state;
+    ui_mutex_.unlock();
+
+    ui.tree_saved_state->clearSelection();
+    name_item->setSelected(true);
+    last_saved_end_effector_state_id_ = id[i].data + 1;
+  }
+
+  ui_mutex_.unlock();
+
+
 }
 
 void PRW::on_cb_enable_teleop_clicked()
@@ -2010,11 +2303,11 @@ void PRW::removeCollisionObjectByName(string id)
 
 
 bool PRW::moveEndEffector(PlanningGroupData& gc,
-                          const geometry_msgs::Pose& pose,
-                          bool filter,
-                          int retry,
-                          bool block,
-                          bool update_marker)
+                            const geometry_msgs::Pose& pose,
+                            bool filter,
+                            int retry,
+                            bool block,
+                            bool update_marker)
 {
   if(arm_is_moving_)
   {
@@ -2095,6 +2388,7 @@ bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
   motion_plan_request.group_name = gc.name_;
   motion_plan_request.num_planning_attempts = 1;
   motion_plan_request.allowed_planning_time = ros::Duration(5.0);
+
   if (!constrain_rp_)
   {
     const KinematicState::JointStateGroup* jsg = gc.end_state_->getJointStateGroup(gc.name_);
@@ -2157,6 +2451,7 @@ bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
 
     disp.reset();
     disp.joint_trajectory_ = plan_res.trajectory.joint_trajectory;
+    //cout << disp.joint_trajectory_;
     disp.has_joint_trajectory_ = true;
     disp.show_joint_trajectory_ = show;
     disp.play_joint_trajectory_ = play;
@@ -2171,6 +2466,7 @@ bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
     if (disp.trajectory_error_code_.val != disp.trajectory_error_code_.SUCCESS)
     {
       disp.trajectory_bad_point_ = trajectory_error_codes.size() - 1;
+      ROS_INFO("disp.trajectory_bad_point_ %d %d", disp.trajectory_bad_point_, disp.trajectory_error_code_.val);
     }
     else
     {
@@ -2198,16 +2494,17 @@ bool PRW::filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play)
   filter_req.trajectory = planner_disp.joint_trajectory_;
   filter_req.group_name = gc.name_;
 
+
   filter_req.goal_constraints = last_motion_plan_request_.goal_constraints;
   filter_req.path_constraints = last_motion_plan_request_.path_constraints;
 
   if(filter_req.trajectory.points.size() < 10)
   {
     ROS_INFO_THROTTLE(1.0, "Hacked for short path");
-    filter_req.allowed_time = ros::Duration(0.01);
+    filter_req.allowed_time = ros::Duration(0.2);
   }
   else
-    filter_req.allowed_time = ros::Duration(0.2);
+    filter_req.allowed_time = ros::Duration(2.0);
 
 
   ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
