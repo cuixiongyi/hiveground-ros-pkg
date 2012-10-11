@@ -502,49 +502,46 @@ void PRW::on_bt_gen_path_clicked()
   joint_trajectory.points.push_back(point);
 
 
-  ik_request.ik_link_name = gc.ik_link_name_;
-  ik_request.pose_stamped.header.frame_id = cm_->getWorldFrameId();
 
   EndEffectorStateMap::iterator it;
   int i = 0;
+  int retry = 0;
   for (it = saved_end_effector_state_.begin(); it != saved_end_effector_state_.end(); it++, i++)
   {
-    ik_request.pose_stamped.header.stamp = ros::Time::now();
-    ik_request.pose_stamped.pose = it->second;
+
+    tf::Transform cur = toBulletTransform(it->second);
 
 
-    convertKinematicStateToRobotState(*robot_state_, ros::Time::now(), cm_->getWorldFrameId(), ik_request.robot_state);
-    ik_request.ik_seed_state = ik_request.robot_state;
 
-    map<string, double> joint_values;
-    vector<string> joint_names;
 
-    kinematics_msgs::GetPositionIK::Request ik_req;
-    kinematics_msgs::GetPositionIK::Response ik_res;
-
-    ik_req.ik_request = ik_request;
-    ik_req.timeout = ros::Duration(2.0);
-    if (!gc.ik_non_collision_aware_client_.call(ik_req, ik_res))
+    retry = 0;
+    while(retry < 100)
     {
-      ROS_INFO("Problem with ik service call");
+      setNewEndEffectorPosition(gc, cur, collision_aware_);
+      if(gc.good_ik_solution_)
+      {
+        trajectory_msgs::JointTrajectoryPoint point;
+        const KinematicState::JointStateGroup* jsg = gc.end_state_->getJointStateGroup(gc.name_);
+        jsg->getKinematicStateValues(point.positions);
+        joint_trajectory.points.push_back(point);
+        break;
+        //cout << ik_res.solution.joint_state;
+
+      }
+      else
+      {
+
+        retry++;
+      }
+    }
+    if(retry >= 100)
+    {
+      ROS_INFO("bad IK for %s", it->first.toStdString().c_str());
       return;
     }
-    if (ik_res.error_code.val != ik_res.error_code.SUCCESS)
-    {
-      ROS_DEBUG_STREAM("Call yields bad error code " << ik_res.error_code.val);
-      return;
-    }
-    //joint_names = ik_res.solution.joint_state.name;
-    //gc.joint_names_.clear();
-    //gc.joint_names_ = joint_names;
-
-    trajectory_msgs::JointTrajectoryPoint point;
-    point.positions = ik_res.solution.joint_state.position;
-    joint_trajectory.points.push_back(point);
-
-    //cout << ik_res.solution.joint_state;
-
   }
+
+
 
   ROS_INFO("point path %d", joint_trajectory.points.size());
 
