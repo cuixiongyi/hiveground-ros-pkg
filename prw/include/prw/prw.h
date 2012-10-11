@@ -305,8 +305,11 @@ private Q_SLOTS:
   void addState(const geometry_msgs::Pose& pose);
   void on_bt_move_to_saved_state_clicked();
   void on_bt_play_saved_state_clicked();
+  void on_bt_gen_path_clicked();
   void on_bt_stop_play_saved_stated_clicked();
   void on_bt_delete_saved_state_clicked();
+  void on_bt_save_saved_state_clicked();
+  void on_bt_load_saved_state_clicked();
 
 Q_SIGNALS:
   void signalCreateNewCollisionObject(const QString& type);
