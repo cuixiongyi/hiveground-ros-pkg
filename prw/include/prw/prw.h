@@ -469,6 +469,7 @@ private:
   ros::ServiceClient get_planning_scene_client_;
   ros::ServiceClient planner_client_;
   ros::ServiceClient trajectory_filter_client_;
+  ros::ServiceClient trajectory_filter2_client_;
 
   //arm control
   PlanningGroupDataMap group_data_map_;
