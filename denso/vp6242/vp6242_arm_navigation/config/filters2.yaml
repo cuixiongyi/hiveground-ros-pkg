@@ -4,8 +4,8 @@ filter_chain:
     name: unnormalize_trajectory
     type: UnNormalizeFilterJointTrajectoryWithConstraints
   -
-    name: cubic_spline_short_cutter_smoother
-    type: CubicSplineShortCutterFilterJointTrajectoryWithConstraints
-    params: {discretization: 0.01}
+    name: cubic_spline_smoother
+    type: CubicSplineVelocityScalerFilterJointTrajectory
+    params: {num_iterations: 100, discretization: 0.001}
 
 

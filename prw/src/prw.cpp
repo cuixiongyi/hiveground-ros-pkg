@@ -60,6 +60,7 @@ using namespace geometry_msgs;
 static const string SET_PLANNING_SCENE_DIFF_NAME = "/environment_server/set_planning_scene_diff";
 static const string PLANNER_SERVICE_NAME = "/ompl_planning/plan_kinematic_path";
 static const string TRAJECTORY_FILTER_SERVICE_NAME = "/trajectory_filter_server/filter_trajectory_with_constraints";
+static const string TRAJECTORY_FILTER2_SERVICE_NAME = "/trajectory_filter_server2/filter_trajectory_with_constraints";
 
 #define DEG2RAD(x) (((x)*M_PI)/180.0)
 #define RAD2DEG(x) (((x)*180.0)/M_PI)
@@ -145,6 +146,9 @@ bool PRW::initialize()
 
   while (!ros::service::waitForService(TRAJECTORY_FILTER_SERVICE_NAME, ros::Duration(1.0))) { }
   trajectory_filter_client_ = nh_.serviceClient<FilterJointTrajectoryWithConstraints>(TRAJECTORY_FILTER_SERVICE_NAME, true);
+
+  while (!ros::service::waitForService(TRAJECTORY_FILTER2_SERVICE_NAME, ros::Duration(1.0))) { }
+  trajectory_filter2_client_ = nh_.serviceClient<FilterJointTrajectoryWithConstraints>(TRAJECTORY_FILTER2_SERVICE_NAME, true);
 
   const map<string, KinematicModel::GroupConfig>& group_config_map = cm_->getKinematicModel()->getJointModelGroupConfigMap();
   int i = 0;
@@ -512,8 +516,6 @@ void PRW::on_bt_gen_path_clicked()
     tf::Transform cur = toBulletTransform(it->second);
 
 
-
-
     retry = 0;
     while(retry < 100)
     {
@@ -546,8 +548,6 @@ void PRW::on_bt_gen_path_clicked()
   ROS_INFO("point path %d", joint_trajectory.points.size());
 
 
-
-
   FilterJointTrajectoryWithConstraints::Request filter_req;
   FilterJointTrajectoryWithConstraints::Response filter_res;
 
@@ -575,7 +575,7 @@ void PRW::on_bt_gen_path_clicked()
 
 
   ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
-  if (!trajectory_filter_client_.call(filter_req, filter_res))
+  if (!trajectory_filter2_client_.call(filter_req, filter_res))
   {
     ROS_INFO("Problem with trajectory filter");
     return;
@@ -2384,7 +2384,7 @@ bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
   MotionPlanRequest motion_plan_request;
   motion_plan_request.group_name = gc.name_;
   motion_plan_request.num_planning_attempts = 1;
-  motion_plan_request.allowed_planning_time = ros::Duration(5.0);
+  motion_plan_request.allowed_planning_time = ros::Duration(10.0);
 
   if (!constrain_rp_)
   {
@@ -2443,8 +2443,11 @@ bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
       disp.trajectory_error_code_ = plan_res.error_code;
       ROS_INFO_STREAM("Bad planning error code " << plan_res.error_code.val);
       gc.trajectory_data_map_["planner"].reset();
+      unlockScene();
       return false;
     }
+
+    last_motion_plan_request_ = motion_plan_request;
 
     disp.reset();
     disp.joint_trajectory_ = plan_res.trajectory.joint_trajectory;
@@ -2463,14 +2466,14 @@ bool PRW::planToEndEffectorState(PlanningGroupData& gc, bool show, bool play)
     if (disp.trajectory_error_code_.val != disp.trajectory_error_code_.SUCCESS)
     {
       disp.trajectory_bad_point_ = trajectory_error_codes.size() - 1;
-      ROS_INFO("disp.trajectory_bad_point_ %d %d", disp.trajectory_bad_point_, disp.trajectory_error_code_.val);
+      //ROS_INFO("disp.trajectory_bad_point_ %d %d", disp.trajectory_bad_point_, disp.trajectory_error_code_.val);
     }
     else
     {
       disp.trajectory_bad_point_ = -1;
     }
 
-    last_motion_plan_request_ = motion_plan_request;
+
 
     unlockScene();
     return true;
