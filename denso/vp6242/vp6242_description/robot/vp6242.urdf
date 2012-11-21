@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<robot name="vp6242">
+	<!--
+		J1   J2   J3   J4   J5   J6
+		160  120  160  160  120  360
+	   -160 -120   19 -160 -120 -360
+	-->
+  <link name="base_link">
+    <visual>
+	  <geometry>
+	    <mesh filename="package://vp6242_description/robot/base.stl" scale="0.001 0.001 0.001"/>
+	    <!--cylinder length="0.125" radius="0.08"/-->
+	  </geometry>
+	  <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+	  <material name="base_link">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+  </link>
+	
+  <link name="link0">
+    <visual>
+      <geometry>
+ 				<mesh filename="package://vp6242_description/robot/l0.stl" scale="0.001 0.001 0.001"/>
+        <!--cylinder length="0.125" radius="0.03"/-->
+      </geometry>
+      <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+      <material name="link">
+        <color rgba="0.8 0.8 0.8 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="J1" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="1000.0" lower="-2.792526" upper="2.792526" velocity="2.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.155"/>
+    <parent link="base_link"/>
+    <child link="link0"/>
+  </joint>
+
+  <link name="link1">
+    <visual>
+      <geometry>
+				<mesh filename="package://vp6242_description/robot/l1.stl" scale="0.001 0.001 0.001"/>
+        <!--cylinder length="0.210" radius="0.03"/-->
+      </geometry>
+      <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+      <material name="link"/>
+    </visual>
+  </link>
+
+  <joint name="J2" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-2.094394" upper="2.094394" velocity="2.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.125"/>
+    <parent link="link0"/>
+    <child link="link1"/>
+  </joint>
+  
+  <link name="link2">
+    <visual>
+      <geometry>
+				<mesh filename="package://vp6242_description/robot/l2.stl" scale="0.001 0.001 0.001"/>
+        <!--cylinder length="0.075" radius="0.03"/-->
+      </geometry>
+	  <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+	  <material name="joint">
+      <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+  </link>
+ 	
+ <joint name="J3" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-1.239183" upper="1.221730" velocity="2.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+  </joint>
+
+
+  <link name="link3">
+    <visual>
+    <geometry>
+			<mesh filename="package://vp6242_description/robot/l3.stl" scale="0.001 0.001 0.001"/>
+      <!--cylinder length="0.311" radius="0.03"/-->
+    </geometry>
+		<origin rpy="-1.570796 3.141592 0" xyz="0.0 0.0 0.0"/>
+		<material name="link"/>
+    </visual>
+  </link>
+  
+  <joint name="J4" type="revolute">
+    <axis xyz="1 0 0"/>
+    <limit effort="1000.0" lower="-2.792526" upper="2.792526" velocity="2.0"/>
+    <origin rpy="0 0 0" xyz="0.079729 0.0 0.075"/>
+    <parent link="link2"/>
+    <child link="link3"/>
+  </joint>
+
+  <link name="link4">
+    <visual>
+      <geometry>
+			<mesh filename="package://vp6242_description/robot/l4.stl" scale="0.001 0.001 0.001"/>
+      <!--cylinder length="0.060" radius="0.0325"/-->
+      </geometry>
+	  <origin rpy="-1.570796 3.141592 0" xyz="0.0 0.0 0.0"/>
+	  <material name="joint"/>
+    </visual>
+  </link>
+ 	
+  <joint name="J5" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-2.094394" upper="2.094394" velocity="2.0"/>
+    <origin rpy="0 0 0" xyz="0.130271 0.0 0.0"/>
+    <parent link="link3"/>
+    <child link="link4"/>
+  </joint>
+
+   <link name="link5">
+    <visual>
+      <geometry>
+      <cylinder length="0.010" radius="0.02"/>
+      </geometry>
+	  <origin rpy="0 1.570796 0" xyz="-0.005 0.0 0.0"/>
+	  <material name="link"/>
+    </visual>
+  </link>
+ 	
+  <joint name="J6" type="revolute">
+    <axis xyz="1 0 0"/>
+    <limit effort="1000.0" lower="-6.283185" upper="6.283185" velocity="2.0"/>
+    <!--limit effort="1000.0" lower="-3.141592" upper="3.141592" velocity="2.0"/-->
+    <origin rpy="0 0 0" xyz="0.07 0.0 0.0"/>
+    <parent link="link4"/>
+    <child link="link5"/>
+  </joint>
+
+
+</robot>

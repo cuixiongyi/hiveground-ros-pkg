@@ -1,0 +1,15 @@
+<launch>  
+   <param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242.urdf" />
+
+  <node name="vp6242" pkg="hg_cpp" type="hg_ros" output="screen">
+    <param name="simulate" value="false"/>
+    <param name="loop_rate" value="100.0"/>
+    <param name="joint_publish_rate" value="50.0"/>
+    <param name="diagnostic_publish_rate" value="10.0"/>      
+    <rosparam file="$(find rc7m)/parameters/vp6242.yaml" command="load" />
+  </node>
+  
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" >
+  </node>
+    
+</launch>
