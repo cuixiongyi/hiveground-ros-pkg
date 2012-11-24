@@ -1,0 +1,10 @@
+<launch>
+  <include file="$(find prw)/launch/kinect_left.launch"/>
+  <include file="$(find prw)/launch/kinect_right.launch"/>
+  <include file="$(find prw)/launch/kinect_center.launch"/>
+    
+  <include file="$(find camera_pose_calibration)/blocks/calibration_tf_publisher.launch">
+    <!--arg name="cache_file" value="~/.ros/camera_pose_calibration_cache.bag" /-->
+  </include>
+
+</launch>
