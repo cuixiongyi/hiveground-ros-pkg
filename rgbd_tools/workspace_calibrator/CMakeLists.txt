@@ -31,3 +31,4 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 rosbuild_add_executable(${PROJECT_NAME} src/workspace_calibrator.cpp)
 rosbuild_add_executable(arm_calibrator src/arm_calibrator.cpp)
+rosbuild_add_executable(arm_calibrator_offline src/arm_calibrator_offline.cpp)

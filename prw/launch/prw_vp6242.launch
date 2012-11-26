@@ -27,7 +27,8 @@
   </node-->
   
   <!--node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="-0.749529 -0.666167 1.862034 0.698622 0.713423 -0.0391633 -0.0377135 kinect7051A_rgb_optical_frame world 10"/-->
-  <node pkg="tf" type="static_transform_publisher" name="arm0_broadcaster" args="0.08 0.68 0.01 0 0 0 world base_link 10"/>
+  <!--node pkg="tf" type="static_transform_publisher" name="arm0_broadcaster" args="0.08 0.68 0.01 0 0 0 world base_link 10"/-->
+  <node pkg="tf" type="static_transform_publisher" name="kinect_center_broadcaster" args="0.005125 0.272966 1.377872 -0.481103 0.389453 0.769752 0.156039 kinect_center_rgb_optical_frame base_link 10"></node>
   
   <node pkg="prw" type="personal_robotic_workspace" name="prw" output="screen">
     <remap from="kinect_gesture" to="/kinect_server/kinect_gesture" />   
