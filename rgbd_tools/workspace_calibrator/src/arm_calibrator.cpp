@@ -213,9 +213,10 @@ int main(int argc, char* argv[])
 
   //ros::NodeHandle nh("~");
 
+
+
+
   nh_private.param("camera", camera_, string("/camera"));
-
-
   ROS_INFO_STREAM("camera: " << camera_);
 
 
