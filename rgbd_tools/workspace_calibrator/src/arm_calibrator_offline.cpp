@@ -46,6 +46,7 @@ using namespace std;
 static const char WINDOW_NAME[] = "Arm Calibrator";
 
 char g_key = 0;
+string dir;
 cv::Mat image;
 cv::Mat image_gray;
 int current_image = -1;
@@ -80,6 +81,13 @@ void onMouse( int event, int x, int y, int, void* )
       cv::imshow(WINDOW_NAME, image);
       marker_points[current_image] = corner_points[0];
       cout << files[current_image] << ":" << marker_points[current_image] << endl;
+      /*
+      current_image = last_image + 1;
+      if(current_image >= files.size())
+        current_image = 0;
+      image = cv::imread(dir + "/" + files[current_image]);
+      last_image = current_image;
+      */
       break;
     }
     case CV_EVENT_MOUSEMOVE: break;
@@ -109,7 +117,7 @@ int main(int argc, char* argv[])
     cout << argv[i] << endl;
   }
 
-  string dir(argv[1]);
+  dir = argv[1];
   string filename =  dir + "/" + string(argv[2]);
   fstream filestr;
   filestr.open (filename.c_str(), fstream::in);
@@ -132,6 +140,9 @@ int main(int argc, char* argv[])
     filestr >> position.z;
 
 
+    position.x = position.x * 0.001;
+    position.y = position.y * 0.001;
+    position.z = position.z * 0.001;
 
     if(filestr.eof()) break;
 
@@ -175,7 +186,7 @@ int main(int argc, char* argv[])
   camera_matrix.at<double>(2, 1) = 0;
   camera_matrix.at<double>(2, 2) = 1;
 
-  camera_distortion = cv::Mat(1,5, CV_64FC1);
+  camera_distortion = (cv::Mat_<double>(1,5) << -0.0576529055563161, 0.147040319495767, 0.00129930665583496, 5.35726185944587e-05, 0);
 
   cout << camera_matrix << endl;
   cout << camera_distortion << endl;

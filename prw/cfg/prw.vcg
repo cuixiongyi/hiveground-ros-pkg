@@ -1,7 +1,7 @@
 Background\ ColorB=0
 Background\ ColorG=0
 Background\ ColorR=0
-Camera\ Config=0.619798 0.880401 1.70079 0.400458 0.141262 0.0100004
+Camera\ Config=0.239799 0.397194 2.24894 0.767191 0.5409 0.0100005
 Camera\ Type=rviz::XYOrbitViewController
 Endeffector.Enabled=1
 Endeffector.Length=0.1
@@ -33,6 +33,7 @@ PCV\ Marker.Marker\ Topic=/prw_workspace_editor
 PCV\ Marker.Queue\ Size=100
 PCV\ Marker.arm=1
 PCV\ Marker.following_point=1
+PCV\ Marker.saved_ee_state=1
 PointCloud2..AxisColorAutocompute\ Value\ Bounds=1
 PointCloud2..AxisColorAxis=2
 PointCloud2..AxisColorMax\ Value=10
@@ -62,9 +63,9 @@ PointCloud2.Queue\ Size=10
 PointCloud2.Selectable=1
 PointCloud2.Style=0
 PointCloud2.Topic=/kinect_center/depth_registered/points
-Property\ Grid\ Splitter=985,84
+Property\ Grid\ Splitter=1093,84
 Property\ Grid\ State=expanded=.Global Options,World.Enabled,Endeffector.Enabled,Interactive Marker.Enabled,Interactive Marker.Status,PCV Marker.Enabled,PointCloud2.Enabled,TF.Enabled;splitterratio=0.5
-QMainWindow=000000ff00000000fd00000003000000000000022d0000047ffc0200000002fb000000100044006900730070006c006100790073010000001d0000047f000000ee00fffffffb0000000c00430061006d00650072006102000004c10000004a0000028f0000023f00000001000001310000047ffc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d000001980000006700fffffffb0000000a0056006900650077007301000001bb000001d8000000bb00fffffffb0000001200530065006c0065006300740069006f006e0100000399000001030000006700ffffff00000003000007a00000003efc0100000001fb0000000800540069006d00650100000000000007a0000002bf00ffffff000004360000047f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+QMainWindow=000000ff00000000fd00000003000000000000022d000004ebfc0200000002fb000000100044006900730070006c006100790073010000001d000004eb000000ee00fffffffb0000000c00430061006d00650072006102000004c10000004a0000028f0000023f0000000100000131000004ebfc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d000001bf0000006700fffffffb0000000a0056006900650077007301000001e200000206000000bb00fffffffb0000001200530065006c0065006300740069006f006e01000003ee0000011a0000006700ffffff00000003000007d00000003efc0100000001fb0000000800540069006d00650100000000000007d0000002bf00ffffff00000466000004eb00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 Robot\:\ RobotModel\ Link\ base_linkAlpha=1
 Robot\:\ RobotModel\ Link\ base_linkEnabled=1
 Robot\:\ RobotModel\ Link\ base_linkShow\ Axes=0
@@ -101,7 +102,7 @@ RobotModel.TF\ Prefix=
 RobotModel.Update\ Interval=0
 RobotModel.Visual\ Enabled=1
 TF.All\ Enabled=1
-TF.Enabled=1
+TF.Enabled=0
 TF.Frame\ Timeout=15
 TF.Marker\ Scale=0.5
 TF.Show\ Arrows=1
@@ -139,20 +140,6 @@ Name=PointCloud2
 [Display7]
 ClassName=rviz::TFDisplay
 Name=TF
-[TF.Frames.]
-base_link.Enabled=1
-kinect_center_depth_frame.Enabled=1
-kinect_center_depth_optical_frame.Enabled=1
-kinect_center_link.Enabled=1
-kinect_center_rgb_frame.Enabled=1
-kinect_center_rgb_optical_frame.Enabled=1
-link0.Enabled=1
-link1.Enabled=1
-link2.Enabled=1
-link3.Enabled=1
-link4.Enabled=1
-link5.Enabled=1
-world.Enabled=1
 [Views]
 0Name=001
 [Views/0]
@@ -160,7 +147,7 @@ Config=1.1498 5.67358 4.24545 0.463816 0.675617 -0.000257993
 Target=<Fixed Frame>
 Type=rviz::OrbitViewController
 [Window]
-Height=1284
-Width=1968
-X=1865
-Y=-56
+Height=1392
+Width=2016
+X=1456
+Y=21
