@@ -199,7 +199,7 @@ bool PRW::initialize()
   {
 
     makeIKControllerMarker(tf::Transform(tf::Quaternion(0.0f, 0.0f, 0.0f, 1.0f), tf::Vector3(0.0f, 0.0f, 0.0f)),
-                           it->first, it->first, true, 0.2f);
+                           it->first, it->first, true, 0.1f);
     cmd++;
   }
 
@@ -527,9 +527,7 @@ void PRW::on_bt_gen_path_clicked()
         jsg->getKinematicStateValues(point.positions);
         joint_trajectory.points.push_back(point);
         break;
-        //cout << ik_res.solution.joint_state;
-
-      }
+              }
       else
       {
 
@@ -1422,12 +1420,45 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
   marker.pose.orientation.x = transform.getRotation().x();
   marker.pose.orientation.y = transform.getRotation().y();
   marker.pose.orientation.z = transform.getRotation().z();
-  marker.scale = 0.225f * scale;
+  marker.scale = scale;
   if(selectable)
     marker.name = name + "_selectable";
   else
     marker.name = name;
   marker.description = description;
+
+  InteractiveMarkerControl control;
+
+  control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  control.always_visible = false;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+
+  /*
 
   InteractiveMarkerControl control;
   control.always_visible = false;
@@ -1480,7 +1511,33 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
   marker3.scale.z = .15 * scale;
   marker3.pose.position.x = .1 * scale;
   marker3.color.r = 0;
-  marker3.color.g = .5;
+  marker3.color.g = .5;control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  control.always_visible = false;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  marker.controls.push_back(control);
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  marker.controls.push_back(control);
   marker3.color.b = 0;
   marker3.color.a = 1;
   control3.markers.push_back(marker3);
@@ -1490,6 +1547,8 @@ void PRW::makeIKControllerMarker(tf::Transform transform, const std::string& nam
   control3.markers.push_back(marker3);
 
   marker.controls.push_back(control3);
+
+  */
 
   interactive_marker_server_->insert(marker, process_ik_controller_feedback_ptr_);
   menu_handler_map_["End Effector"].apply(*interactive_marker_server_, marker.name);
@@ -1967,7 +2026,7 @@ void PRW::deselectMarker(SelectableMarker& marker, tf::Transform transform)
   switch (marker.type_)
   {
     case EndEffectorControlMarker:
-      makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, true, 0.2f);
+      makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, true, 0.1f);
       break;
     case CollisionObjectMarker:
       {
@@ -2007,7 +2066,7 @@ void PRW::selectMarker(SelectableMarker& marker, tf::Transform transform)
     switch (marker.type_)
     {
       case EndEffectorControlMarker:
-        makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, false, 0.5f);
+        makeIKControllerMarker(transform, marker.controlName_, marker.controlDescription_, false, 0.1f);
         break;
       case CollisionObjectMarker:
         {

@@ -41,7 +41,7 @@
 
 
 using namespace std;
-
+static const int SEARCH_SIZE = 150;
 static const char WINDOW_NAME[] = "Workspace Calibrator";
 std::string MARKER_WINDOWS[4] =
 {
@@ -186,13 +186,13 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
   {
     for (int i = 0; i < 4; i++)
     {
-      cv::rectangle(input_image, cv::Point(markers_[i].x - 50, markers_[i].y - 50),
-                    cv::Point(markers_[i].x + 50, markers_[i].y + 50), cv::Scalar(255, 128, 0));
+      cv::rectangle(input_image, cv::Point(markers_[i].x - (SEARCH_SIZE/2), markers_[i].y - (SEARCH_SIZE/2)),
+                    cv::Point(markers_[i].x + (SEARCH_SIZE/2), markers_[i].y + (SEARCH_SIZE/2)), cv::Scalar(255, 128, 0));
       std::stringstream ss;
       ss << i;
       std::string text;
       ss >> text;
-      cv::putText(input_image, text, cv::Point(markers_[i].x - 50, markers_[i].y - 50), cv::FONT_HERSHEY_SIMPLEX, 1.0,
+      cv::putText(input_image, text, cv::Point(markers_[i].x - (SEARCH_SIZE/2), markers_[i].y - (SEARCH_SIZE/2)), cv::FONT_HERSHEY_SIMPLEX, 1.0,
                   cv::Scalar(0, 0, 255));
     }
 
@@ -203,7 +203,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
       for (int i = 0; i < 4; i++)
       {
 
-        cv::Mat roi_image = cv::Mat(bridge->image, cv::Rect(markers_[i].x - 50, markers_[i].y - 50, 100, 100));
+        cv::Mat roi_image = cv::Mat(bridge->image, cv::Rect(markers_[i].x - (SEARCH_SIZE/2), markers_[i].y - (SEARCH_SIZE/2), SEARCH_SIZE, SEARCH_SIZE));
         //cv::Rect(10, 10, 100, 100));
 
         cv::Size pattern_size(x_step_, y_step_);
@@ -429,10 +429,10 @@ int main(int argc, char* argv[])
   }
 
 
-  nh_private.param("source_frames", source_frames_, string("camera_rgb_optical_frame"));
-  nh_private.param("target_frames", target_frames_, string("world"));
-  ROS_INFO_STREAM("source_frames: " << source_frames_);
-  ROS_INFO_STREAM("source_frames: " << target_frames_);
+  nh_private.param("source_frame", source_frames_, string("camera_rgb_optical_frame"));
+  nh_private.param("target_frame", target_frames_, string("world"));
+  ROS_INFO_STREAM("source_frame: " << source_frames_);
+  ROS_INFO_STREAM("source_frame: " << target_frames_);
 
   dx_ = dy_ = dz_ = rx_ = ry_ = rz_ = 500;
 
