@@ -258,7 +258,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
         dx = ((dx_ - 500) / 500.0);
         dy = ((dy_ - 500) / 500.0);
         dz = ((dz_ - 500) / 500.0);
-        dq.setRPY(droll + M_PI, dpitch, dyaw + M_PI/2);
+        dq.setRPY(droll + M_PI, dpitch, dyaw);
 
         tf::Transform dtf(dq, tf::Vector3(dx, dy, dz));
 

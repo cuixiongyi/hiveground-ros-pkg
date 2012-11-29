@@ -1,7 +1,7 @@
 Background\ ColorB=0
 Background\ ColorG=0
 Background\ ColorR=0
-Camera\ Config=0.664797 0.0421901 0.253814 2.5185 0.539383 1.3713
+Camera\ Config=0.565398 0.922229 2.4141 -0.137222 -0.151563 -0.622267
 Camera\ Type=rviz::XYOrbitViewController
 Endeffector.Enabled=1
 Endeffector.Length=0.1
@@ -56,7 +56,7 @@ PointCloud2.Alpha=1
 PointCloud2.Billboard\ Size=0.01
 PointCloud2.Color\ Transformer=RGB8
 PointCloud2.Decay\ Time=0
-PointCloud2.Enabled=0
+PointCloud2.Enabled=1
 PointCloud2.Position\ Transformer=XYZ
 PointCloud2.Queue\ Size=10
 PointCloud2.Selectable=0
@@ -91,9 +91,9 @@ PointCloud22.Queue\ Size=10
 PointCloud22.Selectable=1
 PointCloud22.Style=0
 PointCloud22.Topic=/kinect_left/depth_registered/points
-Property\ Grid\ Splitter=949,84
-Property\ Grid\ State=expanded=.Global Options,World.Enabled,Endeffector.Enabled,Interactive Marker.Enabled,Interactive Marker.Status,PCV Marker.Enabled,PointCloud2.Enabled,TF.Enabled,TF.Status,PointCloud22.Enabled;splitterratio=0.5
-QMainWindow=000000ff00000000fd0000000300000000000003af0000045bfc0200000002fb000000100044006900730070006c006100790073010000001d0000045b000000ee00fffffffb0000000c00430061006d00650072006102000004c10000004a0000028f0000023f00000001000001310000045bfc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d0000018c0000006700fffffffb0000000a0056006900650077007301000001af000001ca000000bb00fffffffb0000001200530065006c0065006300740069006f006e010000037f000000f90000006700ffffff00000003000007900000003efc0100000001fb0000000800540069006d0065010000000000000790000002bf00ffffff000002a40000045b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+Property\ Grid\ Splitter=1021,84
+Property\ Grid\ State=expanded=.Global Options,World.Enabled,Endeffector.Enabled,Interactive Marker.Enabled,Interactive Marker.Status,PCV Marker.Enabled,PointCloud2.Enabled,PointCloud2.Status,TF.Enabled,PointCloud22.Enabled;splitterratio=0.5
+QMainWindow=000000ff00000000fd000000030000000000000253000004a3fc0200000002fb000000100044006900730070006c006100790073010000001d000004a3000000ee00fffffffb0000000c00430061006d00650072006102000004c10000004a0000028f0000023f0000000100000131000004a3fc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d000001a60000006700fffffffb0000000a0056006900650077007301000001c9000001e8000000bb00fffffffb0000001200530065006c0065006300740069006f006e01000003b7000001090000006700ffffff00000003000007b00000003efc0100000001fb0000000800540069006d00650100000000000007b0000002bf00ffffff00000420000004a300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 Robot\:\ RobotModel\ Link\ base_linkAlpha=1
 Robot\:\ RobotModel\ Link\ base_linkEnabled=1
 Robot\:\ RobotModel\ Link\ base_linkShow\ Axes=0
@@ -130,14 +130,14 @@ RobotModel.TF\ Prefix=
 RobotModel.Update\ Interval=0
 RobotModel.Visual\ Enabled=1
 TF.All\ Enabled=1
-TF.Enabled=1
+TF.Enabled=0
 TF.Frame\ Timeout=15
 TF.Marker\ Scale=0.5
 TF.Show\ Arrows=1
 TF.Show\ Axes=1
 TF.Show\ Names=1
 TF.Update\ Interval=0
-Target\ Frame=/kinect_center_rgb_optical_frame
+Target\ Frame=<Fixed Frame>
 Tool\ 2D\ Nav\ GoalTopic=/move_base_simple/goal
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 World.Enabled=1
@@ -171,25 +171,6 @@ Name=TF
 [Display8]
 ClassName=rviz::PointCloud2Display
 Name=PointCloud22
-[TF.Frames.]
-base_link.Enabled=1
-kinect_center_depth_frame.Enabled=1
-kinect_center_depth_optical_frame.Enabled=1
-kinect_center_link.Enabled=1
-kinect_center_rgb_frame.Enabled=1
-kinect_center_rgb_optical_frame.Enabled=1
-kinect_left_depth_frame.Enabled=1
-kinect_left_depth_optical_frame.Enabled=1
-kinect_left_link.Enabled=1
-kinect_left_rgb_frame.Enabled=1
-kinect_left_rgb_optical_frame.Enabled=1
-link0.Enabled=1
-link1.Enabled=1
-link2.Enabled=1
-link3.Enabled=1
-link4.Enabled=1
-link5.Enabled=1
-world.Enabled=1
 [Views]
 0Name=001
 [Views/0]
@@ -197,7 +178,7 @@ Config=1.1498 5.67358 4.24545 0.463816 0.675617 -0.000257993
 Target=<Fixed Frame>
 Type=rviz::OrbitViewController
 [Window]
-Height=1248
-Width=1952
-X=1441
-Y=-7
+Height=1320
+Width=1984
+X=1857
+Y=138

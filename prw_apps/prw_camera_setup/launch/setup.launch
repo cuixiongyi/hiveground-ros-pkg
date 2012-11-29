@@ -1,0 +1,8 @@
+<launch>     
+  <node name="prw_camera_setup" pkg="prw_camera_setup" type="camera_setup" output="screen"> 
+    <param name="camera_n" value="1"/>  	
+    <param name="camera_0" value="-0.592779 0.073761 0.321910 -0.027282 0.185970 0.034329 kinect_center_rgb_optical_frame kinect_left_rgb_optical_frame 100"/>
+    <param name="camera_1" value="-0.592779 0.073761 0.321910 -0.027282 0.185970 0.034329 kinect_center_rgb_optical_frame kinect_left_rgb_optical_frame 100"/>   
+    <param name="camera_2" value="-0.592779 0.073761 0.321910 -0.027282 0.185970 0.034329 kinect_center_rgb_optical_frame kinect_left_rgb_optical_frame 100"/>
+  </node>  
+</launch>
