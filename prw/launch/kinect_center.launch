@@ -3,5 +3,8 @@
     <arg name="camera" value="kinect_center" />
     <arg name="device_id" value="A00362814103051A" />
     <arg name="depth_registration" value="true" />
-  </include>
+    <arg name="publish_tf" value="false" />
+  </include>  
+
+
 </launch>
