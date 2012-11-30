@@ -29,6 +29,9 @@ public:
   void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;
 
   void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+
+public slots:
+  void value_changed(double d);
 };
 
 class CameraSetup : public QMainWindow
@@ -41,6 +44,7 @@ public:
 
 public slots:
   void update();
+  void tableWidget_cellChanged(int row, int column);
 
 protected:
 
@@ -52,8 +56,8 @@ public:
 
   int camera_n_;
   std::vector<std::string> camera_parameter_;
-  QStandardItemModel* model_;
-  tf::TransformBroadcaster* broadcaster_;
+  //QStandardItemModel* model_;
+  std::vector<tf::TransformBroadcaster> broadcaster_;
   QTimer* timer_;
 
 };
