@@ -56,5 +56,6 @@ set(srcs
       src/user_tracking.cpp 
       src/user_tracking_utils.cpp)
 
-rosbuild_add_executable(user_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
-target_link_libraries(user_tracking ${QT_LIBRARIES})
+rosbuild_add_executable(user_tracker ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
+target_link_libraries(user_tracker ${QT_LIBRARIES})
+rosbuild_link_boost(user_tracker thread)
