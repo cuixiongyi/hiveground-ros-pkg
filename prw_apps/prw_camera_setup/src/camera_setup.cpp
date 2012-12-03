@@ -17,7 +17,6 @@ DoubleSpinBoxDelegate::DoubleSpinBoxDelegate(QObject *parent) :
 QWidget *DoubleSpinBoxDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &/* option */,
                                        const QModelIndex &/* index */) const
 {
-  ROS_INFO("haha");
   QDoubleSpinBox *editor = new QDoubleSpinBox(parent);
   editor->setMinimum(-10.0);
   editor->setMaximum(10.0);
@@ -64,6 +63,8 @@ CameraSetup::CameraSetup(ros::NodeHandle& nh, ros::NodeHandle& nh_private, QWidg
   ROS_DEBUG("Total camera: %d", camera_n_);
 
   broadcaster_.resize(camera_n_);
+  camera_parameter_.resize(camera_n_);
+  camera_tf_.resize(camera_n_);
 
   ui.tableWidget->setRowCount(camera_n_*2);
   ui.tableWidget->setColumnCount(10);
@@ -78,47 +79,18 @@ CameraSetup::CameraSetup(ros::NodeHandle& nh, ros::NodeHandle& nh_private, QWidg
   ui.tableWidget->setHorizontalHeaderItem(8, new QTableWidgetItem(QString("Source")));
   ui.tableWidget->setHorizontalHeaderItem(9, new QTableWidgetItem(QString("Target")));
 
-  //-0.012478 0.394196 1.361399 -0.696552 0.711558 0.064578 0.065807
-  //0.637117 -0.021175 1.265933 -0.696552 0.711558 0.064578 -0.065807
-  //tf::Transform tf(tf::Quaternion(-0.669506, 0.70836, -0.0489958, -0.218143), tf::Vector3(0.51795, 0.573112, 0.960851));
-  tf::Transform tf(tf::Quaternion(-0.696552, 0.711558, 0.064578, 0.065807), tf::Vector3(-0.012478, 0.394196, 1.361399));
-  tf = tf.inverse();
-
-  ROS_INFO_THROTTLE(1.0, "tf\t %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f",
-                     tf.getOrigin().x(), tf.getOrigin().y(), tf.getOrigin().z(),
-                     tf.getRotation().x(), tf.getRotation().y(), tf.getRotation().z(), tf.getRotation().w());
-
-
-  /*
-  model_ = new QStandardItemModel(camera_n_*2, (1 + 3 + 4 + 2), this);
-  model_->setHorizontalHeaderItem(0, new QStandardItem(QString("Camera")));
-  model_->setHorizontalHeaderItem(1, new QStandardItem(QString("Tx")));
-  model_->setHorizontalHeaderItem(2, new QStandardItem(QString("Ty")));
-  model_->setHorizontalHeaderItem(3, new QStandardItem(QString("Tz")));
-  model_->setHorizontalHeaderItem(4, new QStandardItem(QString("Rx")));
-  model_->setHorizontalHeaderItem(5, new QStandardItem(QString("Ry")));
-  model_->setHorizontalHeaderItem(6, new QStandardItem(QString("Rz")));
-  model_->setHorizontalHeaderItem(7, new QStandardItem(QString("Rw")));
-  model_->setHorizontalHeaderItem(8, new QStandardItem(QString("Source")));
-  model_->setHorizontalHeaderItem(9, new QStandardItem(QString("Target")));
-  //model_->setHorizontalHeaderItem(10, new QStandardItem(QString("Rate")));
-
-  ui.tableView->setModel(model_);
-  //ui.tableView->setItemDelegateForColumn(1, new DoubleSpinBoxDelegate());
-  //ui.tableView->setItemDelegateForColumn(2, new DoubleSpinBoxDelegate());
-  //ui.tableView->setItemDelegateForColumn(3, new DoubleSpinBoxDelegate());
-  //ui.tableView->setItemDelegateForColumn(4, new DoubleSpinBoxDelegate());
-  //ui.tableView->setItemDelegateForColumn(5, new DoubleSpinBoxDelegate());
-  //ui.tableView->setItemDelegateForColumn(6, new DoubleSpinBoxDelegate());
-   */
   for (int i = 0; i < camera_n_; i++)
   {
-    string camera_parameter;
-    nh_private_.param((QString("camera_%1").arg(i)).toStdString(), camera_parameter, string(""));
-    ROS_DEBUG("Camera %d parameter: %s", i, camera_parameter.c_str());
-    QStringList tokens = QString(camera_parameter.c_str()).split(' ');
-    ROS_INFO("Camera %d parameter count: %d", i, tokens.size());
-    qDebug() << tokens;
+    string camera_parameter_text;
+    nh_private_.param((QString("camera_%1").arg(i)).toStdString(), camera_parameter_text, string(""));
+    ROS_DEBUG("Camera %d parameter: %s", i, camera_parameter_text.c_str());
+    QStringList tokens = QString(camera_parameter_text.c_str()).split(' ');
+    ROS_DEBUG("Camera %d parameter count: %d", i, tokens.size());
+    if(tokens.size() != 9)
+    {
+      ROS_ERROR("camera %d paparmeter count is not correct", i);
+      continue;
+    }
 
     int j = 1;
     foreach(QString text, tokens)
@@ -129,6 +101,14 @@ CameraSetup::CameraSetup(ros::NodeHandle& nh, ros::NodeHandle& nh_private, QWidg
       ui.tableWidget->setItem(i*2, j, item);
       j++;
     }
+
+    CameraParameter parameter;
+    parameter.tf.setOrigin(tf::Vector3(tokens[0].toDouble(), tokens[1].toDouble(), tokens[2].toDouble()));
+    parameter.tf.setRotation(tf::Quaternion(tokens[3].toDouble(), tokens[4].toDouble(), tokens[5].toDouble(), tokens[6].toDouble()));
+    parameter.source = tokens[7].toStdString();
+    parameter.target = tokens[8].toStdString();
+    camera_tf_[i] = parameter.tf;
+    camera_parameter_[i] = parameter;
 
     ui.tableWidget->setItem(i*2 + 1, 1, new QTableWidgetItem("0"));
     ui.tableWidget->setItem(i*2 + 1, 2, new QTableWidgetItem("0"));
@@ -144,14 +124,10 @@ CameraSetup::CameraSetup(ros::NodeHandle& nh, ros::NodeHandle& nh_private, QWidg
     ui.tableWidget->item(i*2 + 1, 8)->setFlags(f);
     ui.tableWidget->item(i*2 + 1, 9)->setFlags(f);
 
-    //ui.tableView->setItemDelegateForRow(i*2+1, new DoubleSpinBoxDelegate());
     ui.tableWidget->setItemDelegateForRow(i*2+1, new DoubleSpinBoxDelegate());
   }
 
   connect(ui.tableWidget, SIGNAL(cellChanged(int, int)), this, SLOT(tableWidget_cellChanged(int, int) ));
-
-
-
 
   timer_ = new QTimer(this);
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
@@ -167,56 +143,17 @@ CameraSetup::~CameraSetup()
 
 void CameraSetup::update()
 {
-  QString source, target;
-
   for(int i = 0; i < camera_n_; i++)
   {
-    double x, y, z, rx, ry, rz, rw;
-    x = ui.tableWidget->item(2*i, 1)->data(Qt::DisplayRole).toDouble();
-    y = ui.tableWidget->item(2*i, 2)->data(Qt::DisplayRole).toDouble();
-    z = ui.tableWidget->item(2*i, 3)->data(Qt::DisplayRole).toDouble();
-    rx = ui.tableWidget->item(2*i, 4)->data(Qt::DisplayRole).toDouble();
-    ry = ui.tableWidget->item(2*i, 5)->data(Qt::DisplayRole).toDouble();
-    rz = ui.tableWidget->item(2*i, 6)->data(Qt::DisplayRole).toDouble();
-    rw = ui.tableWidget->item(2*i, 7)->data(Qt::DisplayRole).toDouble();
-    source = ui.tableWidget->item(2*i, 8)->data(Qt::DisplayRole).toString();
-    target = ui.tableWidget->item(2*i, 9)->data(Qt::DisplayRole).toString();
-
-    tf::Transform tf(tf::Quaternion(rx, ry, rz, rw), tf::Vector3(x, y, z));
-
-    tf::StampedTransform stf(tf, ros::Time::now(), source.toStdString(), target.toStdString());
+    tf::StampedTransform stf(camera_tf_[i], ros::Time::now(), camera_parameter_[i].source, camera_parameter_[i].target);
     broadcaster_[i].sendTransform(stf);
-    ROS_INFO_THROTTLE(1.0, "tf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %s %s",
-                            tf.getOrigin().x(), tf.getOrigin().y(), tf.getOrigin().z(),
-                            tf.getRotation().x(), tf.getRotation().y(), tf.getRotation().z(), tf.getRotation().w(),
-                            source.toStdString().c_str(), target.toStdString().c_str());
-
-
   }
-
 }
 
 void CameraSetup::tableWidget_cellChanged(int row, int column)
 {
   double value = ui.tableWidget->item(row, column)->data(Qt::DisplayRole).toDouble();
-  ROS_INFO("%d %d %f", row, column, value);
-
-  double x, y, z, rx, ry, rz, rw;
-  x = ui.tableWidget->item(row - 1, 1)->data(Qt::DisplayRole).toDouble();
-  y = ui.tableWidget->item(row - 1, 2)->data(Qt::DisplayRole).toDouble();
-  z = ui.tableWidget->item(row - 1, 3)->data(Qt::DisplayRole).toDouble();
-  rx = ui.tableWidget->item(row - 1, 4)->data(Qt::DisplayRole).toDouble();
-  ry = ui.tableWidget->item(row - 1, 5)->data(Qt::DisplayRole).toDouble();
-  rz = ui.tableWidget->item(row - 1, 6)->data(Qt::DisplayRole).toDouble();
-  rw = ui.tableWidget->item(row - 1, 7)->data(Qt::DisplayRole).toDouble();
-
-
-
-  tf::Transform tf(tf::Quaternion(rx, ry, rz, rw), tf::Vector3(x, y, z));
-  ROS_DEBUG_THROTTLE(1.0, "tf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",
-                          tf.getOrigin().x(), tf.getOrigin().y(), tf.getOrigin().z(),
-                          tf.getRotation().x(), tf.getRotation().y(), tf.getRotation().z(), tf.getRotation().w());
-
+  ROS_DEBUG("%d %d %f", row, column, value);
 
   double tx, ty, tz, roll, pitch, yaw;
   tx = ui.tableWidget->item(row, 1)->data(Qt::DisplayRole).toDouble();
@@ -233,13 +170,7 @@ void CameraSetup::tableWidget_cellChanged(int row, int column)
                           dtf.getOrigin().x(), dtf.getOrigin().y(), dtf.getOrigin().z(),
                           dtf.getRotation().x(), dtf.getRotation().y(), dtf.getRotation().z(), dtf.getRotation().w());
 
-
-
-  tf::Transform result = tf * dtf;
-  ROS_DEBUG_THROTTLE(1.0, "result\t %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f",
-                          result.getOrigin().x(), result.getOrigin().y(), result.getOrigin().z(),
-                          result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
-
+  tf::Transform result = camera_parameter_[row-1].tf  * dtf;
 
   ui.tableWidget->blockSignals(true);
   ui.tableWidget->item(row - 1, 1)->setData(Qt::DisplayRole, result.getOrigin().x());
@@ -251,6 +182,10 @@ void CameraSetup::tableWidget_cellChanged(int row, int column)
   ui.tableWidget->item(row - 1, 7)->setData(Qt::DisplayRole, result.getRotation().w());
   ui.tableWidget->blockSignals(false);
 
+  camera_tf_[row-1] = result;
+  ROS_DEBUG_THROTTLE(1.0, "result\t %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f",
+                     camera_tf_[row-1].getOrigin().x(), camera_tf_[row-1].getOrigin().y(), camera_tf_[row-1].getOrigin().z(),
+                     camera_tf_[row-1].getRotation().x(), camera_tf_[row-1].getRotation().y(), camera_tf_[row-1].getRotation().z(), camera_tf_[row-1].getRotation().w());
 }
 
 CameraSetup* g_camera_setup_ = NULL;
