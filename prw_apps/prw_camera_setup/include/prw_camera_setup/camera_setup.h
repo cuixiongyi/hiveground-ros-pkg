@@ -34,6 +34,13 @@ public slots:
   void value_changed(double d);
 };
 
+struct CameraParameter
+{
+  tf::Transform tf;
+  std::string source;
+  std::string target;
+};
+
 class CameraSetup : public QMainWindow
 {
 Q_OBJECT
@@ -55,7 +62,8 @@ public:
   bool quit_threads_;
 
   int camera_n_;
-  std::vector<std::string> camera_parameter_;
+  std::vector<CameraParameter> camera_parameter_;
+  std::vector<tf::Transform> camera_tf_;
   //QStandardItemModel* model_;
   std::vector<tf::TransformBroadcaster> broadcaster_;
   QTimer* timer_;
