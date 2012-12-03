@@ -36,6 +36,7 @@ public slots:
 
 struct CameraParameter
 {
+  std::string name;
   tf::Transform tf;
   std::string source;
   std::string target;
