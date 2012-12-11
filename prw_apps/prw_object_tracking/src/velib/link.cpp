@@ -51,7 +51,7 @@ void Link::prepare_for_delete()
   node_out_ = 0;
   node_in_ = 0;
   ve::Scene* scene = qobject_cast<ve::Scene*>(this->scene());
-  emit scene->signal_link_deleted(this);
+  Q_EMIT scene->signal_link_deleted(this);
 }
 
 void Link::initialize()
@@ -151,7 +151,7 @@ QVariant Link::itemChange(GraphicsItemChange change, const QVariant &value)
 
       if (value.toBool())
       {
-        emit scene->signal_object_selected(this);
+        Q_EMIT scene->signal_object_selected(this);
       }
     }
       break;

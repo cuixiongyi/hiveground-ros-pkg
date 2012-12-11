@@ -58,7 +58,7 @@ controllers: {
   rc7m_arm1 : {
     type: rc7m_controller,
     name: arm1,
-    rate: 125,
+    rate: 1000,
     ip: 10.0.0.101,
     port: 5007,    
     joints: [J1, J2, J3, J4, J5, J6]

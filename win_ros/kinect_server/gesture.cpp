@@ -67,6 +67,7 @@ void GestureDetector::addSkeleton(const QVector<Vector4>& skeleton_positions)
       gesture_history_.pop_back();
   }
 
+  detected_gesture_ = "";
   lookForGesture();
 }
 
@@ -76,11 +77,12 @@ void GestureDetector::signalGestureDetected(const QString& gesture)
   
   if(dt > min_period_between_gesture_)
   {
-    qDebug() << dt << gesture;
+    //qDebug() << dt << gesture;
     if(!gesture.isEmpty())
     {
+      detected_gesture_ = gesture;
       emit gestureDetected(gesture);
-    }
+    }    
     last_gesture_detected_time_ = QDateTime::currentDateTime();    
   }
 

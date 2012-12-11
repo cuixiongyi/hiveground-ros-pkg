@@ -8,8 +8,12 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/prw_user_tracking</url>
-  <depend package="roscpp"/>
+  <depend package="roscpp"/>  
+  <depend package="pcl_ros"/>
+  
   <depend package="std_msgs"/>
+  <depend package="sensor_msgs"/>
+  
 
 </package>
 

@@ -323,7 +323,7 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
       prepareGeometryChange();
       node_rect_ = rect_temp;
       adjust_links();
-      emit scene->signal_node_size_changed(this);
+      Q_EMIT scene->signal_node_size_changed(this);
       handle = true;
     }
     else if (center_resize_)
@@ -347,7 +347,7 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
           node_rect_.adjust(0, dy, 0, 0);
           break;
       }
-      emit scene->signal_node_size_changed(this);
+      Q_EMIT scene->signal_node_size_changed(this);
       handle = true;
     }
   }
@@ -365,7 +365,7 @@ void Node::hoverEnterEvent(QGraphicsSceneHoverEvent * event)
   //if(!edit_mode_)
   //{
   ve::Scene* scene = qobject_cast<ve::Scene*>(this->scene());
-  emit scene->signal_node_mouse_hover_enter(this);
+  Q_EMIT scene->signal_node_mouse_hover_enter(this);
   //}
   //else
   //{
@@ -380,7 +380,7 @@ void Node::hoverLeaveEvent(QGraphicsSceneHoverEvent * event)
   //if(!edit_mode_)
   //{
   ve::Scene* scene = qobject_cast<ve::Scene*>(this->scene());
-  emit scene->signal_node_mouse_hover_leave(this);
+  Q_EMIT scene->signal_node_mouse_hover_leave(this);
   //}
   //else
   //{
@@ -449,7 +449,7 @@ void Node::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
     if (link_out_)
       link_out_->prepare_for_delete();
 
-    emit scene->signal_node_deleted(this);
+    Q_EMIT scene->signal_node_deleted(this);
   }
 }
 
@@ -463,7 +463,7 @@ QVariant Node::itemChange(GraphicsItemChange change, const QVariant &value)
     {
       //emit scene->slot_object_selected(this);
       adjust_links();
-      emit scene->signal_node_position_changed(this);
+      Q_EMIT scene->signal_node_position_changed(this);
       break;
     }
 
@@ -472,13 +472,13 @@ QVariant Node::itemChange(GraphicsItemChange change, const QVariant &value)
       if (value.toBool())
       {
         set_edit_mode(true);
-        emit scene->signal_object_selected(this);
+        Q_EMIT scene->signal_object_selected(this);
       }
       else
       {
         set_edit_mode(false);
         setCursor(Qt::ArrowCursor);
-        emit scene->signal_object_deselected();
+        Q_EMIT scene->signal_object_deselected();
       }
       break;
     }

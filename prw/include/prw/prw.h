@@ -59,6 +59,8 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 
+#include <std_msgs/String.h>
+
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 
@@ -66,9 +68,12 @@
 #include <geometry_msgs/Pose.h>
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 
+#include <prw_message/Object.h>
+#include <prw_message/ObjectArray.h>
 
 #include <qevent.h>
 #include <qdialog.h>
+#include <qmutex.h>
 
 #include "ui_prw.h"
 
@@ -264,6 +269,11 @@ public:
 
 typedef std::map<std::string, PlanningGroupData> PlanningGroupDataMap;
 
+typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryMap;
+typedef std::map<std::string, MenuEntryMap> MenuMap;
+typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
+typedef std::map<std::string, arm_navigation_msgs::CollisionObject> CollisionObjectMap;
+typedef QMap<int, QPair<QString, geometry_msgs::Pose> > EndEffectorStateMap;
 
 class PRW : public QMainWindow
 {
@@ -275,7 +285,7 @@ public:
   bool initialize();
 
 private Q_SLOTS:
-  //Qt
+  //QtJointStateConstPtr
   void on_bt_go_clicked();
   void on_bt_reset_clicked();
   void on_cb_enable_teleop_clicked();
@@ -287,14 +297,35 @@ private Q_SLOTS:
   //prw
   void endEffectorSlideUpdate();
   void endEffectorValueUpdate();
+  void endEffectorMoved();
+
+  void createNewCollisionObject(const QString& type);
+
+  void savedStateSelection();
+  void addState(const geometry_msgs::Pose& pose);
+  void on_bt_move_to_saved_state_clicked();
+  void on_bt_play_saved_state_clicked();
+  void on_bt_gen_path_clicked();
+  void on_bt_stop_play_saved_stated_clicked();
+  void on_bt_delete_saved_state_clicked();
+  void on_bt_save_saved_state_clicked();
+  void on_bt_load_saved_state_clicked();
+
+Q_SIGNALS:
+  void signalCreateNewCollisionObject(const QString& type);
+  void signalUpdateEndEffectorPosition();
+  void signalAddState(const geometry_msgs::Pose& pose);
 
 protected:
   void closeEvent(QCloseEvent *event);
 
 
+
   //prw
   //callback
-  void jointStateCallback(const sensor_msgs::JointStateConstPtr& joint_state);
+  void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
+  void gestureCallback(const std_msgs::StringConstPtr& message);
+  void objectTrackingCallback(const prw_message::ObjectArrayConstPtr& message);
 
   void processIKControllerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
   void processMenuCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
@@ -306,22 +337,74 @@ protected:
   void selectPlanningGroup(int group);
   PlanningGroupData* getPlanningGroup(unsigned int i);
 
+  //collision object
+  int getNextCollisionObjectId() { return last_collision_objects_id_++; }
+  void createCollisionObject(geometry_msgs::Pose pose,
+                             CollisionObjectType type,
+                             std_msgs::ColorRGBA color,
+                             double a = 0.1,
+                             double b = 0.0,
+                             double c = 0.0,
+                             bool selectable = true);
+
+  //interactive marker
   void makeIKControllerMarker(tf::Transform transform, const std::string& name, const std::string& description,
                               bool selectable, float scale = 1.0, bool publish = true);
+  void makeSelectableMarker(InteractiveMarkerType type, tf::Transform transform, const std::string& name,
+                              const std::string& description, float scale = 1.0f, bool publish = true);
+  void makeSelectableCollisionObjectMarker(tf::Transform transform, CollisionObjectType type, const std::string& name,
+                                           std_msgs::ColorRGBA color, double a, double b, double c, bool publish=true);
+  visualization_msgs::Marker makeMarkerCylinder(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::Marker makeMarkerBox(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  void makeInteractive6DOFMarker(bool fixed, tf::Transform transform, const std::string& name, const std::string& description, float scale = 1.0f, bool object = false);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveBoxControl(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveCylinderControl(visualization_msgs::InteractiveMarker &msg, float alpha = 1.0f);
+  visualization_msgs::InteractiveMarkerControl& makeInteractiveCollisionObjectControl(visualization_msgs::InteractiveMarker &msg);
+  visualization_msgs::Marker createCollisionObjectMarker(CollisionObjectType type, double a, double b, double c, std_msgs::ColorRGBA color);
+
+
+  void deselectMarker(SelectableMarker& marker, tf::Transform transform);
+  void selectMarker(SelectableMarker& marker, tf::Transform transform);
+  void moveThroughTrajectory(PlanningGroupData& gc, const std::string& source_name, int step);
+  void removeCollisionObjectByName(std::string id);
+
+  void makeMenu();
+    interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryMap& map, std::string name);
+
+
+
+  //end effector
   void moveEndEffectorMarkers(double vx, double vy, double vz, double vr, double vp, double vw, bool coll_aware = true);
   void setNewEndEffectorPosition(PlanningGroupData& gc, tf::Transform& cur, bool coll_aware);
   bool solveIKForEndEffectorPose(PlanningGroupData& gc, bool coll_aware = true, bool constrain_pitch_and_roll = false,
                                  double change_redundancy = 0.0);
 
-  void deselectMarker(SelectableMarker& marker, tf::Transform transform);
-  void selectMarker(SelectableMarker& marker, tf::Transform transform);
-  void moveThroughTrajectory(PlanningGroupData& gc, const std::string& source_name, int step);
 
 
+  bool moveEndEffector(PlanningGroupData& gc,
+                       const geometry_msgs::Pose& pose,
+                       bool filter=true,
+                       int retry = 20,
+                       bool block = false,
+                       bool update_marker = false);
   bool planToEndEffectorState(PlanningGroupData& gc, bool show, bool play);
   bool filterPlannerTrajectory(PlanningGroupData& gc, bool show, bool play);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                               const control_msgs::FollowJointTrajectoryResultConstPtr& result);
+  void moveThroughSavedState();
+  void followObject(PlanningGroupData& gc, const geometry_msgs::Pose& pose, double offset);
+
+
+  void resetToLastGoodState(PlanningGroupData& gc);
+  void refreshEnvironment();
+
+
+
+
+  inline bool isCollisionObjectName(const std::string& name)
+  {
+    return collision_objects_.find(name) != collision_objects_.end();
+  }
 
   inline bool isGroupName(const std::string& name)
   {
@@ -347,6 +430,10 @@ private:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   boost::recursive_mutex scene_mutex_;
+  boost::recursive_mutex ui_mutex_;
+  boost::recursive_mutex tracked_object_mutex_;
+
+
 
   planning_environment::CollisionModels* cm_;
   planning_models::KinematicState* robot_state_;
@@ -363,6 +450,11 @@ private:
   ros::Subscriber joint_state_subscriber_;
   std::map<std::string, double> robot_state_joint_values_;
 
+  ros::Subscriber gesture_subscriber_;
+  ros::Subscriber object_tracking_subscriber_;
+  //ros::Subscriber object_tracking_subscriber_;
+
+
   //publisher
   ros::Publisher marker_publisher_;
   ros::Publisher marker_array_publisher_;
@@ -377,15 +469,46 @@ private:
   ros::ServiceClient get_planning_scene_client_;
   ros::ServiceClient planner_client_;
   ros::ServiceClient trajectory_filter_client_;
+  ros::ServiceClient trajectory_filter2_client_;
 
+  //arm control
   PlanningGroupDataMap group_data_map_;
   std::string current_group_name_;
-
-  std::map<std::string, SelectableMarker> selectable_markers_;
+  //std::map<std::string, geometry_msgs::Pose> last_end_effector_poses_;
 
 
   arm_navigation_msgs::MotionPlanRequest last_motion_plan_request_;
+  bool arm_is_moving_;
 
+  //Menu, marker
+  std::map<std::string, SelectableMarker> selectable_markers_;
+  MenuHandlerMap menu_handler_map_;
+  MenuMap menu_entry_maps_;
+
+  //end effector menu handle
+  interactive_markers::MenuHandler::EntryHandle menu_ee_save_state_;
+  interactive_markers::MenuHandler::EntryHandle menu_ee_play_save_state_;
+  interactive_markers::MenuHandler::EntryHandle menu_ee_last_good_state_;
+
+  //std::vector<geometry_msgs::Pose> saved_ee_state_;
+
+  EndEffectorStateMap saved_end_effector_state_;
+  int last_saved_end_effector_state_id_;
+  int selected_saved_state_id_;
+  QTreeWidgetItem* selected_saved_state_item_;
+  bool play_saved_state_;
+
+
+
+  //collision object
+  /// Map of collision objects names to messages sent to ROS.
+  CollisionObjectMap collision_objects_;
+  int last_collision_objects_id_;
+
+
+  //tracked object
+  std::vector<tf::Transform> tracked_objects_;
+  tf::Transform following_point_;
 
 };
 

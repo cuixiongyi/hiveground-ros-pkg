@@ -38,6 +38,9 @@
 #include <ros/ros.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <urdf/model.h>
+#include <boost/thread.hpp>
+#include <hg_cpp/hg_pid.h>
+#include <hg_cpp/hg_velocity_control.h>
 
 namespace hg
 {
@@ -59,7 +62,10 @@ public:
       lower_limit_(0),
       upper_limit_(0),
       position_offset_(0),
+      parameter_velocity_limit_(0),
       velocity_limit_(0),
+      parameter_acceleration_limit_(0),
+      acceleration_limit_(0),
       position_(0),
       velocity_(0),
       touched_(false),
@@ -109,6 +115,10 @@ public:
    * Set joint position.
    */
   virtual double setPosition(double position) = 0;
+
+  /**
+   * Set relative joint position.
+   */
   virtual double setPositionRelative(double position) = 0;
 
   /**
@@ -125,6 +135,7 @@ public:
 
   hg::Node* node_;
   std::string name_;
+  boost::recursive_mutex mutex_;
 
   hg::Controller* controller_;
   ros::Time last_update_;
@@ -134,7 +145,10 @@ public:
   double lower_limit_;
   double upper_limit_;
   double position_offset_;
+  double parameter_velocity_limit_;
   double velocity_limit_;
+  double parameter_acceleration_limit_;
+  double acceleration_limit_;
   double position_;
   double velocity_;
   bool touched_;
@@ -142,6 +156,7 @@ public:
   double last_commanded_position_;
 
   ros::Subscriber subscriber_joint_position_;
+  ros::Subscriber subscriber_joint_position_relative_;
   ros::Subscriber subscriber_joint_velocity_;
 };
 

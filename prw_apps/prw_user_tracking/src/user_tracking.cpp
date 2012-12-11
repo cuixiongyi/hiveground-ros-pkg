@@ -16,6 +16,7 @@ UserTracking::UserTracking(QWidget *parent, Qt::WFlags flags) :
 
 UserTracking::~UserTracking()
 {
+
 }
 
 

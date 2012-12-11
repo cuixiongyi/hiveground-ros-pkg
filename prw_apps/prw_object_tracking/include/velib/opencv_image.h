@@ -18,7 +18,7 @@ public:
   QPainterPath shape() const;
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *item, QWidget *widget);
 
-signals:
+Q_SIGNALS:
   void mouseClicked(QPointF point, QRgb color);
 
 protected:

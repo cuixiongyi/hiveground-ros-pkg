@@ -69,6 +69,7 @@ public:
    * Interpolate joint position after dt.
    */
   double interpolate(double dt);
+  double interpolate2(double dt);
 
   /**
    * Set feedback data from sensor (encoder, camera, ...).
@@ -92,11 +93,13 @@ public:
   void callbackJointPositionDegree(const std_msgs::Float64& position);
   void callbackJointVelocity(const std_msgs::Float64& velocity);
 
-  ros::Subscriber subscriber_joint_position_;
-  ros::Subscriber subscriber_joint_position_relative_;
-  ros::Subscriber subscriber_joint_position_degree_;
-  ros::Subscriber subscriber_joint_velocity_;
 
+
+  ros::Subscriber subscriber_joint_position_degree_;
+
+  double t_to_zero_, t_acc_, t_const_, t_dacc_;
+  double current_velocity_;
+  double total_time_;
 };
 
 }

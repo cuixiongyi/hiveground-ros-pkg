@@ -673,7 +673,7 @@ void WorkspaceEditor::processIKControllerFeedback(const InteractiveMarkerFeedbac
         std::map<std::string, SelectableMarker>::iterator it = selectable_markers_.begin();
         while (it != selectable_markers_.end())
         {
-          if((it->second.type_ == CollisionObject) && (it->first != feedback->marker_name))
+          if((it->second.type_ == CollisionObject) && (it->first != feedback->mlast_good_state_arker_name))
           {
             deselectMarker(it->second, toBulletTransform(it->second.pose_));
           }

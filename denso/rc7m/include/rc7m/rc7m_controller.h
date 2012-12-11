@@ -88,13 +88,6 @@ public:
    */
   void control();
 
-
-  /**
-     * Control loop of RC7M.
-     * Execute in separated thread.
-     */
-    void control2();
-
   /**
    * Stop the controller, do any hardware shutdown needed.
    */
@@ -104,6 +97,8 @@ public:
    * Is the controller actively sending commands to joints/robots?
    */
   bool active();
+
+  bool setJointsSpeed(double speed);
 
 private:
   /**
@@ -131,8 +126,11 @@ public:
   uint32_t hAngleVariable;
   bool motor_on_;
   bool slave_mode_on_;
-  bool is_busy_;
   bool is_preempted_;
+  int preempted_point_;
+  int new_start_point_;
+  trajectory_msgs::JointTrajectory last_trajectory_;
+
 
   bool is_running_;
   boost::thread control_thread_;
@@ -148,6 +146,8 @@ public:
   JointTrajectoryQueue joint_trajecgtory_queue_;
   trajectory_msgs::JointTrajectory current_joint_trajecgtory_;
   bool process_trajectory_;
+
+
 
 };
 

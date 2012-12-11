@@ -35,13 +35,20 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 
+
+using namespace std;
+static const int SEARCH_SIZE = 150;
 static const char WINDOW_NAME[] = "Workspace Calibrator";
 std::string MARKER_WINDOWS[4] =
 {
   "marker0", "marker1", "marker2", "marker3"
 };
-std::string image_topic_;
+
+string camera_;
 bool chessboard_;
 int x_step_;
 int y_step_;
@@ -49,12 +56,20 @@ double size_;
 double x_gap_;
 double y_gap_;
 
+bool got_camera_info_ = false;
+
 cv::Mat camera_matrix_;
 cv::Mat camera_distortion_;
 std::vector<cv::Point3f> marker_points_;
 std::vector<cv::Point3f> object_points_;
 int state_ = 0;
 cv::Point markers_[4];
+
+int dx_, dy_, dz_, rx_, ry_, rz_;
+
+string source_frames_;
+string target_frames_;
+tf::TransformBroadcaster* broadcaster_;
 
 void onMouse( int event, int x, int y, int, void* )
 {
@@ -126,6 +141,24 @@ cv::Mat_<double> getQuaternion(const cv::Point3d &vec, float angle)
   return quat;
 }
 
+void onSlider(int value, void* data)
+{
+
+}
+
+void infoCallBack(const sensor_msgs::CameraInfoConstPtr& info)
+{
+  if(!got_camera_info_)
+  {
+    camera_distortion_ = cv::Mat(1,5, CV_64FC1, (double*)info->D.data()).clone();
+    camera_matrix_ = cv::Mat(3,3, CV_64FC1, (double*)info->K.data()).clone();
+    //camera_distortion_ = cv::Mat(info->D;]
+    got_camera_info_ = true;
+    cout << camera_matrix_ << endl;
+    cout << camera_distortion_ << endl;
+  }
+}
+
 void imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
   //ROS_INFO_STREAM_THROTTLE(1.0, image->encoding);
@@ -153,13 +186,13 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
   {
     for (int i = 0; i < 4; i++)
     {
-      cv::rectangle(input_image, cv::Point(markers_[i].x - 50, markers_[i].y - 50),
-                    cv::Point(markers_[i].x + 50, markers_[i].y + 50), cv::Scalar(255, 128, 0));
+      cv::rectangle(input_image, cv::Point(markers_[i].x - (SEARCH_SIZE/2), markers_[i].y - (SEARCH_SIZE/2)),
+                    cv::Point(markers_[i].x + (SEARCH_SIZE/2), markers_[i].y + (SEARCH_SIZE/2)), cv::Scalar(255, 128, 0));
       std::stringstream ss;
       ss << i;
       std::string text;
       ss >> text;
-      cv::putText(input_image, text, cv::Point(markers_[i].x - 50, markers_[i].y - 50), cv::FONT_HERSHEY_SIMPLEX, 1.0,
+      cv::putText(input_image, text, cv::Point(markers_[i].x - (SEARCH_SIZE/2), markers_[i].y - (SEARCH_SIZE/2)), cv::FONT_HERSHEY_SIMPLEX, 1.0,
                   cv::Scalar(0, 0, 255));
     }
 
@@ -170,7 +203,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
       for (int i = 0; i < 4; i++)
       {
 
-        cv::Mat roi_image = cv::Mat(bridge->image, cv::Rect(markers_[i].x - 50, markers_[i].y - 50, 100, 100));
+        cv::Mat roi_image = cv::Mat(bridge->image, cv::Rect(markers_[i].x - (SEARCH_SIZE/2), markers_[i].y - (SEARCH_SIZE/2), SEARCH_SIZE, SEARCH_SIZE));
         //cv::Rect(10, 10, 100, 100));
 
         cv::Size pattern_size(x_step_, y_step_);
@@ -201,23 +234,76 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
         }
       }
 
-      if (all_blobs.size() == object_points_.size())
+      if ((all_blobs.size() == object_points_.size()) && got_camera_info_)
       {
         ROS_INFO_THROTTLE(1.0, "got all blobs");
-        cv::Mat_<double> rvec, tvec, q, rotation_matrix;
+        cv::Mat_<double> rvec, tvec;
         cv::solvePnP(object_points_, all_blobs, camera_matrix_, camera_distortion_, rvec, tvec, false);
-        ROS_INFO_STREAM_THROTTLE(1.0, tvec);
-        ROS_INFO_STREAM_THROTTLE(1.0, rvec);
+        ROS_INFO_STREAM_THROTTLE(1.0, "tvec: " << tvec);
+        ROS_INFO_STREAM_THROTTLE(1.0, "rvec: " << rvec);
 
-        //board -> camera
-        Rodrigues(rvec, rotation_matrix);
-
-        double* rptr = rotation_matrix.ptr<double>(0);
+        double* rptr = rvec.ptr<double>(0);
         double* tptr = tvec.ptr<double>(0);
-        cv::Mat transformation_matrix =
-            (cv::Mat_<double>(4, 4) << rptr[0], rptr[1], rptr[2], tptr[0], rptr[3], rptr[4], rptr[5], tptr[1], rptr[6], rptr[7], rptr[8], tptr[2], 0, 0, 0, 1);
-        ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix);
-        ROS_INFO_STREAM_THROTTLE(1.0, transformation_matrix.inv());
+
+        tf::Quaternion q;
+        q.setRPY(rptr[0],rptr[1],rptr[2]);
+
+        tf::Transform tf(q, tf::Vector3(tptr[0], tptr[1], tptr[2]));
+
+        tf::Quaternion dq;
+        double droll, dpitch, dyaw, dx, dy, dz;
+        droll = ((rx_ - 500) / 500.0) * M_PI;
+        dpitch = ((ry_ - 500) / 500.0) * M_PI;
+        dyaw = ((rz_ - 500) / 500.0) * M_PI;
+        dx = ((dx_ - 500) / 500.0);
+        dy = ((dy_ - 500) / 500.0);
+        dz = ((dz_ - 500) / 500.0);
+        dq.setRPY(droll + M_PI, dpitch, dyaw);
+
+        tf::Transform dtf(dq, tf::Vector3(dx, dy, dz));
+
+        //ROS_INFO_THROTTLE(1.0, "%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", droll, dpitch, dyaw, dx, dy, dz);
+        ROS_INFO_THROTTLE(1.0, "tf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",
+                          tf.getOrigin().x(), tf.getOrigin().y(), tf.getOrigin().z(),
+                          tf.getRotation().x(), tf.getRotation().y(), tf.getRotation().z(), tf.getRotation().w());
+
+
+        ROS_INFO_THROTTLE(1.0, "dtf\t %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",
+                          dtf.getOrigin().x(), dtf.getOrigin().y(), dtf.getOrigin().z(),
+                          dtf.getRotation().x(), dtf.getRotation().y(), dtf.getRotation().z(), dtf.getRotation().w());
+
+
+        tf::Transform result = tf * dtf;
+        ROS_INFO_THROTTLE(1.0, "result\t %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f %8.6f",
+                          result.getOrigin().x(), result.getOrigin().y(), result.getOrigin().z(),
+                          result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
+
+
+        tf::StampedTransform stf(result, ros::Time::now(), source_frames_, target_frames_);
+        broadcaster_->sendTransform(stf);
+
+
+
+
+        /*
+        tf::Quaternion quat;
+
+        double* rptr = rvec.ptr<double>(0);
+
+        quat.setRPY(rptr[0],rptr[1],rptr[2]);
+
+        double* tptr = tvec.ptr<double>(0);
+
+        tf::Vector3 vec(tptr[0], tptr[1], tptr[2]);
+
+        tf::Transform tf(quat, vec);
+
+        tf::Quaternion r1;
+        r1.setRPY(M_PI, 0, M_PI/2);
+        quat = quat * r1;
+
+        ROS_INFO_STREAM_THROTTLE(1.0, "new quaternion: " << quat.getX() << " " << quat.getY() << " " << quat.getZ() << " " << quat.getW());
+        */
       }//if all blob
     }//if state == 4
   }//if chessboard
@@ -231,7 +317,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
         bridge->image, pattern_size, corners,
         cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
 
-    if (pattern_found)
+    if (pattern_found && got_camera_info_)
     {
       cv::cornerSubPix(bridge->image, corners, cv::Size(11, 11), cv::Size(-1, -1),
                        cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
@@ -314,20 +400,24 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "workspace_calibrator");
-  ros::NodeHandle n("~");
+  ros::NodeHandle nh;
+  ros::NodeHandle nh_private("~");
 
   //ros::NodeHandle nh("~");
 
+  nh_private.param("camera", camera_, string("/camera/rgb"));
+  nh_private.param("chessboard", chessboard_, false);
+  nh_private.param("x_step", x_step_, 3);
+  nh_private.param("y_step", y_step_, 4);
+  nh_private.param("size", size_, 0.08);
+  nh_private.param("x_gap", x_gap_, 0.432);
+  x_gap_ = x_gap_ + (size_*y_step_/2.0);
+  nh_private.param("y_gap", y_gap_, 0.892);
+  y_gap_ = y_gap_ + (size_*x_step_);
 
-  n.param("image", image_topic_, std::string("/camera/rgb/image_mono"));
-  n.param("chessboard", chessboard_, false);
-  n.param("x_step", x_step_, 3);
-  n.param("y_step", y_step_, 4);
-  n.param("size", size_, 0.08);
-  n.param("x_gap", x_gap_, 0.432 + (0.08*y_step_/2.0));
-  n.param("y_gap", y_gap_, 0.892 + (0.08*x_step_));
-  ROS_INFO_STREAM("image topic: " << image_topic_);
-  ROS_INFO_STREAM("chessboard: " << chessboard_);
+
+  ROS_INFO_STREAM("camera: " << camera_);
+  ROS_INFO_STREAM("use chessboard: " << chessboard_);
   ROS_INFO_STREAM("x step: " << x_step_);
   ROS_INFO_STREAM("y step: " << y_step_);
   ROS_INFO_STREAM("size: " << size_);
@@ -339,13 +429,29 @@ int main(int argc, char* argv[])
   }
 
 
+  nh_private.param("source_frame", source_frames_, string("camera_rgb_optical_frame"));
+  nh_private.param("target_frame", target_frames_, string("world"));
+  ROS_INFO_STREAM("source_frame: " << source_frames_);
+  ROS_INFO_STREAM("source_frame: " << target_frames_);
+
+  dx_ = dy_ = dz_ = rx_ = ry_ = rz_ = 500;
+
+  cv::namedWindow(WINDOW_NAME);
+  cv::setMouseCallback(WINDOW_NAME, onMouse, 0);
+  cv::createTrackbar("dx", WINDOW_NAME, &dx_, 1000, onSlider, 0);
+  cv::createTrackbar("dy", WINDOW_NAME, &dy_, 1000, onSlider, 0);
+  cv::createTrackbar("dz", WINDOW_NAME, &dz_, 1000, onSlider, 0);
+  cv::createTrackbar("rx", WINDOW_NAME, &rx_, 1000, onSlider, 0);
+  cv::createTrackbar("ry", WINDOW_NAME, &ry_, 1000, onSlider, 0);
+  cv::createTrackbar("rz", WINDOW_NAME, &rz_, 1000, onSlider, 0);
+
+  broadcaster_ = new tf::TransformBroadcaster();
+  ros::Subscriber sub_image = nh.subscribe(camera_ + "/image_mono", 3, &imageCallback);
+  ros::Subscriber sub_info = nh.subscribe(camera_ + "/camera_info", 3, &infoCallBack);
 
 
-  ROS_INFO("read camera metrix");
-  double camera_matrix[9] = {528.825665620759, 0, 313.756893528701, 0, 530.466279366652, 253.210556553393, 0, 0, 1};
-  camera_matrix_ = cv::Mat(3,3, CV_64FC1, camera_matrix);
-  double camera_distortion[5] = {0.151330528573397, -0.221085177820244, 0.0044050794554637, -0.0039290742571273, 0};
-  camera_distortion_ = cv::Mat(1,5, CV_64FC1, camera_distortion);
+
+
 
   if(!chessboard_)
   {
@@ -355,14 +461,10 @@ int main(int argc, char* argv[])
       {
         if ((y % 2) == 0)
         {
-          //marker_points_.push_back(cv::Point3f(-(x * size_), -(y * (size_ / 2.0)), 0.0));
-          //marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
           marker_points_.push_back(cv::Point3f(x * size_, y * (size_ / 2.0), 0.0));
         }
         else
         {
-          //marker_points_.push_back(cv::Point3f(-((x * size_) + (size_ / 2.0)), -(y * (size_ / 2.0)), 0.0));
-          //marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
           marker_points_.push_back(cv::Point3f((x * size_) + (size_ / 2.0), y * (size_ / 2.0), 0.0));
         }
         ROS_INFO_STREAM(marker_points_.back());
@@ -427,14 +529,11 @@ int main(int argc, char* argv[])
         ROS_INFO_STREAM(object_points_.back());
       }
     }
-
-
   }//chessboard check
 
-  cv::namedWindow(WINDOW_NAME);
-  cv::setMouseCallback(WINDOW_NAME, onMouse, 0 );
 
-  ROS_INFO("Subscribe to image topic");
-  ros::Subscriber sub = n.subscribe(image_topic_, 3, &imageCallback);
+
+
+
   ros::spin();
 }

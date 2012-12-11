@@ -55,19 +55,16 @@ public:
    */
   Controller()
     : pause_(true),
-      rate_(10.0)
-  {
-    //ROS_INFO_STREAM(__FUNCTION__);
-  }
+      rate_(10.0),
+      is_active_(false)
+  { }
 
   /**
    * A destructor.
    *
    */
   virtual ~Controller()
-  {
-    //ROS_INFO_STREAM(__FUNCTION__);
-  }
+  { }
 
   /**
    * An initializing function.
@@ -121,6 +118,7 @@ public:
   std::string name_;
   bool pause_;
   double rate_;
+  bool is_active_;
   std::vector<boost::shared_ptr<hg::Joint> > joints_;
 };
 

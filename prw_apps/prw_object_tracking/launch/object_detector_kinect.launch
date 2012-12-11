@@ -1,12 +1,38 @@
 <launch>  
+  <arg name="camera_name" default="camera"/>
+  <arg name="device_id" default="A00363807157051A" />
+
   <!-- Kinect -->
   <include file="$(find openni_launch)/launch/openni.launch">    
-    <arg name="camera" value="kinect7051A" />
-    <arg name="device_id" value="A00363807157051A" />
+    <arg name="camera" value="$(arg camera_name)" />
+    <arg name="device_id" value="$(arg device_id)" />
     <arg name="depth_registration" value="true" />
   </include>
   
-  <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="-0.741438 -0.660471 1.866350 0.698840 0.713028 -0.041199 -0.038949 kinect7051A_rgb_optical_frame world 50"/>
+  <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" 
+    args="-0.723413 -0.608987 1.840925 0.703777 0.709907 -0.026892 -0.002382 $(arg camera_name)_rgb_optical_frame world 10"/>  
+    
+
+  <node pkg="prw_object_tracking" type="object_tracking" name="prw_object_tracking" output="screen">
+    <param name="camera" value="$(arg camera_name)"/>
+    <rosparam>
+      output_frame: /world
+      filter_limit_min_z: -0.04
+      filter_limit_max_z: 1.5
+      filter_limit_min_y: -0.05
+      filter_limit_max_y: 1.36
+      filter_limit_min_x: -0.05
+      filter_limit_max_x: 0.76
+      filter_limit_negative: False
+      leaf_size: 0.01            
+      ec_distance_threshold: 0.025
+      ec_cluster_tolerance: 0.02
+      ec_min_size: 25
+      ec_max_size: 1000
+    </rosparam>
+  </node>
+  
+  <!--node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find prw_object_tracking)/cfg/prw_object_tracking.vcg"/-->
   
   <!-- PCL pipeline -->
   <!--node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" /-->
@@ -35,6 +61,5 @@
     </rosparam>
   </node-->
   
-
 </launch>  
   
