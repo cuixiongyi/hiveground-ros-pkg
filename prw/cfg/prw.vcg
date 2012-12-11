@@ -1,7 +1,7 @@
 Background\ ColorB=0
 Background\ ColorG=0
 Background\ ColorR=0
-Camera\ Config=0.544797 0.362205 4.21582 0.392741 -0.0633154 -0.622267
+Camera\ Config=0.424798 0.574033 3.45317 -0.264443 0.0223346 -0.622267
 Camera\ Type=rviz::XYOrbitViewController
 Center..AxisColorAutocompute\ Value\ Bounds=1
 Center..AxisColorAxis=2
@@ -222,5 +222,5 @@ Type=rviz::OrbitViewController
 [Window]
 Height=1176
 Width=1920
-X=1836
-Y=138
+X=1842
+Y=110
