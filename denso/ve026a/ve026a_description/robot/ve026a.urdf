@@ -4,20 +4,12 @@
 		<visual>
 			<geometry>
 				<mesh filename="package://ve026a_description/robot/base.stl" scale="1 1 1"/>
-				<!--box size="0.079 0.079 0.006"/-->
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 0"/>
 			<material name="base_link">
 	        	<color rgba="0.3 0.3 0.3 1"/>
 			</material>
     	</visual>
-    	<!--
-		<collision>
-			<geometry>
-			   <box size="0.079 0.079 0.006"/>
-		    </geometry>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -27,7 +19,6 @@
 	<link name="link0">
 		<visual>
 		  	<geometry>
-		    	<!--cylinder length="0.130" radius="0.035"/-->
 		    	<mesh filename="package://ve026a_description/robot/l0.stl" scale="1 1 1"/>
 		  	</geometry>
 		  	<origin xyz="-0.000283 -0.001865 0"/>
@@ -35,14 +26,6 @@
 		    	<color rgba="0.8 0.8 0.8 1"/>
 		  	</material>
 		</visual>
-		<!--
-		<collision>
-			<geometry>
-			   <cylinder length="0.130" radius="0.035"/>
-		    </geometry>
-		    <origin xyz="0 0 0.065"/>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -60,7 +43,6 @@
 	<link name="link1">
     	<visual>
       		<geometry>
-				<!--box size="0.040 0.050 0.100"/ -->
 		    	<mesh filename="package://ve026a_description/robot/l1.stl" scale="1 1 1"/>
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 0"/>
@@ -68,14 +50,6 @@
         		<color rgba="0.5 0.5 0.5 1"/>
       		</material>
     	</visual>
-    	<!--
-    	<collision>
-			<geometry>
-			   <box size="0.040 0.050 0.100"/>
-		    </geometry>
-		    <origin xyz="0 0 0.050"/>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -92,20 +66,11 @@
   	<link name="link2">
     	<visual>
       		<geometry>
-				<!-- box size="0.040 0.050 0.100"/ -->
 				<mesh filename="package://ve026a_description/robot/l2.stl" scale="1 1 1"/>
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 -0.130"/>
 			<material name="link"/>
     	</visual>
-    	<!--
-    	<collision>
-			<geometry>
-			   <box size="0.040 0.050 0.100"/>
-		    </geometry>
-		    <origin xyz="0 0 0.050"/>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -123,20 +88,11 @@
   	<link name="link3">
     	<visual>
       		<geometry>
-				<!--box size="0.040 0.030 0.020"/-->
 				<mesh filename="package://ve026a_description/robot/l3.stl" scale="1 1 1"/>
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 -0.230"/>
 			<material name="joint"/>
     	</visual>
-    	<!--
-    	<collision>
-			<geometry>
-			   <box size="0.040 0.030 0.020"/>
-		    </geometry>
-		    <origin xyz="0 0 0.010"/>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -154,20 +110,11 @@
 	<link name="link4">
     	<visual>
     		<geometry>
-				<!--box size="0.030 0.050 0.070"/-->
 				<mesh filename="package://ve026a_description/robot/l4.stl" scale="1 1 1"/>
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 -0.248"/>
 			<material name="link"/>
     	</visual>
-    	<!--
-    	<collision>
-				<geometry>
-				<box size="0.030 0.050 0.070"/>
-			</geometry>
-			<origin xyz="0 0 0.035"/>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -185,20 +132,11 @@
 	<link name="link5">
 		<visual>
 			<geometry>
-				<!--box size="0.040 0.030 0.020"/-->
 				<mesh filename="package://ve026a_description/robot/l5.stl" scale="1 1 1"/>
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 -0.320"/>
 			<material name="joint"/>
 		</visual>
-		<!--
-		<collision>
-			<geometry>
-				<box size="0.040 0.030 0.020"/>
-			</geometry>
-			<origin xyz="0 0 0.010"/>
-      	</collision>
-      	-->
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -216,21 +154,12 @@
 	<link name="link6">
 		<visual>
 			<geometry>
-				<!--box size="0.050 0.030 0.068"/-->
 				<mesh filename="package://ve026a_description/robot/l6.stl" scale="1 1 1"/>
 			</geometry>
 			<origin xyz="-0.000283 -0.001865 -0.338"/>
 			<material name="link"/>
 		</visual>
-		<!--
-		<collision>
-			<geometry>
-				<box size="0.050 0.030 0.068"/>
-			</geometry>
-			<origin xyz="0 0 0.034"/>
-      	</collision>
-      	-->
-      	<inertial>
+     	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     	</inertial>
@@ -247,19 +176,11 @@
 	<link name="link7">
 		<visual>
 			<geometry>
-				<cylinder length="0.010" radius="0.01"/>
+				<cylinder length="0.010" radius="0.005"/>
 			</geometry>
 			<origin xyz="0 0 0"/>
 			<material name="joint"/>
-		</visual>
-		<!--
-		<collision>
-			<geometry>
-				<box size="0.050 0.030 0.010"/>
-			</geometry>
-			<origin xyz="0 0 0.005"/>
-      	</collision>
-      	-->
+		</visual>	
       	<inertial>
       		<mass value="0.1"/>
       		<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
