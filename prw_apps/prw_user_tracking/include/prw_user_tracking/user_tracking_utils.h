@@ -13,6 +13,9 @@
 namespace prw
 {
 
+
+
+
 /**
  - inputs
    - calibrated, filtered, and merged color point cloud (ROS message from Kinect)
@@ -39,8 +42,8 @@ protected:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input);
 
 protected:
-  ros::Subscriber cloud_subscriber_;
-  ros::Publisher cloud_publisher_;
+  std::map<std::string, ros::Subscriber> cloud_subscriber_;
+  std::map<std::string, ros::Publisher> cloud_publisher_;
 
 
 };
