@@ -51,7 +51,7 @@ BCAP_HRESULT BCapSerial::SendBinary(uint8_t *pBuff, uint32_t lSize)
     {
       printf("-------------- TX --------------\n");
       int count = 0;
-      for (int i = 0; i < lSize; i++)
+      for (uint32_t i = 0; i < lSize; i++)
       {
 
         printf("%02x ", (unsigned char)pBuff[i]);
@@ -76,11 +76,8 @@ BCAP_HRESULT BCapSerial::SendBinary(uint8_t *pBuff, uint32_t lSize)
 
 uint8_t * BCapSerial::ReceivePacket()
 {
-  uint8_t pRcvBuffer[LOCALRECBUFFER_SZ];
   uint8_t *pTop;
   uint8_t *pPacketBuff = NULL;
-  uint8_t *pRemainData;
-
   uint32_t lRecvSize;
   int lRecLen;
 

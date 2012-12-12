@@ -34,52 +34,14 @@
 #include <bcap/bcap_serial.h>
 
 
-namespace
-{
+BCapSerial bcap_("/dev/ttyUSB0", 115200);
+uint32_t hController_;
+uint32_t hTask_;
+uint32_t hRobot_;
+float joint_angle_[8];
+float joint_return_[8];
 
-// The fixture for testing class Foo.
-class BCapSerialTest : public ::testing::Test
-{
-protected:
-  // You can remove any or all of the following functions if its body
-  // is empty.
-
-  BCapSerialTest()
-    : bcap_("/dev/ttyUSB0", 115200)
-  {
-    // You can do set-up work for each test here.
-  }
-
-  virtual ~BCapSerialTest()
-  {
-    // You can do clean-up work that doesn't throw exceptions here.
-  }
-
-  // If the constructor and destructor are not enough for setting up
-  // and cleaning up each test, you can define the following methods:
-
-  virtual void SetUp()
-  {
-    // Code here will be called immediately after the constructor (right
-    // before each test).
-  }
-
-  virtual void TearDown()
-  {
-    // Code here will be called immediately after each test (right
-    // before the destructor).
-  }
-
-  // Objects declared here can be used by all tests in the test case for Foo.
-  BCapSerial bcap_;
-  uint32_t hController_;
-  uint32_t hTask_;
-  uint32_t hRobot_;
-  float joint_angle_[8];
-  float joint_return_[8];
-};
-
-TEST_F(BCapSerialTest, ControllerConnect)
+TEST(BCapSerialTest, ControllerConnect)
 {
   BCAP_HRESULT hr;
 
@@ -87,7 +49,7 @@ TEST_F(BCapSerialTest, ControllerConnect)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, ControllerGetRobot)
+TEST(BCapSerialTest, ControllerGetRobot)
 {
   BCAP_HRESULT hr;
 
@@ -95,7 +57,7 @@ TEST_F(BCapSerialTest, ControllerGetRobot)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, TurnOffMotor)
+TEST(BCapSerialTest, TurnOffMotor)
 {
   BCAP_HRESULT hr;
   int mode = 0;
@@ -104,7 +66,7 @@ TEST_F(BCapSerialTest, TurnOffMotor)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, SetSlaveMode)
+TEST(BCapSerialTest, SetSlaveMode)
 {
   BCAP_HRESULT hr;
   //set slave mode
@@ -114,7 +76,7 @@ TEST_F(BCapSerialTest, SetSlaveMode)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, SlaveGetMode)
+TEST(BCapSerialTest, SlaveGetMode)
 {
   BCAP_HRESULT hr;
   int mode = 0;
@@ -130,7 +92,7 @@ TEST_F(BCapSerialTest, SlaveGetMode)
   EXPECT_EQ(result, 258);
 }
 
-TEST_F(BCapSerialTest, Get_Joint_information)
+TEST(BCapSerialTest, Get_Joint_information)
 {
   BCAP_HRESULT hr;
   uint32_t hVariable;
@@ -141,7 +103,7 @@ TEST_F(BCapSerialTest, Get_Joint_information)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, TurnOnMotor)
+TEST(BCapSerialTest, TurnOnMotor)
 {
   BCAP_HRESULT hr;
   int mode = 1;
@@ -150,7 +112,7 @@ TEST_F(BCapSerialTest, TurnOnMotor)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, MoveArm)
+TEST(BCapSerialTest, MoveArm)
 {
   BCAP_HRESULT hr;
   hr = bcap_.RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, joint_angle_, joint_return_);
@@ -162,7 +124,7 @@ TEST_F(BCapSerialTest, MoveArm)
   //}
 }
 
-TEST_F(BCapSerialTest, TurnOffMotor2)
+TEST(BCapSerialTest, TurnOffMotor2)
 {
   BCAP_HRESULT hr;
   int mode = 0;
@@ -171,21 +133,22 @@ TEST_F(BCapSerialTest, TurnOffMotor2)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, RobotRelease)
+
+TEST(BCapSerialTest, RobotRelease)
 {
   BCAP_HRESULT hr;
   hr = bcap_.RobotRelease(hRobot_);
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST_F(BCapSerialTest, ControllerDisconnect)
+TEST(BCapSerialTest, ControllerDisconnect)
 {
   BCAP_HRESULT hr;
   hr = bcap_.ControllerDisconnect(hController_);
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-}
+
 
 int main(int argc, char **argv)
 {
