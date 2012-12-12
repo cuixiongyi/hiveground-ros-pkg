@@ -178,48 +178,48 @@ public:
   }
 
   /* b-CAP Functions */
-  BCAP_HRESULT bCap_Open(const std::string& pIPStr, int iPort);
-  BCAP_HRESULT bCap_Close();
+  BCAP_HRESULT Open(const std::string& pIPStr, int iPort);
+  BCAP_HRESULT Close();
 
-  BCAP_HRESULT bCap_ServiceStart();
-  BCAP_HRESULT bCap_ServiceStop();
+  BCAP_HRESULT ServiceStart();
+  BCAP_HRESULT ServiceStop();
 
   /* b-CAP Controller Functions */
-  BCAP_HRESULT bCap_ControllerConnect(const std::string& pStrCtrlname, const std::string& pStrProvName,
+  BCAP_HRESULT ControllerConnect(const std::string& pStrCtrlname, const std::string& pStrProvName,
                                       const std::string& pStrPcName, const std::string& pStrOption,
                                       uint32_t* plhController);
-  BCAP_HRESULT bCap_ControllerDisconnect(uint32_t lhController);
+  BCAP_HRESULT ControllerDisconnect(uint32_t lhController);
 
-  BCAP_HRESULT bCap_ControllerGetRobot(uint32_t lhController, const std::string& pStrRobotName, const std::string& pStrOption, uint32_t *lhRobot);
-  BCAP_HRESULT bCap_ControllerGetVariable(uint32_t lhController, char *pVarName, char *pstrOption, uint32_t *plhVar);
-  BCAP_HRESULT bCap_ControllerGetTask(uint32_t lhController, const std::string& pTskName, const std::string& pstrOption, uint32_t *plhVar);
-  BCAP_HRESULT bCap_ControllerExecute(uint32_t lhController, char *pStrCommand, char *pStrOption, long *plResult);
-  BCAP_HRESULT bCap_ControllerExecute2(uint32_t lhController, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays, void *pVntValue, void *pVntReturn);
+  BCAP_HRESULT ControllerGetRobot(uint32_t lhController, const std::string& pStrRobotName, const std::string& pStrOption, uint32_t *lhRobot);
+  BCAP_HRESULT ControllerGetVariable(uint32_t lhController, char *pVarName, char *pstrOption, uint32_t *plhVar);
+  BCAP_HRESULT ControllerGetTask(uint32_t lhController, const std::string& pTskName, const std::string& pstrOption, uint32_t *plhVar);
+  BCAP_HRESULT ControllerExecute(uint32_t lhController, char *pStrCommand, char *pStrOption, long *plResult);
+  BCAP_HRESULT ControllerExecute2(uint32_t lhController, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays, void *pVntValue, void *pVntReturn);
 
   /* b-CAP Robot Functions */
-  BCAP_HRESULT bCap_RobotRelease(uint32_t lhRobot);
-  BCAP_HRESULT bCap_RobotGetVariable(uint32_t lhRobot, const std::string& pVarName, const std::string& pStrOption, uint32_t *lhVar);
-  BCAP_HRESULT bCap_RobotExecute(uint32_t lhRobot, char *pStrCommand, char *pStrOption, long *plResult);
-  BCAP_HRESULT bCap_RobotExecute2(uint32_t lhRobot, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays,
+  BCAP_HRESULT RobotRelease(uint32_t lhRobot);
+  BCAP_HRESULT RobotGetVariable(uint32_t lhRobot, const std::string& pVarName, const std::string& pStrOption, uint32_t *lhVar);
+  BCAP_HRESULT RobotExecute(uint32_t lhRobot, char *pStrCommand, char *pStrOption, long *plResult);
+  BCAP_HRESULT RobotExecute2(uint32_t lhRobot, const std::string& pStrCommand, uint16_t iType, uint32_t lArrays,
                                   void *pVntValue, void *pVntReturn);
-  BCAP_HRESULT bCap_RobotChange(uint32_t lhRobot, char *pStrCommand);
-  BCAP_HRESULT bCap_RobotMove(uint32_t lhRobot, long lComp, const std::string& pStrPose, const std::string& pStrOption);
+  BCAP_HRESULT RobotChange(uint32_t lhRobot, char *pStrCommand);
+  BCAP_HRESULT RobotMove(uint32_t lhRobot, long lComp, const std::string& pStrPose, const std::string& pStrOption);
 
   /* b-CAP Task Functions */
-  BCAP_HRESULT bCap_TaskRelease(uint32_t lhTask);
-  BCAP_HRESULT bCap_TaskGetVariable(uint32_t lhTask, char *pVarName, char *pstrOption, uint32_t *plhVar);
-  BCAP_HRESULT bCap_TaskStart(uint32_t lhTask, long lMode, const std::string& pStrOption);
-  BCAP_HRESULT bCap_TaskStop(uint32_t lhTask, long lMode, const std::string& pStrOption);
+  BCAP_HRESULT TaskRelease(uint32_t lhTask);
+  BCAP_HRESULT TaskGetVariable(uint32_t lhTask, char *pVarName, char *pstrOption, uint32_t *plhVar);
+  BCAP_HRESULT TaskStart(uint32_t lhTask, long lMode, const std::string& pStrOption);
+  BCAP_HRESULT TaskStop(uint32_t lhTask, long lMode, const std::string& pStrOption);
 
   /* b-CAP Variable Functions */
-  BCAP_HRESULT bCap_VariableRelease(uint32_t lhVar);
-  BCAP_HRESULT bCap_VariableGetValue(uint32_t lhVar, void *pVntValue);
-  BCAP_HRESULT bCap_VariablePutValue(uint32_t lhVar, uint16_t iType, uint32_t lArrays, void *pVntValue);
+  BCAP_HRESULT VariableRelease(uint32_t lhVar);
+  BCAP_HRESULT VariableGetValue(uint32_t lhVar, void *pVntValue);
+  BCAP_HRESULT VariablePutValue(uint32_t lhVar, uint16_t iType, uint32_t lArrays, void *pVntValue);
 
 protected:
   /* module socket utility functions */
-  BCAP_HRESULT Packet_Send(BCAP_PACKET *pPacket);
-  BCAP_HRESULT bCapSendAndRec(BCAP_PACKET *pSndPacket, BCAP_PACKET *pRecPacket);
+  virtual BCAP_HRESULT Packet_Send(BCAP_PACKET *pPacket);
+  virtual BCAP_HRESULT bCapSendAndRec(BCAP_PACKET *pSndPacket, BCAP_PACKET *pRecPacket);
   virtual BCAP_HRESULT sendBinary(uint8_t *pBuff, uint32_t lSize);
   virtual uint8_t *receivePacket();
 
