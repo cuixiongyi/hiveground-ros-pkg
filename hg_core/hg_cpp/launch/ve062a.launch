@@ -1,0 +1,18 @@
+<launch> 
+  <arg name="simulated_robot" default="true"/>  
+  <param name="robot_description" textfile="$(find ve026a_description)/robot/ve026a.urdf" />
+  
+
+  <node name="ve026a" pkg="hg_cpp" type="hg_ros" output="screen">
+    <param name="simulate" value="$(arg simulated_robot)"/>
+    <param name="loop_rate" value="100.0"/>
+    <param name="joint_publish_rate" value="50.0"/>
+    <param name="diagnostic_publish_rate" value="10.0"/>      
+    <rosparam file="$(find ve026a_controller)/parameters/ve026a.yaml" command="load" />    
+  </node>
+  
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" output="screen">      
+  </node>
+  	
+  <node pkg="rviz" type="rviz" name="rviz"></node>     
+</launch>

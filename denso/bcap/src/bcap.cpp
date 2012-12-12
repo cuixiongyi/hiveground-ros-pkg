@@ -137,7 +137,7 @@ BCap::BCap(bool need_crc, bool udp) :
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
+BCAP_HRESULT BCap::Open(const std::string& pIPStr, int iPort)
 {
   int sockAddrSize; /* size of socket address structure */
 
@@ -166,7 +166,7 @@ BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
     /* socket  */
     if ((m_sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-      perror("Fail.. Function:socket() in bCap_Open()");
+      perror("Fail.. Function:socket() in Open()");
       hr = BCAP_E_UNEXPECTED;
     }
     else
@@ -191,7 +191,7 @@ BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
     /* UDP socket  */
     if ((m_sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
     {
-      perror("Fail.. Function:socket() in bCap_Open()");
+      perror("Fail.. Function:socket() in Open()");
       hr = BCAP_E_UNEXPECTED;
     }
     else
@@ -222,7 +222,7 @@ BCAP_HRESULT BCap::bCap_Open(const std::string& pIPStr, int iPort)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_Close()
+BCAP_HRESULT BCap::Close()
 {
 
   BCAP_HRESULT hr = BCAP_E_FAIL;
@@ -251,7 +251,7 @@ BCAP_HRESULT BCap::bCap_Close()
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ServiceStart()
+BCAP_HRESULT BCap::ServiceStart()
 {
   BCAP_PACKET *pPacket;
   BCAP_PACKET *pRecPacket;
@@ -286,7 +286,7 @@ BCAP_HRESULT BCap::bCap_ServiceStart()
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ServiceStop()
+BCAP_HRESULT BCap::ServiceStop()
 {
   BCAP_PACKET *pPacket;
   BCAP_PACKET *pRecPacket;
@@ -326,7 +326,7 @@ BCAP_HRESULT BCap::bCap_ServiceStop()
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ControllerConnect(const std::string& pStrCtrlname, const std::string& pStrProvName,
+BCAP_HRESULT BCap::ControllerConnect(const std::string& pStrCtrlname, const std::string& pStrProvName,
                                           const std::string& pStrPcName, const std::string& pStrOption,
                                           uint32_t* plhController)
 {
@@ -405,7 +405,7 @@ BCAP_HRESULT BCap::bCap_ControllerConnect(const std::string& pStrCtrlname, const
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ControllerDisconnect(uint32_t lhController)
+BCAP_HRESULT BCap::ControllerDisconnect(uint32_t lhController)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -453,7 +453,7 @@ BCAP_HRESULT BCap::bCap_ControllerDisconnect(uint32_t lhController)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ControllerGetRobot(uint32_t lhController, const std::string& pStrRobotName, const std::string& pStrOption,
+BCAP_HRESULT BCap::ControllerGetRobot(uint32_t lhController, const std::string& pStrRobotName, const std::string& pStrOption,
                                                  uint32_t *plhRobot)
 {
   BCAP_PACKET *pSndPacket;
@@ -529,7 +529,7 @@ BCAP_HRESULT BCap::bCap_ControllerGetRobot(uint32_t lhController, const std::str
  *
  */
 
-BCAP_HRESULT BCap::bCap_ControllerGetVariable(uint32_t lhController, char *pVarName, char *pstrOption,
+BCAP_HRESULT BCap::ControllerGetVariable(uint32_t lhController, char *pVarName, char *pstrOption,
                                                     uint32_t *plhVar)
 {
   BCAP_PACKET *pSndPacket;
@@ -609,7 +609,7 @@ BCAP_HRESULT BCap::bCap_ControllerGetVariable(uint32_t lhController, char *pVarN
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ControllerGetTask(uint32_t lhController, const std::string& pTskName, const std::string& pstrOption,
+BCAP_HRESULT BCap::ControllerGetTask(uint32_t lhController, const std::string& pTskName, const std::string& pstrOption,
                                                 uint32_t *plhVar)
 {
   BCAP_PACKET *pSndPacket;
@@ -690,7 +690,7 @@ BCAP_HRESULT BCap::bCap_ControllerGetTask(uint32_t lhController, const std::stri
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_ControllerExecute(uint32_t lhController, char *pStrCommand, char *pStrOption,
+BCAP_HRESULT BCap::ControllerExecute(uint32_t lhController, char *pStrCommand, char *pStrOption,
                                                 long *plResult)
 {
   BCAP_PACKET *pSndPacket;
@@ -759,7 +759,7 @@ BCAP_HRESULT BCap::bCap_ControllerExecute(uint32_t lhController, char *pStrComma
   return hr;
 }
 
-BCAP_HRESULT BCap::bCap_ControllerExecute2(uint32_t lhController,
+BCAP_HRESULT BCap::ControllerExecute2(uint32_t lhController,
                                            const std::string& pStrCommand,
                                            uint16_t iType, uint32_t lArrays,
                                            void *pVntValue,
@@ -914,7 +914,7 @@ BCAP_HRESULT BCap::bCap_ControllerExecute2(uint32_t lhController,
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotRelease(uint32_t lhRobot)
+BCAP_HRESULT BCap::RobotRelease(uint32_t lhRobot)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -961,7 +961,7 @@ BCAP_HRESULT BCap::bCap_RobotRelease(uint32_t lhRobot)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotGetVariable(uint32_t lhRobot, const std::string& pVarName, const std::string& pstrOption, uint32_t *plhVar)
+BCAP_HRESULT BCap::RobotGetVariable(uint32_t lhRobot, const std::string& pVarName, const std::string& pstrOption, uint32_t *plhVar)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1039,7 +1039,7 @@ BCAP_HRESULT BCap::bCap_RobotGetVariable(uint32_t lhRobot, const std::string& pV
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotExecute(uint32_t lhRobot, char *pStrCommand, char *pStrOption, long *plResult)
+BCAP_HRESULT BCap::RobotExecute(uint32_t lhRobot, char *pStrCommand, char *pStrOption, long *plResult)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1106,7 +1106,7 @@ BCAP_HRESULT BCap::bCap_RobotExecute(uint32_t lhRobot, char *pStrCommand, char *
   return hr;
 }
 
-BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
+BCAP_HRESULT BCap::RobotExecute2(uint32_t lhRobot,
                                       const std::string& pStrCommand,
                                       uint16_t iType,
                                       uint32_t lArrays,
@@ -1266,7 +1266,7 @@ BCAP_HRESULT BCap::bCap_RobotExecute2(uint32_t lhRobot,
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotChange(uint32_t lhRobot, char *pStrCommand)
+BCAP_HRESULT BCap::RobotChange(uint32_t lhRobot, char *pStrCommand)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1329,7 +1329,7 @@ BCAP_HRESULT BCap::bCap_RobotChange(uint32_t lhRobot, char *pStrCommand)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_RobotMove(uint32_t lhRobot, long lComp, const std::string& pStrPose, const std::string& pStrOption)
+BCAP_HRESULT BCap::RobotMove(uint32_t lhRobot, long lComp, const std::string& pStrPose, const std::string& pStrOption)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1406,7 +1406,7 @@ BCAP_HRESULT BCap::bCap_RobotMove(uint32_t lhRobot, long lComp, const std::strin
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_TaskRelease(uint32_t lhTask)
+BCAP_HRESULT BCap::TaskRelease(uint32_t lhTask)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1453,7 +1453,7 @@ BCAP_HRESULT BCap::bCap_TaskRelease(uint32_t lhTask)
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_TaskGetVariable(uint32_t lhTask, char *pVarName, char *pstrOption, uint32_t *plhVar)
+BCAP_HRESULT BCap::TaskGetVariable(uint32_t lhTask, char *pVarName, char *pstrOption, uint32_t *plhVar)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1530,7 +1530,7 @@ BCAP_HRESULT BCap::bCap_TaskGetVariable(uint32_t lhTask, char *pVarName, char *p
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_TaskStart(uint32_t lhTask, long lMode, const std::string& pStrOption)
+BCAP_HRESULT BCap::TaskStart(uint32_t lhTask, long lMode, const std::string& pStrOption)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1600,7 +1600,7 @@ BCAP_HRESULT BCap::bCap_TaskStart(uint32_t lhTask, long lMode, const std::string
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_TaskStop(uint32_t lhTask, long lMode, const std::string& pStrOption)
+BCAP_HRESULT BCap::TaskStop(uint32_t lhTask, long lMode, const std::string& pStrOption)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1668,7 +1668,7 @@ BCAP_HRESULT BCap::bCap_TaskStop(uint32_t lhTask, long lMode, const std::string&
  *      @retval BCAP_HRESULT
  *
  */
-BCAP_HRESULT BCap::bCap_VariableRelease(uint32_t lhVar)
+BCAP_HRESULT BCap::VariableRelease(uint32_t lhVar)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1714,7 +1714,7 @@ BCAP_HRESULT BCap::bCap_VariableRelease(uint32_t lhVar)
  *      @detail Note:    This function write value into *pVntValue,
  *                                      So, Client program must allocate enough memory as *pVntValue.
  */
-BCAP_HRESULT BCap::bCap_VariableGetValue(uint32_t lhVar, void *pVntValue)
+BCAP_HRESULT BCap::VariableGetValue(uint32_t lhVar, void *pVntValue)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;
@@ -1807,7 +1807,7 @@ BCAP_HRESULT BCap::bCap_VariableGetValue(uint32_t lhVar, void *pVntValue)
  *      @param  *pVntValue              :       [in]  value stored pointer
  *      @retval BCAP_HRESULT
  */
-BCAP_HRESULT BCap::bCap_VariablePutValue(uint32_t lhVar, uint16_t iType, uint32_t lArrays, void *pVntValue)
+BCAP_HRESULT BCap::VariablePutValue(uint32_t lhVar, uint16_t iType, uint32_t lArrays, void *pVntValue)
 {
   BCAP_PACKET *pSndPacket;
   BCAP_PACKET *pRecPacket;

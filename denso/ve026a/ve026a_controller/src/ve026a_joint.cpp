@@ -33,11 +33,10 @@
 
 #include <pluginlib/class_list_macros.h>
 #include <hg_cpp/hg_node.h>
-#include <rc7m/rc7m_joint.h>
+#include <ve026a_controller/ve026a_joint.h>
 
 
-PLUGINLIB_DECLARE_CLASS(hg_cpp, rc7m_joint, hg_plugins::RC7MJoint, hg::Joint)
-
+PLUGINLIB_DECLARE_CLASS(hg_cpp, ve026a_joint, hg_plugins::VE026AJoint, hg::Joint)
 
 using namespace hg_plugins;
 
@@ -45,16 +44,16 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-RC7MJoint::RC7MJoint()
+VE026AJoint::VE026AJoint()
   : hg::Joint()
 {
 }
 
-RC7MJoint::~RC7MJoint()
+VE026AJoint::~VE026AJoint()
 {
 }
 
-void RC7MJoint::initilize(hg::Node* node, const std::string& name)
+void VE026AJoint::initilize(hg::Node* node, const std::string& name)
 {
   hg::Joint::initilize(node, name);
 
@@ -79,22 +78,22 @@ void RC7MJoint::initilize(hg::Node* node, const std::string& name)
 
   //subscribers
   subscriber_joint_position_ =
-      node_->node_handle_.subscribe(name_ + "/command/position", 1, &RC7MJoint::callbackJointPosition, this);
+      node_->node_handle_.subscribe(name_ + "/command/position", 1, &VE026AJoint::callbackJointPosition, this);
   subscriber_joint_position_relative_ =
-        node_->node_handle_.subscribe(name_ + "/command/position_relative", 1, &RC7MJoint::callbackJointPositionRelative, this);
+        node_->node_handle_.subscribe(name_ + "/command/position_relative", 1, &VE026AJoint::callbackJointPositionRelative, this);
   subscriber_joint_position_degree_ =
-      node_->node_handle_.subscribe(name_ + "/command/position_degree", 1, &RC7MJoint::callbackJointPositionDegree, this);
+      node_->node_handle_.subscribe(name_ + "/command/position_degree", 1, &VE026AJoint::callbackJointPositionDegree, this);
   subscriber_joint_velocity_ =
-      node_->node_handle_.subscribe(name_ + "/command/velocity", 1, &RC7MJoint::callbackJointVelocity, this);
+      node_->node_handle_.subscribe(name_ + "/command/velocity", 1, &VE026AJoint::callbackJointVelocity, this);
 
 }
 
-bool RC7MJoint::getJointInformationUrdf()
+bool VE026AJoint::getJointInformationUrdf()
 {
   return false;
 }
 
-double RC7MJoint::interpolate(double dt)
+double VE026AJoint::interpolate(double dt)
 {
   //if position updated
   if (touched_)
@@ -147,7 +146,7 @@ double RC7MJoint::interpolate(double dt)
   }
 }
 
-double RC7MJoint::interpolate2(double dt)
+double VE026AJoint::interpolate2(double dt)
 {
   if(touched_)
   {
@@ -241,7 +240,7 @@ double RC7MJoint::interpolate2(double dt)
   }
 }
 
-void RC7MJoint::setFeedbackData(double feedback)
+void VE026AJoint::setFeedbackData(double feedback)
 {
   //save current position
   double last_position = position_;
@@ -261,7 +260,7 @@ void RC7MJoint::setFeedbackData(double feedback)
   last_update_ = t;
 }
 
-double RC7MJoint::setPosition(double position)
+double VE026AJoint::setPosition(double position)
 {
   //check position limit
   if ((position > upper_limit_) || (position < lower_limit_))
@@ -331,18 +330,18 @@ double RC7MJoint::setPosition(double position)
 }
 
 
-double RC7MJoint::setPositionRelative(double position)
+double VE026AJoint::setPositionRelative(double position)
 {
   double temp = position_ + position;
   return setPosition(temp);
 }
 
-diagnostic_msgs::DiagnosticStatus RC7MJoint::getDiagnostics()
+diagnostic_msgs::DiagnosticStatus VE026AJoint::getDiagnostics()
 {
   return hg::Joint::getDiagnostics();
 }
 
-void RC7MJoint::callbackJointPosition(const std_msgs::Float64& position)
+void VE026AJoint::callbackJointPosition(const std_msgs::Float64& position)
 {
   //check controller status
   if(!controller_->active())
@@ -355,7 +354,7 @@ void RC7MJoint::callbackJointPosition(const std_msgs::Float64& position)
   }
 }
 
-void RC7MJoint::callbackJointPositionRelative(const std_msgs::Float64& position)
+void VE026AJoint::callbackJointPositionRelative(const std_msgs::Float64& position)
 {
   //check controller status
   if(!controller_->active())
@@ -370,7 +369,7 @@ void RC7MJoint::callbackJointPositionRelative(const std_msgs::Float64& position)
 
 
 
-void RC7MJoint::callbackJointPositionDegree(const std_msgs::Float64& position)
+void VE026AJoint::callbackJointPositionDegree(const std_msgs::Float64& position)
 {
   //check controller status
   if(!controller_->active())
@@ -384,7 +383,7 @@ void RC7MJoint::callbackJointPositionDegree(const std_msgs::Float64& position)
   }
 }
 
-void RC7MJoint::callbackJointVelocity(const std_msgs::Float64& velocity)
+void VE026AJoint::callbackJointVelocity(const std_msgs::Float64& velocity)
 {
   //check controller status
 }

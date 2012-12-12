@@ -117,7 +117,7 @@ void RC7MController::startup()
 
     //open connection
     ROS_INFO_STREAM(name_ + ": connect to: " + ip_ +":" << port_);
-    hr = bcap_.bCap_Open(ip_, port_);
+    hr = bcap_.Open(ip_, port_);
     if (FAILED(hr))
     {
       ROS_BREAK();
@@ -125,10 +125,10 @@ void RC7MController::startup()
 
     //get controller
     ROS_INFO_STREAM(name_ + ": get controller handle");
-    hr = bcap_.bCap_ControllerConnect("", "", "", "", &hController_);
+    hr = bcap_.ControllerConnect("", "", "", "", &hController_);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
@@ -137,10 +137,10 @@ void RC7MController::startup()
       ROS_INFO_STREAM(name_ + ": put controller into external auto execution mode");
       uint16_t mode = 2;
       long result = 0;
-      hr = bcap_.bCap_ControllerExecute2(hController_, "PutAutoMode", VT_I2, 1, &mode, &result);
+      hr = bcap_.ControllerExecute2(hController_, "PutAutoMode", VT_I2, 1, &mode, &result);
       if (FAILED(hr))
       {
-        bcap_.bCap_Close();
+        bcap_.Close();
         ROS_BREAK();
       }
 
@@ -148,35 +148,35 @@ void RC7MController::startup()
       ROS_INFO_STREAM(name_ + ": check auto execution mode");
       mode = 0;
       result = 0;
-      hr = bcap_.bCap_ControllerExecute2(hController_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
+      hr = bcap_.ControllerExecute2(hController_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
       if (FAILED(hr))
       {
-        bcap_.bCap_Close();
+        bcap_.Close();
         ROS_BREAK();
       }
       ROS_INFO_STREAM(name_ + ": auto execution mode " << result);
       if (result != 2)
       {
-        bcap_.bCap_Close();
+        bcap_.Close();
         ROS_BREAK();
       }
     }
 
     //get slave mode task
     ROS_INFO_STREAM(name_ + ": get slave mode task");
-    hr = bcap_.bCap_ControllerGetTask(hController_, "RobSlave", "", &hTask_);
+    hr = bcap_.ControllerGetTask(hController_, "RobSlave", "", &hTask_);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //start task
     ROS_INFO_STREAM(name_ + ": start slave mode task");
-    hr = bcap_.bCap_TaskStart(hTask_, 1, "");
+    hr = bcap_.TaskStart(hTask_, 1, "");
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
     ROS_INFO_STREAM(name_ + ": waiting to for task execution");
@@ -184,10 +184,10 @@ void RC7MController::startup()
 
     //get robot
     ROS_INFO_STREAM(name_ + ": get robot");
-    hr = bcap_.bCap_ControllerGetRobot(hController_, name_, "$IsIDHandle$", &hRobot_);
+    hr = bcap_.ControllerGetRobot(hController_, name_, "$IsIDHandle$", &hRobot_);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
@@ -197,36 +197,36 @@ void RC7MController::startup()
     speed[0] = 100.0;
     speed[1] = 100.0;
     ROS_INFO_STREAM(name_ + ": Set robot external speed");
-    hr = bcap_.bCap_RobotExecute2(hRobot_, "ExtSpeed", VT_R4|VT_ARRAY, 2, speed, speed_return);
+    hr = bcap_.RobotExecute2(hRobot_, "ExtSpeed", VT_R4|VT_ARRAY, 2, speed, speed_return);
     if(FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     float internal_speed = 100.0;
     float internal_speed_return;
     ROS_INFO_STREAM(name_ + ": Set robot internal speed");
-    hr = bcap_.bCap_RobotExecute2(hRobot_, "Speed", VT_R4, 1, &internal_speed, &internal_speed_return);
+    hr = bcap_.RobotExecute2(hRobot_, "Speed", VT_R4, 1, &internal_speed, &internal_speed_return);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
 
     //get variable handles
     ROS_INFO_STREAM(name_ + ": get robot variable handles");
-    hr = bcap_.bCap_RobotGetVariable(hRobot_, "@CURRENT_POSITION", "", &hPositionVariable);
+    hr = bcap_.RobotGetVariable(hRobot_, "@CURRENT_POSITION", "", &hPositionVariable);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
-    hr = bcap_.bCap_RobotGetVariable(hRobot_, "@CURRENT_ANGLE", "", &hAngleVariable);
+    hr = bcap_.RobotGetVariable(hRobot_, "@CURRENT_ANGLE", "", &hAngleVariable);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
@@ -234,7 +234,7 @@ void RC7MController::startup()
     hr = getJointFeedback(true);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
     std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
@@ -252,7 +252,7 @@ void RC7MController::startup()
     hr = setMotor(true);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 #if USE_SLAVE_MODE
@@ -261,10 +261,10 @@ void RC7MController::startup()
       int mode = SLAVE_MODE;
       long result;
       ROS_INFO_STREAM(name_ + ": set robot to slave mode");
-      hr = bcap_.bCap_RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
+      hr = bcap_.RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
       if (FAILED(hr))
       {
-        bcap_.bCap_Close();
+        bcap_.Close();
         ROS_BREAK();
       }
 
@@ -272,16 +272,16 @@ void RC7MController::startup()
       mode = 0;
       result = 0;
       ROS_INFO_STREAM(name_ + ": check robot mode");
-      hr = bcap_.bCap_RobotExecute2(hRobot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+      hr = bcap_.RobotExecute2(hRobot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
       if (FAILED(hr))
       {
-        bcap_.bCap_Close();
+        bcap_.Close();
         ROS_BREAK();
       }
       ROS_INFO_STREAM(name_ + ": mode " << result);
       if (result != SLAVE_MODE)
       {
-        bcap_.bCap_Close();
+        bcap_.Close();
         ROS_BREAK();
       }
       slave_mode_on_ = true;
@@ -353,7 +353,7 @@ void RC7MController::control()
 #if USE_SLAVE_MODE
 
 
-        hr = bcap_.bCap_RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
+        hr = bcap_.RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
         if (FAILED(hr))
         {
           ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " slvMode fail!");
@@ -369,7 +369,7 @@ void RC7MController::control()
         }
         ss << command_degree[i-1] << ")";
         //ROS_INFO_STREAM(ss.str());
-        hr = bcap_.bCap_RobotMove(hRobot_, lComp, ss.str(), "");
+        hr = bcap_.RobotMove(hRobot_, lComp, ss.str(), "");
         if (FAILED(hr))
         {
           ROS_ERROR_STREAM_THROTTLE(1.0, name_ + " Robot_Mode fail!");
@@ -418,10 +418,10 @@ void RC7MController::shutdown()
     int mode = 0;
     long result;
     ROS_INFO_STREAM(name_ + ": set robot to normal mode");
-    hr = bcap_.bCap_RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
+    hr = bcap_.RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
@@ -429,16 +429,16 @@ void RC7MController::shutdown()
     mode = 0;
     result = 0;
     ROS_INFO_STREAM(name_ + ": check robot mode");
-    hr = bcap_.bCap_RobotExecute2(hRobot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+    hr = bcap_.RobotExecute2(hRobot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
     ROS_INFO_STREAM(name_ + ": mode " << result);
     if (result != 0)
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
     slave_mode_on_ = false;
@@ -448,64 +448,64 @@ void RC7MController::shutdown()
     hr = setMotor(false);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //release variables
     ROS_INFO_STREAM(name_ + ": release robot variable handles");
-    hr = bcap_.bCap_VariableRelease(hPositionVariable);
+    hr = bcap_.VariableRelease(hPositionVariable);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
-    hr = bcap_.bCap_VariableRelease(hAngleVariable);
+    hr = bcap_.VariableRelease(hAngleVariable);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //release robot
     ROS_INFO_STREAM(name_ + ": release robot");
-    hr = bcap_.bCap_RobotRelease(hRobot_);
+    hr = bcap_.RobotRelease(hRobot_);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //stop slave task
     ROS_INFO_STREAM(name_ + ": stop slave task");
-    hr = bcap_.bCap_TaskStop(hTask_, 1, "");
+    hr = bcap_.TaskStop(hTask_, 1, "");
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //release task
     ROS_INFO_STREAM(name_ + ": release task");
-    hr = bcap_.bCap_TaskRelease(hTask_);
+    hr = bcap_.TaskRelease(hTask_);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //disconnect controller
     ROS_INFO_STREAM(name_ + ": disconnect controller");
-    hr = bcap_.bCap_ControllerDisconnect(hController_);
+    hr = bcap_.ControllerDisconnect(hController_);
     if (FAILED(hr))
     {
-      bcap_.bCap_Close();
+      bcap_.Close();
       ROS_BREAK();
     }
 
     //close network connection
     ROS_INFO_STREAM(name_ + ": close network connection");
-    hr = bcap_.bCap_Close();
+    hr = bcap_.Close();
     if (FAILED(hr))
     {
       ROS_BREAK();
@@ -543,7 +543,7 @@ BCAP_HRESULT RC7MController::setMotor(bool on_off)
   BCAP_HRESULT hr = BCAP_E_FAIL;
   int mode = (on_off) ? 1 : 0;
   long result;
-  hr = bcap_.bCap_RobotExecute2(hRobot_, "Motor", VT_I2, 1, &mode, &result);
+  hr = bcap_.RobotExecute2(hRobot_, "Motor", VT_I2, 1, &mode, &result);
   if(SUCCEEDED(hr))
   {
     ROS_INFO_STREAM(name_ + ": waiting for motor to turn on/off");
@@ -560,7 +560,7 @@ BCAP_HRESULT RC7MController::getJointFeedback(bool set_desired_position_)
 
   boost::unique_lock<boost::mutex> lock(control_mutex_);
 
-  hr = bcap_.bCap_VariableGetValue(hAngleVariable, angle_variables);
+  hr = bcap_.VariableGetValue(hAngleVariable, angle_variables);
   if (FAILED(hr))
   {
     return hr;
