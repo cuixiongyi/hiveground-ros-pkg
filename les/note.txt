@@ -1,6 +1,0 @@
-20120823
-  - Kinect ID for personal workspace setup
-    - a00363908899051a - face
-    - a00363807157051a - top
-    - a00367906402045a - right hand
-    - a00362814103051a - left hand
