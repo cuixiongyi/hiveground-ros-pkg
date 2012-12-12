@@ -1,0 +1,28 @@
+<package>
+  <description brief="hg_cpp">
+
+     hg_cpp
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg_cpp</url>
+  <depend package="roscpp"/>
+  <depend package="pluginlib"/>
+  <depend package="actionlib"/>
+  <depend package="urdf"/>
+
+  <depend package="std_msgs"/>
+  <depend package="diagnostic_msgs"/>
+  <depend package="control_msgs"/>
+  <depend package="trajectory_msgs"/>
+  
+  
+  <export>
+  	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>
+  </export>
+
+</package>
+
+

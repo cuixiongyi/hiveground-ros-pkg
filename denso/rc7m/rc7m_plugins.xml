@@ -1,8 +1,0 @@
-<library path="lib/librc7m">
-  <class name="hg_cpp/rc7m_controller" type="hg_plugins::RC7MController" base_class_type="hg::Controller">
-    <description>This is a RC7M controller plugin.</description>
-  </class>
-  <class name="hg_cpp/rc7m_joint" type="hg_plugins::RC7MJoint" base_class_type="hg::Joint">
-    <description>This is a RC7M joint plugin.</description>
-  </class>
-</library>
