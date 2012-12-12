@@ -16,19 +16,31 @@
         <color rgba="0.3 0.3 0.3 1"/>
       </material>
     </visual>
+    <collision>
+	  	<geometry>
+	  		<mesh filename="package://vp6242_description/robot/base_collision.stl" scale="0.001 0.001 0.001"/>
+	  	</geometry>
+	  	 <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </collision>
+    
   </link>
 	
   <link name="link0">
     <visual>
       <geometry>
  				<mesh filename="package://vp6242_description/robot/l0.stl" scale="0.001 0.001 0.001"/>
-        <!--cylinder length="0.125" radius="0.03"/-->
       </geometry>
       <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
       <material name="link">
         <color rgba="0.8 0.8 0.8 1"/>
       </material>
     </visual>
+    <collision>
+	  	<geometry>
+	  		<mesh filename="package://vp6242_description/robot/l0_collision.stl" scale="0.001 0.001 0.001"/>
+	  	</geometry>
+	  	 <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </collision>
   </link>
 
   <joint name="J1" type="revolute">
@@ -48,6 +60,12 @@
       <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
       <material name="link"/>
     </visual>
+    <collision>
+	  	<geometry>
+	  		<mesh filename="package://vp6242_description/robot/l1_collision.stl" scale="0.001 0.001 0.001"/>
+	  	</geometry>
+	  	 <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </collision>    
   </link>
 
   <joint name="J2" type="revolute">
@@ -69,6 +87,12 @@
       <color rgba="0.5 0.5 0.5 1"/>
       </material>
     </visual>
+    <collision>
+	  	<geometry>
+	  		<mesh filename="package://vp6242_description/robot/l2_collision.stl" scale="0.001 0.001 0.001"/>
+	  	</geometry>
+	  	 <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </collision>        
   </link>
  	
  <joint name="J3" type="revolute">
@@ -89,6 +113,12 @@
 		<origin rpy="-1.570796 3.141592 0" xyz="0.0 0.0 0.0"/>
 		<material name="link"/>
     </visual>
+    <collision>
+	  	<geometry>
+	  		<mesh filename="package://vp6242_description/robot/l3_collision.stl" scale="0.001 0.001 0.001"/>
+	  	</geometry>
+	  	 <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </collision>    
   </link>
   
   <joint name="J4" type="revolute">
@@ -108,6 +138,12 @@
 	  <origin rpy="-1.570796 3.141592 0" xyz="0.0 0.0 0.0"/>
 	  <material name="joint"/>
     </visual>
+    <collision>
+	  	<geometry>
+	  		<mesh filename="package://vp6242_description/robot/l4_collision.stl" scale="0.001 0.001 0.001"/>
+	  	</geometry>
+	  	 <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </collision>    
   </link>
  	
   <joint name="J5" type="revolute">
