@@ -126,9 +126,6 @@ void VE026AController::startup()
   //create control thread
   control_thread_ = boost::thread(&VE026AController::control, this);
   is_running_ = true;
-
-
-
 }
 
 /**
@@ -180,6 +177,13 @@ void VE026AController::control()
       {
         //convert to radian
         radian = (joint_angle[i] * M_PI)/180.0;
+        if(!motor_on_)
+        {
+          //revent abruptly move back to a position before turning off the motor
+          (*it)->desired_position_ = radian;
+          (*it)->last_commanded_position_ = radian;
+        }
+
         (*it)->setFeedbackData(radian);
         i++;
       }
