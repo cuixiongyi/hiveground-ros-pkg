@@ -31,13 +31,18 @@
  * Author: Mahisorn Wongphati
  * Based on Denso b-Cap example
  */
-
+#include <boost/utility.hpp>
+#include <boost/bind.hpp>
+#include <boost/optional.hpp>
+#include <boost/function.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/system/system_error.hpp>
 #include <bcap/bcap_serial.h>
 
 using namespace boost;
 
 BCapSerial::BCapSerial(const std::string& port, unsigned int baud_rate) :
-    BCap(true), io_(), serial_port_(io_, port)
+    BCap(true), io_(), timer_(io_), serial_port_(io_, port), timeout_(boost::posix_time::milliseconds(100))
 {
   serial_port_.set_option(asio::serial_port_base::baud_rate(baud_rate));
 }
@@ -74,13 +79,14 @@ BCAP_HRESULT BCapSerial::SendBinary(uint8_t *pBuff, uint32_t lSize)
   return BCAP_S_OK;
 }
 
+
+
 uint8_t * BCapSerial::ReceivePacket()
 {
   uint8_t *pTop;
   uint8_t *pPacketBuff = NULL;
   uint32_t lRecvSize;
-  int lRecLen;
-
+  int lRecLen = 0;
   int count = 0;
 
   lRecvSize = 0;
@@ -89,7 +95,14 @@ uint8_t * BCapSerial::ReceivePacket()
     printf("-------------- RX --------------\n");
   }
 
-  lRecLen = asio::read(serial_port_, asio::buffer(&(pRcvBuffer[lRecvSize]), BCAP_HEADER_SIZE));
+
+
+  //lRecLen = asio::read(serial_port_, asio::buffer(&(pRcvBuffer[lRecvSize]), BCAP_HEADER_SIZE));
+  if(!read(&(pRcvBuffer[lRecvSize]), BCAP_HEADER_SIZE))
+  {
+    return NULL;
+  }
+  lRecLen = bytes_transferred_;
 
   if (m_show_debug_packet)
   {
@@ -129,7 +142,12 @@ uint8_t * BCapSerial::ReceivePacket()
 
   //printf("\nlPacketSize: %d lRecvSize: %d lRemainSize: %d \n", lPacketSize, lRecvSize, lRemainSize);
 
-  lRecLen = asio::read(serial_port_, asio::buffer(&(pRcvBuffer[lRecvSize]), lRemainSize));
+  //lRecLen = asio::read(serial_port_, asio::buffer(&(pRcvBuffer[lRecvSize]), lRemainSize));
+  if(!read(&(pRcvBuffer[lRecvSize]), lRemainSize))
+  {
+    return NULL;
+  }
+  lRecLen = bytes_transferred_;
 
   if (m_show_debug_packet)
   {
@@ -161,5 +179,63 @@ uint8_t * BCapSerial::ReceivePacket()
   else
   {
     return NULL;
+  }
+}
+
+bool BCapSerial::read(uint8_t *data, size_t size)
+{
+  timer_.expires_from_now(timeout_);
+  timer_.async_wait(boost::bind(&BCapSerial::timeoutExpired, this, asio::placeholders::error));
+  asio::async_read(serial_port_, asio::buffer(data, size),
+                   boost::bind(&BCapSerial::readCompleted, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
+  result_ = resultInProgress;
+  bytes_transferred_ = 0;
+  while(1)
+  {
+    io_.run_one();
+    switch (result_)
+    {
+      case resultSuccess:
+        timer_.cancel();
+        return true;
+      case resultTimeoutExpired:
+        serial_port_.cancel();
+        return false;
+      case resultError:
+        timer_.cancel();
+        serial_port_.cancel();
+        return false;
+      default:
+        break;
+    }
+  }
+  return false;
+}
+
+void BCapSerial::timeoutExpired(const boost::system::error_code& error)
+{
+  if (result_ != resultInProgress)
+    return;
+  if (error != asio::error::operation_aborted)
+  {
+    result_ = resultTimeoutExpired;
+  }
+}
+
+void BCapSerial::readCompleted(const boost::system::error_code& error, const size_t bytes_transferred)
+{
+  if (error)
+  {
+    if (error != asio::error::operation_aborted)
+    {
+      result_ = resultError;
+    }
+  }
+  else
+  {
+    if (result_ != resultInProgress)
+      return;
+    result_ = resultSuccess;
+    this->bytes_transferred_ = bytes_transferred;
   }
 }

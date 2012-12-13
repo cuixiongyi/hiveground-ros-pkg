@@ -48,10 +48,26 @@ protected:
   BCAP_HRESULT SendBinary(uint8_t *pBuff, uint32_t lSize);
   uint8_t *ReceivePacket();
 
+
+  //Timeout code from
+  //http://code.google.com/p/connectspot/
+  enum ReadResult
+  {
+    resultInProgress, resultSuccess, resultError, resultTimeoutExpired
+  };
+
+  bool read(uint8_t *data, size_t size);
+  void timeoutExpired(const boost::system::error_code& error);
+  void readCompleted(const boost::system::error_code& error, const size_t bytes_transferred);
+
 private:
   boost::asio::io_service io_;
+  boost::asio::deadline_timer timer_;
   boost::asio::serial_port serial_port_;
+  boost::posix_time::time_duration timeout_;
   uint8_t pRcvBuffer[LOCALRECBUFFER_SZ];
+  ReadResult result_;
+  size_t bytes_transferred_;
 };
 
 #endif /* BCAP_SERIAL_H_ */
