@@ -52,10 +52,6 @@ private:
   boost::asio::io_service io_;
   boost::asio::serial_port serial_port_;
   uint8_t pRcvBuffer[LOCALRECBUFFER_SZ];
-
 };
-
-
-
 
 #endif /* BCAP_SERIAL_H_ */

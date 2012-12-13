@@ -31,116 +31,76 @@
  * Author: Mahisorn Wongphati
  */
 
-#ifndef HG_JOINT_H_
-#define HG_JOINT_H_
+#ifndef HG_ABSOLUTE_JOINT_H_
+#define HG_ABSOLUTE_JOINT_H_
 
+#include <hg_cpp/joint.h>
+#include <std_msgs/Float64.h>
 
-#include <ros/ros.h>
-#include <diagnostic_msgs/DiagnosticStatus.h>
-#include <urdf/model.h>
-#include <boost/thread.hpp>
-
-
-namespace hg
+namespace hg_joint
 {
-
-class ControllerNode;
-class Controller;
 
 /**
- * A joint abstract class.
+ * A absolute joint class.
  */
-class Joint
+class AbsoluteJoint : public hg::Joint
 {
 public:
-  /**
-   * A default constructor.
-   */
-  Joint()
-    : last_update_(ros::Time::now()),
-      position_(0),
-      velocity_(0),
-      touched_(false),
-      desired_position_(0),
-      last_commanded_position_(0)
-  {
-    //ROS_INFO_STREAM(__FUNCTION__);
-  }
 
   /**
-   * A destructor
+   * A constructor.
    */
-  virtual ~Joint()
-  {
-    //ROS_INFO_STREAM(__FUNCTION__);
-  }
+  AbsoluteJoint();
+
+  /**
+   * A destructor.
+   */
+  virtual ~AbsoluteJoint();
 
   /**
    * An initializing function.
    */
-  virtual void initilize(hg::ControllerNode* node, const std::string& name)
-  {
-    //ROS_INFO_STREAM(__FUNCTION__);
-    node_ = node;
-    name_ = name;
-  }
+  virtual void initilize(hg::ControllerNode* node, const std::string& name);
 
   /**
    * Load joint information from URDF.
    */
-  virtual bool getJointInformationUrdf(const std::string& param)
-  {
-    return false;
-  }
+  virtual bool getJointInformationUrdf(const std::string& param);
 
   /**
    * Interpolate joint position after dt.
    */
-  virtual double interpolate(double dt) = 0;
+  virtual double interpolate(double dt);
 
   /**
    * Set feedback data from sensor (encoder, camera, ...).
    */
-  virtual void setFeedbackData(double feedback) = 0;
+  virtual void setFeedbackData(double feedback);
 
   /**
    * Set joint position.
    */
-  virtual double setPosition(double position) = 0;
+  virtual double setPosition(double position);
 
   /**
    * Set relative joint position.
    */
-  virtual double setPositionRelative(double position) = 0;
+  virtual double setPositionRelative(double position);
 
   /**
    * Get a diagnostics message for this joint.
    */
-  virtual diagnostic_msgs::DiagnosticStatus getDiagnostics()
-  {
-    diagnostic_msgs::DiagnosticStatus message;
-    message.name = name_;
-    message.level = diagnostic_msgs::DiagnosticStatus::OK;
-    message.message = "OK";
-    return message;
-  }
+  virtual diagnostic_msgs::DiagnosticStatus getDiagnostics();
+
+  //callback
+  virtual void callbackSetPosition(const std_msgs::Float64& position);
+  virtual void callbackSetRelativePosition(const std_msgs::Float64& position);
+
+  ros::Subscriber subscriber_joint_position_;
+  ros::Subscriber subscriber_joint_position_relative_;
 
 
-  hg::ControllerNode* node_;
-  std::string name_;
-  boost::recursive_mutex mutex_;
 
-  hg::Controller* controller_;
-  ros::Time last_update_;
-
-
-  double position_;
-  double velocity_;
-  bool touched_;
-  double desired_position_;
-  double last_commanded_position_;
-
-  boost::shared_ptr<const urdf::Joint> joint_info_;
 };
 
 

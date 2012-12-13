@@ -19,9 +19,13 @@
   <depend package="trajectory_msgs"/>
   
   
+  
+  
   <export>
-  	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>
+  	<hg_cpp plugin="${prefix}/hg_common_plugins.xml"/>
+  	<cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>  	
   </export>
+  
 
 </package>
 

@@ -34,28 +34,32 @@
 #ifndef HG_VE026A_CONTROLLER_H_
 #define HG_VE026A_CONTROLLER_H_
 
+#include <std_msgs/Bool.h>
+
+#include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
 #include <queue>
 
 #include <hg_cpp/follow_joint_controller.h>
+#include <bcap/bcap_serial.h>
 
-namespace hg_plugins
+namespace hg_controller
 {
 
-class VE062AController : public hg::FollowJointController
+class VE026AController : public hg::FollowJointController
 {
 
 public:
   /**
    * A default constructor.
    */
-  VE062AController();
+  VE026AController();
 
   /**
    * A destructor.
    *
    */
-  ~VE062AController();
+  ~VE026AController();
 
   /**
    * An initializing function.
@@ -89,36 +93,32 @@ public:
   bool active();
 
 private:
+  void turnOnMotor(bool on);
+  void getJointFeedback(std::vector<float>& joint_angle);
 
-public:
+  void callbackSetMotor(const std_msgs::Bool& on);
+
+private:
+  boost::shared_ptr<BCapSerial> bcap_;
   std::string port_;
-  uint32_t hController_;
-  uint32_t hTask_;
-  uint32_t hRobot_;
-  uint32_t hPositionVariable;
-  uint32_t hAngleVariable;
-  bool motor_on_;
-  bool slave_mode_on_;
-  bool is_preempted_;
-  int preempted_point_;
-  int new_start_point_;
-
-
+  int baud_;
 
   bool is_running_;
   boost::thread control_thread_;
   boost::mutex control_mutex_;
+  bool motor_on_;
 
+  uint32_t h_controller_;
+  uint32_t h_task_;
+  uint32_t h_robot_;
+  uint32_t h_joint_angle_variable_;
 
-  boost::mutex queue_mutex_;
-
-  bool process_trajectory_;
-
+  ros::Subscriber subscriber_motor_;
 
 
 };
 
-}//hg_plugins
+}//hg_controller
 
 #endif
 

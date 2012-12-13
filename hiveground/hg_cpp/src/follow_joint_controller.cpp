@@ -33,9 +33,49 @@
 
 #include <hg_cpp/follow_joint_controller.h>
 #include <hg_cpp/joint.h>
+#include <hg_cpp/controller_node.h>
 
 using namespace hg;
 
+void FollowJointController::initilize(hg::ControllerNode* node, const std::string& name)
+{
+  hg::Controller::initilize(node, name);
+
+  XmlRpc::XmlRpcValue joints;
+  node_->nh_private_.getParam("controllers/" + name_ + "/joints", joints);
+  ROS_ASSERT(joints.getType() == XmlRpc::XmlRpcValue::TypeArray);
+  for (int i = 0; i < joints.size(); i++)
+  {
+    std::string joint_name;
+    ROS_ASSERT(joints[i].getType() == XmlRpc::XmlRpcValue::TypeString);
+    joint_name = static_cast<std::string>(joints[i]);
+
+    //search joints in node
+    bool found = false;
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    for (it = node_->joints_.begin(); it != node_->joints_.end(); it++)
+    {
+      if ((*it)->name_ == joint_name)
+      {
+        //set joint controller
+        (*it)->controller_ = this;
+
+        //push into container
+        joints_.push_back(*it);
+        found = true;
+      }
+    }
+
+    //suicide if any joint cannot be found
+    if (!found)
+    {
+      ROS_FATAL_STREAM("cannot find " + joint_name + " instance in node");
+      ROS_BREAK();
+    }
+
+    ROS_INFO_STREAM("added " + joint_name + " to " + name_);
+  }
+}
 
 void FollowJointController::followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
 {

@@ -49,14 +49,15 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
     loop_rate_(50.0),
     joint_publish_rate_(10.0),
     diagnostic_publish_rate_(10.0),
-    controller_plugin_loader_("controller_interface", "hg::Controller"),
-    joint_plugin_loader_("joint_interface", "hg::Joint")
+    controller_plugin_loader_("hg_cpp", "hg::Controller"),
+    joint_plugin_loader_("hg_cpp", "hg::Joint")
 {
-
+  ROS_ASSERT(urdf_model_.initParam("robot_description"));
+  ROS_INFO("Successfully parsed urdf file");
 
 
   //note settings
-  ROS_ASSERT(nh_private_.getParam("simulated", is_simulated_));
+  ROS_ASSERT(nh_private_.getParam("is_simulated", is_simulated_));
   ROS_INFO_STREAM("simulated mode: " << is_simulated_);
   ROS_ASSERT(nh_private_.getParam("loop_rate", loop_rate_));
   ROS_INFO_STREAM("loop rate: " << loop_rate_);
@@ -64,6 +65,7 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
   ROS_INFO_STREAM("joint publish rate: " << joint_publish_rate_);
   ROS_ASSERT(nh_private_.getParam("diagnostic_publish_rate", diagnostic_publish_rate_));
   ROS_INFO_STREAM("diagnostic publish rate: " << diagnostic_publish_rate_);
+
 
   //add joints
   XmlRpc::XmlRpcValue joints;
@@ -86,7 +88,7 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
 
     try
     {
-      boost::shared_ptr<hg::Joint> joint = joint_plugin_loader_.createInstance("hg_cpp/" + type);
+      boost::shared_ptr<hg::Joint> joint = joint_plugin_loader_.createInstance("joint_plugins/" + type);
       joint->initilize(this, name);
       joints_.push_back(joint);
       ROS_INFO_STREAM("added joint " + name + " to " + nh_private_.getNamespace());
@@ -115,7 +117,7 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
 
     try
     {
-      boost::shared_ptr<hg::Controller> controller = controller_plugin_loader_.createInstance("hg_cpp/" + type);
+      boost::shared_ptr<hg::Controller> controller = controller_plugin_loader_.createInstance("controller_plugins/" + type);
       controller->initilize(this, name);
       controllers_.push_back(controller);
       ROS_INFO_STREAM("added controller " + name + " to " + nh_private_.getNamespace());
@@ -127,9 +129,11 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
     }
   }
 
+
   //setup publisher
   publisher_joint_state_ = nh_private_.advertise<sensor_msgs::JointState>("/joint_states", 1);
   publisher_diagnostic_ = nh_private_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1);
+
 }
 
 ControllerNode::~ControllerNode()
@@ -139,6 +143,7 @@ ControllerNode::~ControllerNode()
 
 void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
 {
+
   //start all controllers
   std::vector<boost::shared_ptr<hg::Controller> >::iterator it;
   for(it = controllers_.begin(); it != controllers_.end(); it++)
@@ -168,6 +173,7 @@ void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
   {
     (*it)->shutdown();
   }
+
 }
 
 void ControllerNode::publish()
@@ -226,7 +232,7 @@ void shutdownCallback(XmlRpc::XmlRpcValue& params, XmlRpc::XmlRpcValue& result)
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "HgRos", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "hgROS", ros::init_options::NoSigintHandler);
   signal(SIGINT, mySigIntHandler);
 
   ros::NodeHandle nh;

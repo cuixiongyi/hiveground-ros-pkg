@@ -1,8 +1,5 @@
 <library path="lib/libve026a">
-  <class name="hg_cpp/ve026a_controller" type="hg_plugins::VE026AController" base_class_type="hg::Controller">
+  <class name="controller_plugins/VE026AController" type="hg_controller::VE026AController" base_class_type="hg::Controller">
     <description>This is a VE026A controller plugin.</description>
-  </class>
-  <class name="hg_cpp/ve026a_joint" type="hg_plugins::VE026AJoint" base_class_type="hg::Joint">
-    <description>This is a VE026A joint plugin.</description>
-  </class>
+  </class>  
 </library>

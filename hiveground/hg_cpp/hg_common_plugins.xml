@@ -1,0 +1,5 @@
+<library path="lib/libhg_common_plugins">
+  <class name="joint_plugins/AbsoluteJoint" type="hg_joint::AbsoluteJoint" base_class_type="hg::Joint">
+    <description>This is an absolute joint plugin.</description>
+  </class>
+</library>
