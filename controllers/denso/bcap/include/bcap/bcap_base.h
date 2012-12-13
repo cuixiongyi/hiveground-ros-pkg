@@ -32,8 +32,9 @@
  * Based on Denso b-Cap example
  */
 
-#ifndef BCAP_BCAP_H_
-#define BCAP_BCAP_H_
+
+#ifndef _BCAP_BASE_
+#define _BCAP_BASE_
 
 #include <stdio.h>
 #include <stdlib.h>

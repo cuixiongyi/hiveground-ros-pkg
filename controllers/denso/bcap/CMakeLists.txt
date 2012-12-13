@@ -30,11 +30,13 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_library(${PROJECT_NAME} 
-  src/bcap.cpp
+  src/bcap_base.cpp
   src/bcap_serial.cpp  
+  src/bcap_net.cpp
   src/crc16.cpp
 )
 rosbuild_link_boost(${PROJECT_NAME} thread system)
 
-rosbuild_add_gtest(bcap_serial_test test/bcap_serial_test.cpp)
-target_link_libraries(bcap_serial_test ${PROJECT_NAME})
+#rosbuild_add_gtest(bcap_test test/bcap_serial_test.cpp)
+rosbuild_add_gtest(bcap_test test/bcap_net_test.cpp)
+target_link_libraries(bcap_test ${PROJECT_NAME})
