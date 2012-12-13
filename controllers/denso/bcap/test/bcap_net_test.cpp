@@ -34,7 +34,8 @@
 #include <bcap/bcap_net.h>
 
 
-BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_UDP);
+//BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_UDP);
+BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_TCP);
 uint32_t hController_;
 uint32_t hTask_;
 uint32_t hRobot_;
@@ -250,12 +251,7 @@ TEST(BCapNetTest, MoveArm)
   BCAP_HRESULT hr;
   hr = bcap_.RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, joint_angle_, joint_return_);
   EXPECT_EQ(BCAP_S_OK, hr);
-  sleep(5);
-
-  //for (int i = 0; i < 8; i++)
-  //{
-    //std::cout << "[" << i << "]" << joint_angle_[i] << ":" << joint_return_[i] << std::endl;
-  //}
+  sleep(1);
 }
 
 TEST(BCapNetTest, ChangeModeNormal)
@@ -271,8 +267,6 @@ TEST(BCapNetTest, ChangeModeNormal)
      &mode,
      &result);
   EXPECT_EQ(BCAP_S_OK, hr);
-  //std::cout << "press any key to continue\n";
-  //getchar();
 }
 
 TEST(BCapNetTest, SlaveGetModeNormal)
@@ -289,9 +283,6 @@ TEST(BCapNetTest, SlaveGetModeNormal)
       &result);
   EXPECT_EQ(BCAP_S_OK, hr);
   EXPECT_EQ(result, 0);
-
-  //std::cout << "slave mode: " << result << "\n";
-  //getchar();
 }
 
 TEST(BCapNetTest, TurnOffMotor2)
@@ -319,9 +310,6 @@ TEST(BCapNetTest, TaskStop)
       1,
       ""); //not used
   EXPECT_EQ(BCAP_S_OK, hr);
-
-  //std::cout << "press any key to continue\n";
-  //getchar();
   sleep(1);
 }
 
@@ -345,7 +333,6 @@ TEST(BCapNetTest, PutAutoMode)
       &mode,
       &result);
   EXPECT_EQ(BCAP_S_OK, hr);
-  //std::cout << "auto mode: " << result << "\n";
 }
 
 TEST(BCapNetTest, GetAutoMode)
@@ -362,7 +349,6 @@ TEST(BCapNetTest, GetAutoMode)
       &result);
   EXPECT_EQ(BCAP_S_OK, hr);
   EXPECT_EQ(result, 1);
-  //std::cout << "auto mode: " << result << "\n";
 }
 
 
