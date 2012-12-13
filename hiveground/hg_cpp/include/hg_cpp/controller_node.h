@@ -36,6 +36,7 @@
 
 #include <signal.h>
 #include <ros/ros.h>
+#include <urdf/model.h>
 #include <pluginlib/class_loader.h>
 #include <hg_cpp/controller.h>
 #include <hg_cpp/joint.h>
@@ -80,6 +81,8 @@ public:
 
   ros::Time next_joint_publish_time_;
   ros::Time next_diagnostic_publish_time_;
+
+  urdf::Model urdf_model_;
 
   pluginlib::ClassLoader<hg::Controller> controller_plugin_loader_;
   pluginlib::ClassLoader<hg::Joint> joint_plugin_loader_;

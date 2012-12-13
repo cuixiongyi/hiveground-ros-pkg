@@ -59,11 +59,23 @@ typedef boost::shared_ptr<FollowJointTrajectoryActionServer> FollowJointTrajecto
 
 class FollowJointController : public hg::Controller
 {
+public:
+  FollowJointController()
+    : hg::Controller()
+  { }
+  virtual ~FollowJointController()
+  { }
+
+  /**
+   * An initializing function.
+   */
+  void initilize(hg::ControllerNode* node, const std::string& name);
+
 protected:
   //action server
   virtual void followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
 
-public:
+protected:
   FollowJointTrajectoryActionServerPtr action_server_;
   control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
 };

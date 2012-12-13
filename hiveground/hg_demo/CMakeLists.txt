@@ -28,8 +28,3 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
-
-rosbuild_add_library(ve026a 
-  src/ve026a_controller.cpp  
-)
-target_link_libraries(ve026a hg_cpp bcap)

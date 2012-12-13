@@ -34,6 +34,11 @@ rosbuild_add_library(${PROJECT_NAME}
   src/joint.cpp
 )
 
+rosbuild_add_library(hg_common_plugins 
+  src/absolute_joint.cpp  
+)
+target_link_libraries(hg_common_plugins ${PROJECT_NAME})
+
 rosbuild_add_executable(controller_node src/controller_node.cpp)
 target_link_libraries(controller_node ${PROJECT_NAME})
 
