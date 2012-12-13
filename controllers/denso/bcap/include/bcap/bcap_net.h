@@ -38,21 +38,27 @@
 #include <bcap/bcap_base.h>
 #include <boost/asio.hpp>
 
-class BCapSerial : public BCap
+class BCapNet : public BCap
 {
 public:
-  BCapSerial(const std::string& port,
-               unsigned int baud_rate = 115200);
-
+  enum ConnectingMode
+  {
+    BCAP_TCP,
+    BCAP_UDP
+  };
+  BCapNet(const std::string& address, const std::string& port, ConnectingMode mode = BCAP_TCP);
+  ~BCapNet();
 protected:
   BCAP_HRESULT SendBinary(uint8_t *pBuff, uint32_t lSize);
   uint8_t *ReceivePacket();
 
 private:
-  boost::asio::io_service io_;
-  boost::asio::serial_port serial_port_;
   uint8_t pRcvBuffer[LOCALRECBUFFER_SZ];
-
+  ConnectingMode mode_;
+  boost::asio::io_service io_service_;
+  boost::asio::ip::tcp::socket* tcp_socket_;
+  boost::asio::ip::udp::socket* udp_socket_;
+  boost::asio::ip::udp::endpoint host_endpoint_;
 };
 
 

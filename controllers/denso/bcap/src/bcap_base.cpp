@@ -32,7 +32,6 @@
  * Based on Denso b-Cap example
  */
 
-
 /* OS Switching */
 #ifdef WIN32
 /* Windows */
@@ -52,7 +51,7 @@
 #endif
 
 /* b-CAP functions */
-#include <bcap/bcap.h>
+#include <bcap/bcap_base.h>
 #include <bcap/crc16.h>
 
 /* ENDIAN switching */
@@ -152,7 +151,6 @@ BCAP_HRESULT BCap::ServiceStart()
       if (pRecPacket != NULL)
       {
         hr = SendAndReceive(pPacket, pRecPacket);
-
       }
       Packet_Release(pRecPacket);
     }
