@@ -38,6 +38,7 @@ BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_UDP);
 uint32_t hController_;
 uint32_t hTask_;
 uint32_t hRobot_;
+float position[8];
 float joint_angle_[8];
 float joint_return_[8];
 
@@ -59,35 +60,123 @@ TEST(BCapNetTest, ControllerConnect)
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
+TEST(BCapNetTest, GetCurrentAutoMode)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.ControllerExecute2(
+      hController_,
+      "GetAutoMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+}
 
-TEST(BCapSerialTest, ControllerGetRobot)
+TEST(BCapNetTest, PutAutoModeExternal)
+{
+  BCAP_HRESULT hr;
+  uint16_t mode = 2;
+  long result = 0;
+  hr = bcap_.ControllerExecute2(
+      hController_,
+      "PutAutoMode",
+      VT_I2,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+}
+
+TEST(BCapNetTest, GetAutoModeExternal)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.ControllerExecute2(
+      hController_,
+      "GetAutoMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+  EXPECT_EQ(result, 2);
+}
+
+TEST(BCapNetTest,ControllerGetTask)
+{
+  BCAP_HRESULT hr;
+  hr = bcap_.ControllerGetTask(
+      hController_,
+      "RobSlave",
+      "", //not used
+      &hTask_);
+  EXPECT_EQ(BCAP_S_OK, hr);
+}
+
+TEST(BCapNetTest, TaskStart)
+{
+  BCAP_HRESULT hr;
+  hr = bcap_.TaskStart(
+      hTask_,
+      1,
+      ""); //not used
+  EXPECT_EQ(BCAP_S_OK, hr);
+  sleep(1);
+}
+
+TEST(BCapNetTest, ControllerGetRobot)
 {
   BCAP_HRESULT hr;
 
-  hr = bcap_.ControllerGetRobot(hController_, "VE026A", "$IsIDHandle$", &hRobot_);
+  hr = bcap_.ControllerGetRobot(hController_, "ARM", "$IsIDHandle$", &hRobot_);
   EXPECT_EQ(BCAP_S_OK, hr);
 }
-/*
-TEST(BCapSerialTest, TurnOffMotor)
+
+TEST(BCapNetTest, TurnOffMotor)
 {
   BCAP_HRESULT hr;
   int mode = 0;
   long result;
   hr = bcap_.RobotExecute2(hRobot_, "Motor", VT_I2, 1, &mode, &result);
   EXPECT_EQ(BCAP_S_OK, hr);
+  sleep(5);
 }
 
-TEST(BCapSerialTest, SetSlaveMode)
+TEST(BCapNetTest, SlaveGetCurrentMode)
 {
   BCAP_HRESULT hr;
-  //set slave mode
-  int mode = 258;
-  long result;
-  hr = bcap_.RobotExecute2(hRobot_, "slvChangeMode", VT_I4, 1, &mode, &result);
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.RobotExecute2(
+      hRobot_,
+      "slvGetMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
   EXPECT_EQ(BCAP_S_OK, hr);
 }
 
-TEST(BCapSerialTest, SlaveGetMode)
+TEST(BCapNetTest, ChangeModeToSlave)
+{
+  BCAP_HRESULT hr;
+  int mode = 258;
+  long result;
+  hr = bcap_.RobotExecute2(
+     hRobot_,
+     "slvChangeMode",
+     VT_I4,
+     1,
+     &mode,
+     &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+}
+
+TEST(BCapNetTest, SlaveGetModeSlave)
 {
   BCAP_HRESULT hr;
   int mode = 0;
@@ -103,31 +192,65 @@ TEST(BCapSerialTest, SlaveGetMode)
   EXPECT_EQ(result, 258);
 }
 
-TEST(BCapSerialTest, Get_Joint_information)
+
+TEST(BCapNetTest, Get_Joint_information)
 {
   BCAP_HRESULT hr;
   uint32_t hVariable;
-  hr = bcap_.RobotGetVariable(hRobot_, "@CURRENT_ANGLE", "", &hVariable);
+  hr = bcap_.RobotGetVariable(
+      hRobot_,
+      "@CURRENT_POSITION",
+      "",
+      &hVariable);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  hr = bcap_.VariableGetValue(hVariable, position);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "position: ";
+  for(int i = 0; i < 7; i++)
+  {
+    std::cout << position[i] << ",";
+  }
+  std::cout << std::endl;
+
+  hr = bcap_.VariableRelease(hVariable);
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  hr = bcap_.RobotGetVariable(
+    hRobot_,
+    "@CURRENT_ANGLE",
+    "",
+    &hVariable);
   EXPECT_EQ(BCAP_S_OK, hr);
 
   hr = bcap_.VariableGetValue(hVariable, joint_angle_);
   EXPECT_EQ(BCAP_S_OK, hr);
+
+  std::cout << "angle: ";
+  for(int i = 0; i < 8; i++)
+  {
+    std::cout << position[i] << ",";
+  }
+  std::cout << std::endl;
 }
 
-TEST(BCapSerialTest, TurnOnMotor)
+TEST(BCapNetTest, TurnOnMotor)
 {
   BCAP_HRESULT hr;
   int mode = 1;
   long result;
   hr = bcap_.RobotExecute2(hRobot_, "Motor", VT_I2, 1, &mode, &result);
   EXPECT_EQ(BCAP_S_OK, hr);
+  sleep(5);
 }
 
-TEST(BCapSerialTest, MoveArm)
+TEST(BCapNetTest, MoveArm)
 {
   BCAP_HRESULT hr;
   hr = bcap_.RobotExecute2(hRobot_, "slvMove", VT_R4 | VT_ARRAY, 7, joint_angle_, joint_return_);
   EXPECT_EQ(BCAP_S_OK, hr);
+  sleep(5);
 
   //for (int i = 0; i < 8; i++)
   //{
@@ -135,21 +258,111 @@ TEST(BCapSerialTest, MoveArm)
   //}
 }
 
-TEST(BCapSerialTest, TurnOffMotor2)
+TEST(BCapNetTest, ChangeModeNormal)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result;
+  hr = bcap_.RobotExecute2(
+     hRobot_,
+     "slvChangeMode",
+     VT_I4,
+     1,
+     &mode,
+     &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+  //std::cout << "press any key to continue\n";
+  //getchar();
+}
+
+TEST(BCapNetTest, SlaveGetModeNormal)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.RobotExecute2(
+      hRobot_,
+      "slvGetMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+  EXPECT_EQ(result, 0);
+
+  //std::cout << "slave mode: " << result << "\n";
+  //getchar();
+}
+
+TEST(BCapNetTest, TurnOffMotor2)
 {
   BCAP_HRESULT hr;
   int mode = 0;
   long result;
   hr = bcap_.RobotExecute2(hRobot_, "Motor", VT_I2, 1, &mode, &result);
   EXPECT_EQ(BCAP_S_OK, hr);
+  sleep(5);
 }
 
-*/
-TEST(BCapSerialTest, RobotRelease)
+TEST(BCapNetTest, RobotRelease)
 {
   BCAP_HRESULT hr;
   hr = bcap_.RobotRelease(hRobot_);
   EXPECT_EQ(BCAP_S_OK, hr);
+}
+
+TEST(BCapNetTest, TaskStop)
+{
+  BCAP_HRESULT hr;
+  hr = bcap_.TaskStop(
+      hTask_,
+      1,
+      ""); //not used
+  EXPECT_EQ(BCAP_S_OK, hr);
+
+  //std::cout << "press any key to continue\n";
+  //getchar();
+  sleep(1);
+}
+
+TEST(BCapNetTest, TaskRelease)
+{
+  BCAP_HRESULT hr;
+  hr = bcap_.TaskRelease(hTask_);
+  EXPECT_EQ(BCAP_S_OK, hr);
+}
+
+TEST(BCapNetTest, PutAutoMode)
+{
+  BCAP_HRESULT hr;
+  uint16_t mode = 1;
+  long result = 0;
+  hr = bcap_.ControllerExecute2(
+      hController_,
+      "PutAutoMode",
+      VT_I2,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+  //std::cout << "auto mode: " << result << "\n";
+}
+
+TEST(BCapNetTest, GetAutoMode)
+{
+  BCAP_HRESULT hr;
+  int mode = 0;
+  long result = 0;
+  hr = bcap_.ControllerExecute2(
+      hController_,
+      "GetAutoMode",
+      VT_EMPTY,
+      1,
+      &mode,
+      &result);
+  EXPECT_EQ(BCAP_S_OK, hr);
+  EXPECT_EQ(result, 1);
+  //std::cout << "auto mode: " << result << "\n";
 }
 
 
