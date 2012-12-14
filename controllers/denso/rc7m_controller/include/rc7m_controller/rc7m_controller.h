@@ -102,7 +102,8 @@ private:
   boost::shared_ptr<BCapNet> bcap_;
   std::string address_;
   std::string port_;
-  std::string mode_;
+  BCapNet::ConnectingMode mode_;
+  int slave_mode_;
 
 
   bool is_running_;
