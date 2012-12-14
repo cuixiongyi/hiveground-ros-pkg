@@ -11,6 +11,6 @@
     <rosparam file="$(find hg_demo)/parameter/ve026a_demo.yaml" command="load" />             
   </node>
   
-  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub">  
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub" />  
   </node>     
 </launch>

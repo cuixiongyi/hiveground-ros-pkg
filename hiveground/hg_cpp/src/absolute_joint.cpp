@@ -31,7 +31,6 @@
  * Author: Mahisorn Wongphati
  */
 
-
 #include <pluginlib/class_list_macros.h>
 #include <hg_cpp/absolute_ joint.h>
 #include <hg_cpp/controller_node.h>
@@ -40,8 +39,8 @@ using namespace hg_joint;
 
 PLUGINLIB_DECLARE_CLASS(joint_plugins, AbsoluteJoint, hg_joint::AbsoluteJoint, hg::Joint)
 
-AbsoluteJoint::AbsoluteJoint()
-  : hg::Joint()
+AbsoluteJoint::AbsoluteJoint() :
+    hg::Joint()
 {
 
 }
@@ -56,7 +55,7 @@ void AbsoluteJoint::initilize(hg::ControllerNode* node, const std::string& name)
   hg::Joint::initilize(node, name);
 
   joint_info_ = node_->urdf_model_.getJoint(name_);
-  if(joint_info_ == NULL)
+  if (joint_info_ == NULL)
   {
     ROS_FATAL("Cannot get joint %s info", name_.c_str());
     ROS_BREAK();
@@ -66,12 +65,23 @@ void AbsoluteJoint::initilize(hg::ControllerNode* node, const std::string& name)
   ROS_DEBUG_STREAM(joint_info_->name << " velocity limit: " << joint_info_->limits->velocity);
   ROS_DEBUG_STREAM(joint_info_->name << " effort limit: " << joint_info_->limits->effort);
 
-  //subscribers
-  subscriber_joint_position_ =
-      node_->nh_private_.subscribe(name_ + "/set/position", 1, &AbsoluteJoint::callbackSetPosition, this);
-  subscriber_joint_position_relative_ =
-        node_->nh_private_.subscribe(name_ + "/set/relative_position", 1, &AbsoluteJoint::callbackSetRelativePosition, this);
+  //start the joint at 0 or its lower limit or its upper limit
+  if (joint_info_->limits->upper < 0)
+  {
+    position_ = joint_info_->limits->upper;
+  }
+  else if (joint_info_->limits->lower > 0)
+  {
+    position_ = joint_info_->limits->lower;
+  }
+  desired_position_ = position_;
+  last_commanded_position_ = position_;
 
+  //subscribers
+  subscriber_joint_position_ = node_->nh_private_.subscribe(name_ + "/set/position", 1,
+                                                            &AbsoluteJoint::callbackSetPosition, this);
+  subscriber_joint_position_relative_ = node_->nh_private_.subscribe(name_ + "/set/relative_position", 1,
+                                                                     &AbsoluteJoint::callbackSetRelativePosition, this);
 
 }
 
@@ -143,7 +153,7 @@ void AbsoluteJoint::setFeedbackData(double feedback)
 
   //compute joint velocity in unit/sec
   ros::Time t = ros::Time::now();
-  velocity_ = ((position_ - last_position) * 1.0e9)/(t - last_update_).toNSec();
+  velocity_ = ((position_ - last_position) * 1.0e9) / (t - last_update_).toNSec();
 
   //save last updated time
   last_update_ = t;
@@ -181,7 +191,7 @@ diagnostic_msgs::DiagnosticStatus AbsoluteJoint::getDiagnostics()
 void AbsoluteJoint::callbackSetPosition(const std_msgs::Float64& position)
 {
   //check controller status
-  if(!controller_->active())
+  if (!controller_->active())
   {
     setPosition(position.data);
   }
@@ -194,7 +204,7 @@ void AbsoluteJoint::callbackSetPosition(const std_msgs::Float64& position)
 void AbsoluteJoint::callbackSetRelativePosition(const std_msgs::Float64& position)
 {
   //check controller status
-  if(!controller_->active())
+  if (!controller_->active())
   {
     setPositionRelative(position.data);
   }
