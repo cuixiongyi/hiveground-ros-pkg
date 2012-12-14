@@ -126,6 +126,15 @@ void VE026AController::startup()
   //create control thread
   control_thread_ = boost::thread(&VE026AController::control, this);
   is_running_ = true;
+
+  //start action server
+  action_server_ = hg::FollowJointTrajectoryActionServerPtr(
+      new hg::FollowJointTrajectoryActionServer(
+    		  node_->nh_private_, "follow_joint_trajectory",
+    		  boost::bind(&FollowJointController::followJointGoalActionCallback, this, _1), false));
+  action_server_->start();
+
+
 }
 
 /**

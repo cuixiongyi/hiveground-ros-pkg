@@ -71,7 +71,7 @@ public:
    */
   void initilize(hg::ControllerNode* node, const std::string& name);
 
-protected:
+
   //action server
   virtual void followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
 
