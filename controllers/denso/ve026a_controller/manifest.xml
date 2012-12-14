@@ -11,7 +11,7 @@
   <depend package="roscpp"/>
   <depend package="hg_cpp"/>
   <depend package="pluginlib"/>
-  <depend package="bcap"/>
+  <depend package="bcap"/>  
   
   <export>
   	<hg_cpp plugin="${prefix}/ve026a_plugins.xml" />	
