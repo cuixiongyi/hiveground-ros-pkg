@@ -61,17 +61,46 @@ void RC7MController::initilize(hg::ControllerNode* node, const std::string& name
 {
   FollowJointController::initilize(node, name);
 
-  ROS_ASSERT(node_->nh_private_.getParam("controllers/" + name_ + "/rate", rate_));
   ROS_ASSERT(node_->nh_private_.getParam("controllers/" + name_ + "/address", address_));
   node_->nh_private_.param("controllers/" + name_ + "/port", port_, std::string("5007"));
-  ROS_ASSERT(node_->nh_private_.getParam("controllers/" + name_ + "/mode", mode_));
+  std::string mode;
+  ROS_ASSERT(node_->nh_private_.getParam("controllers/" + name_ + "/mode", mode));
+  ROS_ASSERT(node_->nh_private_.getParam("controllers/" + name_ + "/slave_mode", slave_mode_));
+  switch(slave_mode_)
+  {
+    case 0x002: //J sync
+      rate_ = 125;
+      break;
+    case 0x102: //J async
+      rate_ = 1000;
+      break;
+    case 0x001:
+    case 0x003:
+    case 0x101:
+    case 0x103:
+    default:
+      ROS_ERROR("Unknown/unsupported slave mode, use J sync (0x002) as default");
+      slave_mode_ = 0x002;
+      rate_ = 125;
+      break;
+  }
+
+
   ROS_INFO_STREAM("controller address " << address_);
   ROS_INFO_STREAM("controller port " << port_);
-  ROS_INFO_STREAM("communication mode " << mode_);
+  ROS_INFO_STREAM("communication mode " << mode);
+  ROS_INFO("slave mode 0x%02x", slave_mode_);
 
   if (!node_->is_simulated_)
   {
-    //bcap_ = boost::shared_ptr<BCapSerial>(new BCapNet(port_, baud_));
+    if(mode == "TCP") mode_ = BCapNet::BCAP_TCP;
+    else if(mode == "UDP") mode_ = BCapNet::BCAP_UDP;
+    else
+    {
+      ROS_ERROR("Unknown communication mode, use TCP as default");
+      mode_ = BCapNet::BCAP_TCP;
+    }
+    bcap_ = boost::shared_ptr<BCapNet>(new BCapNet(address_, port_,  mode_));
   }
 
   subscriber_motor_ = node_->nh_private_.subscribe(name_ + "/motor", 1, &RC7MController::callbackSetMotor, this);
@@ -85,19 +114,43 @@ void RC7MController::startup()
   if (!node_->is_simulated_)
   {
     int mode = 0;
+    uint16_t mode16 = 0;
     long result = 0;
-
     BCAP_HRESULT hr;
+
     hr = bcap_->ControllerConnect("", "", "", "", &h_controller_);
     ROS_ASSERT(!FAILED(hr));
 
-    hr = bcap_->ControllerGetRobot(h_controller_, "RC7MController", "$IsIDHandle$", &h_robot_);
+    mode16 = 2;
+    result = 0;
+    hr = bcap_->ControllerExecute2(h_controller_, "PutAutoMode", VT_I2, 1, &mode16, &result);
+    ROS_ASSERT(!FAILED(hr));
+
+    result = 0;
+    hr = bcap_->ControllerExecute2(h_controller_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
+    ROS_ASSERT(!FAILED(hr));
+    ROS_ASSERT(result != 2);
+
+    hr = bcap_->ControllerGetTask(h_controller_, "RobSlave", "", &h_task_);
+    ROS_ASSERT(!FAILED(hr));
+
+    hr = bcap_->TaskStart(h_task_, 1, "");
+    ROS_ASSERT(!FAILED(hr));
+    ros::Duration(1.0).sleep();
+
+    hr = bcap_->ControllerGetRobot(h_controller_, "ARM", "$IsIDHandle$", &h_robot_);
     ROS_ASSERT(!FAILED(hr));
 
     turnOnMotor(false);
 
-    mode = 258;
-    hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &mode, &result);
+    result = 0;
+    hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &slave_mode_, &result);
+    ROS_ASSERT(!FAILED(hr));
+
+    result = 0;
+    hr = bcap_->RobotExecute2(h_robot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+    ROS_ASSERT(!FAILED(hr));
+    ROS_ASSERT(result != slave_mode_);
 
     hr = bcap_->RobotGetVariable(h_robot_, "@CURRENT_ANGLE", "", &h_joint_angle_variable_);
     ROS_ASSERT(!FAILED(hr));
@@ -184,7 +237,7 @@ void RC7MController::control()
         radian = (joint_angle[i] * M_PI) / 180.0;
         if (!motor_on_)
         {
-          //revent abruptly move back to a position before turning off the motor
+          //prevent the arm to abruptly move back to a position before turning off the motor
           (*it)->desired_position_ = radian;
           (*it)->last_commanded_position_ = radian;
         }
@@ -219,11 +272,29 @@ void RC7MController::shutdown()
     int mode = 0;
     long result = 0;
     BCAP_HRESULT hr;
-    hr = bcap_->RobotExecute2(h_robot_, "Motor", VT_I2, 1, &mode, &result);
+
+    hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &mode, &result);
     ROS_ASSERT(!FAILED(hr));
+
+    turnOnMotor(false);
 
     hr = bcap_->RobotRelease(h_robot_);
     ROS_ASSERT(!FAILED(hr));
+
+    hr = bcap_->TaskStop(h_task_, 1, "");
+    ROS_ASSERT(!FAILED(hr));
+
+    hr = bcap_->TaskRelease(h_task_);
+    ROS_ASSERT(!FAILED(hr));
+
+    uint16_t mode16 = 1;
+    hr = bcap_->ControllerExecute2(h_controller_, "PutAutoMode", VT_I2, 1, &mode16, &result);
+    ROS_ASSERT(!FAILED(hr));
+
+    result = 0;
+    hr = bcap_->ControllerExecute2(h_controller_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
+    ROS_ASSERT(!FAILED(hr));
+    ROS_ASSERT(result != 1);
 
     hr = bcap_->ControllerDisconnect(h_controller_);
     ROS_ASSERT(!FAILED(hr));
@@ -246,6 +317,7 @@ void RC7MController::turnOnMotor(bool on)
   boost::unique_lock<boost::mutex> lock(control_mutex_);
   BCAP_HRESULT hr = bcap_->RobotExecute2(h_robot_, "Motor", VT_I2, 1, &mode, &result);
   ROS_ASSERT(!FAILED(hr));
+  ros::Duration(5.0).sleep();
 }
 
 void RC7MController::getJointFeedback(std::vector<float>& joint_angle)

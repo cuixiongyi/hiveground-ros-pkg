@@ -23,10 +23,11 @@ joints: {
 controllers: {
   vp6242_arm : {
     type: RC7MController,
-    rate: 50,
+    #rate: 50, Automatically set with slave_mode
     address: 10.0.0.101,
     port: 5007,
-    mode: TCP,    
+    mode: TCP,  
+    slave_mode: 258, #0x102  
     joints: [J1, J2, J3, J4, J5, J6]     
   }
 }

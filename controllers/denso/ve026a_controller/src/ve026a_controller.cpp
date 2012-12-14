@@ -188,7 +188,7 @@ void VE026AController::control()
         radian = (joint_angle[i] * M_PI)/180.0;
         if(!motor_on_)
         {
-          //revent abruptly move back to a position before turning off the motor
+          //prevent the arm to abruptly move back to a position before turning off the motor
           (*it)->desired_position_ = radian;
           (*it)->last_commanded_position_ = radian;
         }
@@ -220,11 +220,9 @@ void VE026AController::shutdown()
 
   if(!node_->is_simulated_)
   {
-    int mode = 0;
-    long result = 0;
     BCAP_HRESULT hr;
-    hr = bcap_->RobotExecute2(h_robot_, "Motor", VT_I2, 1, &mode, &result);
-    ROS_ASSERT(!FAILED(hr));
+
+    turnOnMotor(false);
 
     hr = bcap_->RobotRelease(h_robot_);
     ROS_ASSERT(!FAILED(hr));
