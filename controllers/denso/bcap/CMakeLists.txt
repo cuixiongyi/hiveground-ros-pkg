@@ -37,6 +37,6 @@ rosbuild_add_library(${PROJECT_NAME}
 )
 rosbuild_link_boost(${PROJECT_NAME} thread system)
 
-rosbuild_add_gtest(bcap_test test/bcap_serial_test.cpp)
-#rosbuild_add_gtest(bcap_test test/bcap_net_test.cpp)
+#rosbuild_add_gtest(bcap_test test/bcap_serial_test.cpp)
+rosbuild_add_gtest(bcap_test test/bcap_net_test.cpp)
 target_link_libraries(bcap_test ${PROJECT_NAME})

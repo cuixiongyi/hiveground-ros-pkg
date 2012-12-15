@@ -129,7 +129,7 @@ void RC7MController::startup()
     result = 0;
     hr = bcap_->ControllerExecute2(h_controller_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
     ROS_ASSERT(!FAILED(hr));
-    ROS_ASSERT(result != 2);
+    ROS_ASSERT(result == 2);
 
     hr = bcap_->ControllerGetTask(h_controller_, "RobSlave", "", &h_task_);
     ROS_ASSERT(!FAILED(hr));
@@ -140,17 +140,6 @@ void RC7MController::startup()
 
     hr = bcap_->ControllerGetRobot(h_controller_, "ARM", "$IsIDHandle$", &h_robot_);
     ROS_ASSERT(!FAILED(hr));
-
-    turnOnMotor(false);
-
-    result = 0;
-    hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &slave_mode_, &result);
-    ROS_ASSERT(!FAILED(hr));
-
-    result = 0;
-    hr = bcap_->RobotExecute2(h_robot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
-    ROS_ASSERT(!FAILED(hr));
-    ROS_ASSERT(result != slave_mode_);
 
     hr = bcap_->RobotGetVariable(h_robot_, "@CURRENT_ANGLE", "", &h_joint_angle_variable_);
     ROS_ASSERT(!FAILED(hr));
@@ -171,10 +160,25 @@ void RC7MController::startup()
       (*it)->setFeedbackData(radian);
       i++;
     }
+
+    turnOnMotor(true);
+
+    result = 0;
+    hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &slave_mode_, &result);
+    ROS_ASSERT(!FAILED(hr));
+
+    result = 0;
+    hr = bcap_->RobotExecute2(h_robot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+    ROS_ASSERT(!FAILED(hr));
+    ROS_ASSERT(result == slave_mode_);
   }
+
+
+
 
   //create control thread
   control_thread_ = boost::thread(&RC7MController::control, this);
+
   is_running_ = true;
 
   //start action server
@@ -294,7 +298,7 @@ void RC7MController::shutdown()
     result = 0;
     hr = bcap_->ControllerExecute2(h_controller_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
     ROS_ASSERT(!FAILED(hr));
-    ROS_ASSERT(result != 1);
+    ROS_ASSERT(result == 1);
 
     hr = bcap_->ControllerDisconnect(h_controller_);
     ROS_ASSERT(!FAILED(hr));
