@@ -27,7 +27,7 @@ controllers: {
     address: 10.0.0.101,
     port: 5007,
     mode: TCP,  
-    slave_mode: 258, #0x102  
+    slave_mode: 2,  
     joints: [J1, J2, J3, J4, J5, J6]     
   }
 }
