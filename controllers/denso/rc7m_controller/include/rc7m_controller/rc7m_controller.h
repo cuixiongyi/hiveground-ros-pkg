@@ -95,6 +95,7 @@ public:
 private:
   void turnOnMotor(bool on);
   void getJointFeedback(std::vector<float>& joint_angle);
+  void startSlaveMode();
 
   void callbackSetMotor(const std_msgs::Bool& on);
 
