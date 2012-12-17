@@ -35,6 +35,7 @@
 #include <pluginlib/class_list_macros.h>
 #include <rc7m_controller/rc7m_controller.h>
 #include <hg_cpp/controller_node.h>
+#include <pthread.h>
 
 using namespace hg_controller;
 
@@ -89,7 +90,7 @@ void RC7MController::initilize(hg::ControllerNode* node, const std::string& name
   ROS_INFO_STREAM("controller address " << address_);
   ROS_INFO_STREAM("controller port " << port_);
   ROS_INFO_STREAM("communication mode " << mode);
-  ROS_INFO("slave mode 0x%02x", slave_mode_);
+  ROS_INFO("slave mode 0x%02x @rate %6.2f Hz", slave_mode_, 1.0/rate_);
 
   if (!node_->is_simulated_)
   {
@@ -179,6 +180,54 @@ void RC7MController::startup()
   //create control thread
   control_thread_ = boost::thread(&RC7MController::control, this);
 
+  //set priority
+#ifdef WIN32
+
+#else
+  int retcode;
+  int policy;
+  pthread_t thread_id = (pthread_t)control_thread_.native_handle();
+  struct sched_param param;
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_getschedparam");
+    exit(EXIT_FAILURE);
+  }
+
+  ROS_INFO_STREAM("Control thread inherited: policy= " <<
+          ((policy == SCHED_FIFO) ? "SCHED_FIFO" :
+           (policy == SCHED_RR) ? "SCHED_RR" :
+           (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") <<
+           ", priority=" << param.sched_priority);
+
+  policy = SCHED_FIFO;
+  param.sched_priority = 4;
+
+  if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_setschedparam");
+    exit(EXIT_FAILURE);
+  }
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_getschedparam");
+    exit(EXIT_FAILURE);
+  }
+
+  ROS_INFO_STREAM("Control thread changed: policy= " <<
+            ((policy == SCHED_FIFO) ? "SCHED_FIFO" :
+             (policy == SCHED_RR) ? "SCHED_RR" :
+             (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") <<
+             ", priority=" << param.sched_priority);
+
+#endif
+
+
   is_running_ = true;
 
   //start action server
@@ -210,9 +259,12 @@ void RC7MController::control()
   float command_degree[7], command_result[7];
   std::vector<float> joint_angle;
   BCAP_HRESULT hr;
+  double dt_sum = 0;
+  int dt_count = 0;
+  ros::Time startTime;
   while (is_running_)
   {
-    ros::Time startTime = ros::Time(ros::WallTime::now().toSec());
+
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
@@ -226,6 +278,18 @@ void RC7MController::control()
     {
       if (motor_on_)
       {
+        dt_sum += (ros::Time(ros::WallTime::now().toSec()) - startTime).toSec();
+        dt_count++;
+        if(dt_count == rate_)
+        {
+          static int cnt = 0;
+          ROS_INFO("%d dt %f", cnt++, dt_sum / rate_);
+          dt_count = 0;
+          dt_sum = 0.0;
+        }
+
+
+        startTime = ros::Time(ros::WallTime::now().toSec());
         boost::unique_lock<boost::mutex> lock(control_mutex_);
         hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
         ROS_ASSERT(!FAILED(hr));
@@ -259,6 +323,7 @@ void RC7MController::control()
         i++;
       }
     }
+
     rate.sleep();
   }
 }
@@ -332,6 +397,11 @@ void RC7MController::getJointFeedback(std::vector<float>& joint_angle)
   boost::unique_lock<boost::mutex> lock(control_mutex_);
   hr = bcap_->VariableGetValue(h_joint_angle_variable_, joint_angle.data());
   ROS_ASSERT(!FAILED(hr));
+}
+
+void RC7MController::startSlaveMode()
+{
+
 }
 
 void RC7MController::callbackSetMotor(const std_msgs::Bool& on)
