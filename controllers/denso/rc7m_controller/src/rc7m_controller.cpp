@@ -90,7 +90,7 @@ void RC7MController::initilize(hg::ControllerNode* node, const std::string& name
   ROS_INFO_STREAM("controller address " << address_);
   ROS_INFO_STREAM("controller port " << port_);
   ROS_INFO_STREAM("communication mode " << mode);
-  ROS_INFO("slave mode 0x%02x @rate %6.2f Hz", slave_mode_, 1.0/rate_);
+  ROS_INFO("slave mode 0x%02x @rate %f Hz", slave_mode_, rate_);
 
   if (!node_->is_simulated_)
   {
