@@ -1,0 +1,11 @@
+#request fields
+Header header
+geometry_msgs/Pose[] poses
+int8 type
+#request constants
+int8 SIMPLE_IK=0
+int8 LINE=1
+int8 CIRCLE=2
+int8 PATH=3
+---
+uint32 success
