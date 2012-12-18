@@ -1,0 +1,27 @@
+<package>
+  <description brief="hg_cartesian_trajectory">
+
+     hg_cartesian_trajectory
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg_cartesian_trajectory</url>
+  <depend package="roscpp"/>
+  <depend package="actionlib"/>
+  <depend package="joint_trajectory_action"/>
+  <depend package="geometry_msgs"/>
+  <depend package="kinematics_msgs"/>
+  <depend package="tf"/>
+  <depend package="pluginlib"/>
+  <depend package="control_msgs"/>
+  <depend package="planning_models"/>
+  <depend package="planning_environment"/>
+  <depend package="arm_navigation_msgs"/>
+  <depend package="kinematics_base"/>
+  <depend package="ompl_ros_interface"/>
+  <depend package="kdl"/>
+</package>
+
+
