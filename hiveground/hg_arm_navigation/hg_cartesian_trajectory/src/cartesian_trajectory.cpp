@@ -72,17 +72,18 @@ bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_pref
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
   for (KinematicModelGroupConfigMap::const_iterator it = group_config_map.begin(); it != group_config_map.end(); it++)
   {
-    //ROS_INFO("Group %d name: %s with base link %s tip link: %s", i, it->first.c_str(), it->second.base_link_.c_str(), it->second.tip_link_.c_str());
-    //ik_client_map_[it->first] = nh_.serviceClient(/kinematics_msgs::GetPositionIK, )
     std::string ik_service_name = collision_models_interface_->getKinematicModel()->getRobotName() + "_" + it->first + "_kinematics/";
     std::string ik_collision_aware_name = ik_service_name + "get_constraint_aware_ik";
     std::string ik_none_collision_aware_name = ik_service_name + "get_ik";
+    ROS_INFO_STREAM("Group: " << it->first);
+    ROS_INFO_STREAM("tip link: " << it->second.tip_link_);
     ROS_INFO_STREAM(ik_service_name);
     ROS_INFO_STREAM(ik_collision_aware_name);
     ROS_INFO_STREAM(ik_none_collision_aware_name);
 
     while (!ros::service::waitForService(ik_collision_aware_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_none_collision_aware_name, ros::Duration(1.0))) { }
+    tip_link_map_[it->first] = it->second.tip_link_;
     ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(ik_collision_aware_name, true);
     ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(ik_none_collision_aware_name, true);
   }
@@ -125,34 +126,137 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
   switch(request.type)
   {
     case HgCartesianTrajectory::Request::SIMPLE_IK:
-      genSimpleIKTrajectory(request, respond);
+      planSimpleIKTrajectory(request, respond);
       break;
     case HgCartesianTrajectory::Request::LINE:
     case HgCartesianTrajectory::Request::CIRCLE:
     case HgCartesianTrajectory::Request::PATH:
-      ROS_WARN("not yet implement cartesian tarjectory");
-      respond.success = 0;
+      ROS_WARN("not yet implement planning mode");
+      respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::PLANNING_FAILED;
       break;
   }
-  return respond.success;
+  return (respond.error_code.val == arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS);
 }
 
-void CartesianTrajectoryPlanner::genSimpleIKTrajectory(HgCartesianTrajectory::Request &request,
-                                                              HgCartesianTrajectory::Response &respond)
+//run inverse kinematics on a PoseStamped (7-dof pose
+//(position + quaternion orientation) + header specifying the
+//frame of the pose)
+//tries to stay close to double start_angles[7]
+//returns the solution angles in double solution[7]
+bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
+                                            const arm_navigation_msgs::RobotState& robot_state,
+                                            geometry_msgs::PoseStamped pose,
+                                            std::vector<double>& last_position,
+                                            std::vector<double>& solution)
+{
+  kinematics_msgs::GetPositionIK::Request ik_request;
+  kinematics_msgs::GetPositionIK::Response ik_response;
+
+  ik_request.timeout = ros::Duration(5.0);
+  ik_request.ik_request.ik_seed_state.joint_state = robot_state.joint_state;
+  ik_request.ik_request.ik_seed_state.joint_state.position = last_position;
+  ik_request.ik_request.ik_link_name = tip_link_map_[group_name];
+  ik_request.ik_request.pose_stamped = pose;
+  ROS_INFO(
+      "request pose: %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f", pose.pose.position.x, pose.pose.position.y, pose.pose.position.z, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w);
+
+  bool ik_service_call = ik_none_collision_client_map_[group_name].call(ik_request, ik_response);
+  if (!ik_service_call)
+  {
+    ROS_ERROR("IK service call failed!");
+    return 0;
+  }
+  if (ik_response.error_code.val == ik_response.error_code.SUCCESS)
+  {
+    solution = ik_response.solution.joint_state.position;
+    ROS_INFO(
+        "solution angles: %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f", solution[0], solution[1], solution[2], solution[3], solution[4], solution[5], solution[6]);
+    ROS_INFO("IK service call succeeded");
+    return 1;
+  }
+  ROS_INFO("IK service call error code: %d", ik_response.error_code.val);
+  return 0;
+}
+
+void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::Request &request,
+                                                                HgCartesianTrajectory::Response &respond)
 {
   int trajectory_length = request.poses.size();
-  int i, j;
 
   //IK takes in Cartesian poses stamped with the frame they belong to
   geometry_msgs::PoseStamped stamped_pose;
   stamped_pose.header = request.header;
   stamped_pose.header.stamp = ros::Time::now();
-  bool success;
-  std::vector<double *> joint_trajectory;
+  bool success = false;
+  std::vector<std::vector<double> > joint_trajectory;
 
-  //get the current joint angles (to find ik solutions close to)
-  //double last_angles[7];
-  //get_current_joint_angles(last_angles);
-  respond.success = 1;
+  std::vector<double> last_position = request.motion_plan_request.start_state.joint_state.position;
+
+  //find IK solutions for each point along the trajectory
+  //and stick them into joint_trajectory
+  for (int i = 0; i < trajectory_length; i++)
+  {
+    stamped_pose.pose = request.poses[i];
+    std::vector<double> trajectory_point;
+    success = runIk(request.motion_plan_request.group_name,
+                    request.motion_plan_request.start_state,
+                    stamped_pose,
+                    last_position,
+                    trajectory_point);
+    if (!success)
+    {
+      ROS_ERROR("IK solution not found for trajectory point number %d!\n", i);
+      respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::NO_IK_SOLUTION;
+      return;
+    }
+    joint_trajectory.push_back(trajectory_point);
+    last_position = trajectory_point;
+  }
+
+  trajectory_msgs::JointTrajectory trajectory;
+
+  //get the current joint angles
+  std::vector<double> current_position = request.motion_plan_request.start_state.joint_state.position;
+
+  //fill the goal message with the desired joint trajectory
+  trajectory.points.resize(trajectory_length + 1);
+
+  //set the first trajectory point to the current position
+  trajectory.points[0].positions = current_position;
+  trajectory.points[0].velocities.resize(current_position.size(), 0);
+
+  //make the first trajectory point start 0.25 seconds from when we run
+  trajectory.points[0].time_from_start = ros::Duration(0.25);
+
+  //fill in the rest of the trajectory
+  double time_from_start = 0.25;
+  for (int i = 0; i < trajectory_length; i++)
+  {
+    //fill in the joint positions (velocities of 0 mean that the arm
+    //will try to stop briefly at each waypoint)
+    trajectory.points[i + 1].positions = joint_trajectory[i];
+    trajectory.points[i + 1].velocities.resize(joint_trajectory.size(), 0);
+
+    //compute a desired time for this trajectory point using a max
+    //joint velocity
+    double max_joint_move = 0;
+    for (size_t j = 0; j < joint_trajectory.size(); j++)
+    {
+      double joint_move = fabs(trajectory.points[i + 1].positions[j] - trajectory.points[i].positions[j]);
+      if (joint_move > max_joint_move)
+        max_joint_move = joint_move;
+    }
+    double seconds = max_joint_move / HG_MAX_SIMPLE_IK_JOINT_VEL;
+    ROS_INFO("max_joint_move: %0.3f, seconds: %0.3f", max_joint_move, seconds);
+    time_from_start += seconds;
+    trajectory.points[i + 1].time_from_start = ros::Duration(time_from_start);
+  }
+
+  //when to start the trajectory
+  trajectory.header.stamp = ros::Time::now() + ros::Duration(0.25);
+  respond.trajectory.joint_trajectory = trajectory;
+  respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS;
 }
+
+
 
