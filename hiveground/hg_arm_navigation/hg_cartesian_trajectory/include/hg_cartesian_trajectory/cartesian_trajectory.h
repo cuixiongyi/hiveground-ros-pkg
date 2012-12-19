@@ -42,10 +42,11 @@
 
 #include <hg_cartesian_trajectory/HgCartesianTrajectory.h>
 
-
+#define HG_MAX_SIMPLE_IK_JOINT_VEL 0.5 //radians/sec
 
 namespace hg_cartesian_trajectory
 {
+
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> FollowJointTrajectoryClient;
 typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
 
@@ -66,16 +67,22 @@ public:
                                               HgCartesianTrajectory::Response &respond);
 
 protected:
-  void genSimpleIKTrajectory(HgCartesianTrajectory::Request &request,
-                                HgCartesianTrajectory::Response &respond);
+  bool runIk(const std::string& group_name,
+              const arm_navigation_msgs::RobotState& robot_state,
+              geometry_msgs::PoseStamped pose,
+              std::vector<double>& last_position,
+              std::vector<double>& solution);
+  void planSimpleIKTrajectory(HgCartesianTrajectory::Request &request,
+                                  HgCartesianTrajectory::Response &respond);
+
 
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
+  std::map<std::string, std::string> tip_link_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
   ros::ServiceServer service_;
-  control_msgs::FollowJointTrajectoryGoal goal_;
   kinematics_msgs::GetPositionIK::Request ik_request_;
   kinematics_msgs::GetPositionIK::Response ik_respond_;
   FollowJointTrajectoryClient *action_client_;
