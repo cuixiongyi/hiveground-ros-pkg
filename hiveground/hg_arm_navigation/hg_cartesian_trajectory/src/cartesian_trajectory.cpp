@@ -40,12 +40,13 @@ CartesianTrajectoryPlanner::CartesianTrajectoryPlanner()
 {
   //ROS_INFO_STREAM("namespace: " << nh_.getNamespace());
   //ROS_INFO_STREAM("namespace: " << nh_private_.getNamespace());
-  collision_models_interface_ = new planning_environment::CollisionModelsInterface("robot_description");
+  collision_models_interface_ =
+      boost::shared_ptr<planning_environment::CollisionModelsInterface>(new planning_environment::CollisionModelsInterface("robot_description"));
 }
 
 CartesianTrajectoryPlanner::~CartesianTrajectoryPlanner()
 {
-  delete collision_models_interface_;
+
 }
 
 void CartesianTrajectoryPlanner::run()
@@ -85,6 +86,11 @@ bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_pref
     tip_link_map_[it->first] = it->second.tip_link_;
     ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(ik_collision_aware_name, true);
     ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(ik_none_collision_aware_name, true);
+
+    std::string arm_controller_name = collision_models_interface_->getKinematicModel()->getRobotName() + "/follow_joint_trajectory";
+    action_client_map_[it->first] =
+        FollowJointTrajectoryClientPtr(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller_name, true));
+    while(ros::ok() && !action_client_map_[it->first]->waitForServer(ros::Duration(1.0))) { }
   }
 
   service_ = nh_private_.advertiseService("plan_cartesian_path", &CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner, this);
@@ -269,6 +275,20 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   trajectory.header.stamp = ros::Time::now() + ros::Duration(0.25);
   respond.trajectory.joint_trajectory = trajectory;
   respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS;
+
+  control_msgs::FollowJointTrajectoryGoal goal;
+  goal.trajectory = trajectory;
+  action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal);
+  action_client_map_[request.motion_plan_request.group_name]->waitForResult();
+  if(action_client_map_[request.motion_plan_request.group_name]->getState() ==
+      actionlib::SimpleClientGoalState::SUCCEEDED)
+  {
+    ROS_INFO("Hooray, the arm finished the trajectory!");
+  }
+  else
+  {
+    ROS_INFO("The arm failed to execute the trajectory.");
+  }
 }
 
 
