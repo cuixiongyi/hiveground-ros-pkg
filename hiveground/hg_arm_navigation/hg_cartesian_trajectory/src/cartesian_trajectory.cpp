@@ -75,11 +75,10 @@ bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_pref
     std::string ik_service_name = collision_models_interface_->getKinematicModel()->getRobotName() + "_" + it->first + "_kinematics/";
     std::string ik_collision_aware_name = ik_service_name + "get_constraint_aware_ik";
     std::string ik_none_collision_aware_name = ik_service_name + "get_ik";
-    ROS_INFO_STREAM("Group: " << it->first);
-    ROS_INFO_STREAM("tip link: " << it->second.tip_link_);
-    ROS_INFO_STREAM(ik_service_name);
-    ROS_INFO_STREAM(ik_collision_aware_name);
-    ROS_INFO_STREAM(ik_none_collision_aware_name);
+    ROS_DEBUG_STREAM("Tip link: " << it->second.tip_link_);
+    ROS_DEBUG_STREAM(ik_service_name);
+    ROS_DEBUG_STREAM(ik_collision_aware_name);
+    ROS_DEBUG_STREAM(ik_none_collision_aware_name);
 
     while (!ros::service::waitForService(ik_collision_aware_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_none_collision_aware_name, ros::Duration(1.0))) { }
@@ -126,6 +125,8 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
   switch(request.type)
   {
     case HgCartesianTrajectory::Request::SIMPLE_IK:
+      ROS_INFO_STREAM("Working");
+      //respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS;
       planSimpleIKTrajectory(request, respond);
       break;
     case HgCartesianTrajectory::Request::LINE:
@@ -146,19 +147,24 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
 bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
                                             const arm_navigation_msgs::RobotState& robot_state,
                                             geometry_msgs::PoseStamped pose,
-                                            std::vector<double>& last_position,
+                                            std::vector<double>& start_position,
                                             std::vector<double>& solution)
 {
   kinematics_msgs::GetPositionIK::Request ik_request;
   kinematics_msgs::GetPositionIK::Response ik_response;
 
-  ik_request.timeout = ros::Duration(5.0);
-  ik_request.ik_request.ik_seed_state.joint_state = robot_state.joint_state;
-  ik_request.ik_request.ik_seed_state.joint_state.position = last_position;
   ik_request.ik_request.ik_link_name = tip_link_map_[group_name];
+  ik_request.ik_request.pose_stamped.header.frame_id = collision_models_interface_->getWorldFrameId();
+  ik_request.ik_request.pose_stamped.header.stamp = ros::Time::now();
   ik_request.ik_request.pose_stamped = pose;
-  ROS_INFO(
-      "request pose: %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f", pose.pose.position.x, pose.pose.position.y, pose.pose.position.z, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w);
+  ik_request.ik_request.ik_seed_state.joint_state.position = start_position;
+  ik_request.ik_request.ik_seed_state.joint_state.name = robot_state.joint_state.name;
+  ik_request.timeout = ros::Duration(5.0);
+
+  ROS_DEBUG(
+      "request pose: (%0.3f %0.3f %0.3f) (%0.3f %0.3f %0.3f %0.3f)",
+      pose.pose.position.x, pose.pose.position.y, pose.pose.position.z,
+      pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w);
 
   bool ik_service_call = ik_none_collision_client_map_[group_name].call(ik_request, ik_response);
   if (!ik_service_call)
@@ -166,15 +172,20 @@ bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
     ROS_ERROR("IK service call failed!");
     return 0;
   }
+
+
+
   if (ik_response.error_code.val == ik_response.error_code.SUCCESS)
   {
     solution = ik_response.solution.joint_state.position;
-    ROS_INFO(
-        "solution angles: %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f %0.3f", solution[0], solution[1], solution[2], solution[3], solution[4], solution[5], solution[6]);
-    ROS_INFO("IK service call succeeded");
+    for(int i = 0; i < (int)solution.size(); i++)
+    {
+      ROS_DEBUG("Joint %s solution angles [%d]: %0.3f", robot_state.joint_state.name[i].c_str(), i, solution[i]);
+    }
+    ROS_DEBUG("IK service call succeeded");
     return 1;
   }
-  ROS_INFO("IK service call error code: %d", ik_response.error_code.val);
+  ROS_DEBUG("IK service call error code: %d", ik_response.error_code.val);
   return 0;
 }
 
@@ -182,6 +193,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
                                                                 HgCartesianTrajectory::Response &respond)
 {
   int trajectory_length = request.poses.size();
+  ROS_DEBUG("trajectory_length: %d", trajectory_length);
 
   //IK takes in Cartesian poses stamped with the frame they belong to
   geometry_msgs::PoseStamped stamped_pose;
@@ -222,6 +234,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   trajectory.points.resize(trajectory_length + 1);
 
   //set the first trajectory point to the current position
+  trajectory.joint_names = request.motion_plan_request.start_state.joint_state.name;
   trajectory.points[0].positions = current_position;
   trajectory.points[0].velocities.resize(current_position.size(), 0);
 

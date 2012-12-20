@@ -70,7 +70,7 @@ protected:
   bool runIk(const std::string& group_name,
               const arm_navigation_msgs::RobotState& robot_state,
               geometry_msgs::PoseStamped pose,
-              std::vector<double>& last_position,
+              std::vector<double>& start_position,
               std::vector<double>& solution);
   void planSimpleIKTrajectory(HgCartesianTrajectory::Request &request,
                                   HgCartesianTrajectory::Response &respond);
