@@ -47,7 +47,7 @@
 namespace hg_cartesian_trajectory
 {
 
-typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> FollowJointTrajectoryClient;
+typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > FollowJointTrajectoryClientPtr;
 typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
 
 class CartesianTrajectoryPlanner
@@ -79,14 +79,15 @@ protected:
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
+  boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
   std::map<std::string, std::string> tip_link_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
+  std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceServer service_;
   kinematics_msgs::GetPositionIK::Request ik_request_;
   kinematics_msgs::GetPositionIK::Response ik_respond_;
-  FollowJointTrajectoryClient *action_client_;
-  planning_environment::CollisionModelsInterface *collision_models_interface_;
+
 
 };
 
