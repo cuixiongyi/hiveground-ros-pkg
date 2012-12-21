@@ -92,12 +92,10 @@ bool AbsoluteJoint::getJointInformationUrdf(const std::string& param)
 
 double AbsoluteJoint::interpolate(double dt)
 {
-  //if position updated
+  boost::recursive_mutex::scoped_lock(mutex_);
   if (touched_)
   {
-    mutex_.lock();
     double command = desired_position_ - last_commanded_position_;
-    mutex_.unlock();
 
     //check velocity limit
     double move_limit_dt = joint_info_->limits->velocity * dt;
@@ -105,12 +103,10 @@ double AbsoluteJoint::interpolate(double dt)
     if (command > move_limit_dt)
     {
       command = move_limit_dt;
-      //ROS_WARN_STREAM_THROTTLE(1.0, name_ + " is reached velocity limit (+)");
     }
     else if (command < -move_limit_dt)
     {
       command = -move_limit_dt;
-      //ROS_WARN_STREAM_THROTTLE(1.0, name_ + " is reached velocity limit (-)");
     }
 
     //check position limit
@@ -139,7 +135,7 @@ double AbsoluteJoint::interpolate(double dt)
   }
   else
   {
-    return desired_position_; //do not move and hold position
+    return desired_position_; //stop and hold position
   }
 }
 

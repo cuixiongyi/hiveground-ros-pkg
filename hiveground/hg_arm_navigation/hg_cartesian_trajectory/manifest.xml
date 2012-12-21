@@ -11,18 +11,21 @@
   <depend package="rospy"/>
   <depend package="roscpp"/>
   <depend package="actionlib"/>
-  <depend package="joint_trajectory_action"/>
-  <depend package="geometry_msgs"/>
-  <depend package="kinematics_msgs"/>
+  <depend package="joint_trajectory_action"/>  
   <depend package="tf"/>
-  <depend package="pluginlib"/>
-  <depend package="control_msgs"/>
+  <depend package="pluginlib"/>  
   <depend package="planning_models"/>
   <depend package="planning_environment"/>
-  <depend package="arm_navigation_msgs"/>
-  <depend package="kinematics_base"/>
   <depend package="ompl_ros_interface"/>
   <depend package="kdl"/>
+  <depend package="kinematics_base"/>
+  <depend package="spline_smoother"/>
+  
+  <depend package="std_msgs"/>
+  <depend package="control_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="kinematics_msgs"/>
+  <depend package="arm_navigation_msgs"/>    
 </package>
 
 
