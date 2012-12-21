@@ -120,7 +120,7 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
 
   ros::Time trajectory_start_time = trajectory.header.stamp;
 
-  //wait for start time
+  //wait for the start time
   while (ros::Time::now() < trajectory_start_time)
   {
     ros::Duration(0.001).sleep();
@@ -130,11 +130,13 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
   ros::Duration skip_duration = trajectory.points[0].time_from_start;
   bool success = true;
   ros::Time last_time = trajectory_start_time + skip_duration;
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  trajectory_msgs::JointTrajectoryPoint point;
   for (size_t i = 0; i < trajectory.points.size(); i++)
   {
-    trajectory_msgs::JointTrajectoryPoint point = trajectory.points[i];
+    point = trajectory.points[i];
     ros::Time end_time = trajectory_start_time + (point.time_from_start - skip_duration);
-    std::vector<boost::shared_ptr<hg::Joint> >::iterator it = joints_.begin();
+    it = joints_.begin();
     for (size_t k = 0; k < point.positions.size(); k++, it++)
     {
       (*it)->setPosition(point.positions[k]);

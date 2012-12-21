@@ -39,10 +39,12 @@
 #include <planning_environment/models/collision_models_interface.h>
 #include <planning_environment/models/collision_models.h>
 #include <planning_environment/models/model_utils.h>
-
+#include <planning_environment/monitors/joint_state_monitor.h>
+#include <arm_navigation_msgs/DisplayTrajectory.h>
+#include <nav_msgs/Path.h>
 #include <hg_cartesian_trajectory/HgCartesianTrajectory.h>
 
-#define HG_MAX_SIMPLE_IK_JOINT_VEL 0.5 //radians/sec
+#define HG_MAX_SIMPLE_IK_JOINT_VEL 1.0 //radians/sec
 
 namespace hg_cartesian_trajectory
 {
@@ -87,8 +89,9 @@ protected:
   ros::ServiceServer service_;
   kinematics_msgs::GetPositionIK::Request ik_request_;
   kinematics_msgs::GetPositionIK::Response ik_respond_;
-
-
+  planning_environment::JointStateMonitor joint_state_monitor;
+  ros::Publisher display_trajectory_publisher_;
+  ros::Publisher display_trajectory_path_publisher_;
 };
 
 }
