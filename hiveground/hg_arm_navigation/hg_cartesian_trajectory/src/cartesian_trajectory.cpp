@@ -35,6 +35,7 @@
 #include <spline_smoother/cubic_parameterized_trajectory.h>
 #include <spline_smoother/linear_trajectory.h>
 #include <spline_smoother/lspb_trajectory.h>
+#include <spline_smoother/clamped_cubic_spline_smoother.h>
 
 using namespace hg_cartesian_trajectory;
 
@@ -325,6 +326,8 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
 
 
   trajectory_generator.parameterize(trajectory, joint_limits, spline_trajectory);
+
+
   ROS_INFO("trajectory size %d spline size:%d", trajectory.points.size(), spline_trajectory.segments.size());
   trajectory.points.clear();
   double time = 0;
