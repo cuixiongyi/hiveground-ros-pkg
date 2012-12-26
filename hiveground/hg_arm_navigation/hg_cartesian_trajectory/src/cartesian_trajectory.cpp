@@ -40,12 +40,9 @@
 using namespace hg_cartesian_trajectory;
 
 CartesianTrajectoryPlanner::CartesianTrajectoryPlanner()
-  : nh_(), nh_private_("~")
+  : PlanningBase()
 {
-  //ROS_INFO_STREAM("namespace: " << nh_.getNamespace());
-  //ROS_INFO_STREAM("namespace: " << nh_private_.getNamespace());
-  collision_models_interface_ =
-      boost::shared_ptr<planning_environment::CollisionModelsInterface>(new planning_environment::CollisionModelsInterface("robot_description"));
+
 }
 
 CartesianTrajectoryPlanner::~CartesianTrajectoryPlanner()
@@ -55,84 +52,29 @@ CartesianTrajectoryPlanner::~CartesianTrajectoryPlanner()
 
 void CartesianTrajectoryPlanner::run()
 {
-  if(!initialize(nh_private_.getNamespace()))
-    return;
-  if (!collision_models_interface_->loadedModels())
-  {
-    ROS_ERROR("Collision models not loaded.");
-    return;
-  }
+  PlanningBase::run();
 }
 
 bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_prefix)
 {
-  std::vector<std::string> group_names;
-  if(!getGroupNamesFromParamServer(param_server_prefix,group_names))
-  {
-    ROS_ERROR("Could not find groups for planning under %s",param_server_prefix.c_str());
+  if(!PlanningBase::initialize(param_server_prefix))
     return false;
-  }
-
-  display_trajectory_publisher_ =
-      nh_private_.advertise<arm_navigation_msgs::DisplayTrajectory>("joint_trajectory_display", 1);
-  display_trajectory_path_publisher_ =
-      nh_private_.advertise<nav_msgs::Path>("joint_path_display", 1);
 
   const KinematicModelGroupConfigMap &group_config_map =
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
   for (KinematicModelGroupConfigMap::const_iterator it = group_config_map.begin(); it != group_config_map.end(); it++)
   {
-    std::string ik_service_name = collision_models_interface_->getKinematicModel()->getRobotName() + "_" + it->first + "_kinematics/";
-    std::string ik_collision_aware_name = ik_service_name + "get_constraint_aware_ik";
-    std::string ik_none_collision_aware_name = ik_service_name + "get_ik";
-    ROS_DEBUG_STREAM("Tip link: " << it->second.tip_link_);
-    ROS_DEBUG_STREAM(ik_service_name);
-    ROS_DEBUG_STREAM(ik_collision_aware_name);
-    ROS_DEBUG_STREAM(ik_none_collision_aware_name);
-
-    while (!ros::service::waitForService(ik_collision_aware_name, ros::Duration(1.0))) { }
-    while (!ros::service::waitForService(ik_none_collision_aware_name, ros::Duration(1.0))) { }
-    tip_link_map_[it->first] = it->second.tip_link_;
-    ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(ik_collision_aware_name, true);
-    ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(ik_none_collision_aware_name, true);
-
-    std::string arm_controller_name = collision_models_interface_->getKinematicModel()->getRobotName() + "/follow_joint_trajectory";
-    action_client_map_[it->first] =
-        FollowJointTrajectoryClientPtr(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller_name, true));
-    while(ros::ok() && !action_client_map_[it->first]->waitForServer(ros::Duration(1.0))) { }
+    std::string arm_controller_name = collision_models_interface_->getKinematicModel()->getRobotName()
+        + "/follow_joint_trajectory";
+    action_client_map_[it->first] = FollowJointTrajectoryClientPtr(
+        new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller_name, true));
+    while (ros::ok() && !action_client_map_[it->first]->waitForServer(ros::Duration(1.0))) { }
   }
 
   service_ = nh_private_.advertiseService("plan_cartesian_path", &CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner, this);
 
   return true;
 }
-
-bool CartesianTrajectoryPlanner::getGroupNamesFromParamServer(const std::string &param_server_prefix,
-                                                                      std::vector<std::string> &group_names)
-{
-  XmlRpc::XmlRpcValue group_list;
-  if(!nh_.getParam(param_server_prefix+"/groups", group_list))
-  {
-    ROS_ERROR("Could not find parameter %s on param server",(param_server_prefix+"/groups").c_str());
-    return false;
-  }
-  if(group_list.getType() != XmlRpc::XmlRpcValue::TypeArray)
-  {
-    ROS_ERROR("Group list should be of XmlRpc Array type");
-    return false;
-  }
-  for (int32_t i = 0; i < group_list.size(); ++i)
-  {
-    if(group_list[i].getType() != XmlRpc::XmlRpcValue::TypeString)
-    {
-      ROS_ERROR("Group names should be strings");
-      return false;
-    }
-    group_names.push_back(static_cast<std::string>(group_list[i]));
-    ROS_INFO("Adding group: %s",group_names.back().c_str());
-  }
-  return true;
-};
 
 bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTrajectory::Request &request,
                                                                             HgCartesianTrajectory::Response &respond)
@@ -154,11 +96,6 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
   return (respond.error_code.val == arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS);
 }
 
-//run inverse kinematics on a PoseStamped (7-dof pose
-//(position + quaternion orientation) + header specifying the
-//frame of the pose)
-//tries to stay close to double start_angles[7]
-//returns the solution angles in double solution[7]
 bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
                                             const arm_navigation_msgs::RobotState& robot_state,
                                             geometry_msgs::PoseStamped pose,

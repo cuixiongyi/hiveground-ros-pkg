@@ -30,64 +30,54 @@
  *
  * Author: Mahisorn Wongphati
  */
- 
-#include <ros/ros.h>
 
+#ifndef PLANNING_BASE_H_
+#define PLANNING_BASE_H_
+
+#include <ros/ros.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 #include <kinematics_msgs/GetPositionIK.h>
 #include <kinematics_msgs/GetConstraintAwarePositionIK.h>
 #include <planning_environment/models/collision_models_interface.h>
+#include <planning_environment/models/collision_models.h>
+#include <planning_environment/models/model_utils.h>
+#include <planning_environment/monitors/joint_state_monitor.h>
 
-#include <interactive_markers/interactive_marker_server.h>
-#include <hg_interactive_marker/inspection_point.h>
+namespace hg_cartesian_trajectory
+{
 
-#include <hg_cartesian_trajectory/planning_base.h>
+typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
 
-class InspectionPointMarkerServer : public hg_cartesian_trajectory::PlanningBase
+class PlanningBase
 {
 public:
-  InspectionPointMarkerServer();
-  ~InspectionPointMarkerServer();
+  PlanningBase();
+  virtual ~PlanningBase();
 
+  virtual void run();
+
+  virtual bool initialize(const std::string& param_server_prefix);
+  virtual bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
+                                                  std::vector<std::string> &group_names);
 
 
 protected:
-
+  ros::NodeHandle nh_;
+  ros::NodeHandle nh_private_;
+  boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
+  std::map<std::string, std::string> tip_link_map_;
+  std::map<std::string, ros::ServiceClient> ik_client_map_;
+  std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
+  kinematics_msgs::GetPositionIK::Request ik_request_;
+  kinematics_msgs::GetPositionIK::Response ik_respond_;
+  kinematics_msgs::GetConstraintAwarePositionIKRequest ik_constraint_request_;
+  kinematics_msgs::GetConstraintAwarePositionIKResponse ik_constraint_respond_;
 };
 
-InspectionPointMarkerServer::InspectionPointMarkerServer()
-{
-
 }
 
-InspectionPointMarkerServer::~InspectionPointMarkerServer()
-{
-
-}
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "inspection_point_marker");
-
-  /*
-  // create an interactive marker server on the topic namespace simple_marker
-  interactive_markers::InteractiveMarkerServer server("inspection_point_marker");
-
-  hg_interactive_marker::InspectionPoint ip(server, "test", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip2(server, "test1", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip3(server, "test2", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip4(server, "test3", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip5(server, "test4", "/base_link", "haha");
 
 
-  // 'commit' changes and send to all clients
-  server.applyChanges();
-  */
 
-  InspectionPointMarkerServer inspection_point_marker_server;
-  inspection_point_marker_server.run();
-
-
-  // start the ROS main loop
-  ros::spin();
-}
- 
+#endif /* PLANNING_BASE_H_ */
