@@ -1,0 +1,5 @@
+<launch>  
+  <node pkg="hg_interactive_marker" type="inspection_point_marker_server" name="inspection_point_marker_server" output="screen">
+  	<rosparam command="load" file="$(find vp6242_arm_navigation)/config/cartesian_planning.yaml" />  	
+  </node>
+</launch>

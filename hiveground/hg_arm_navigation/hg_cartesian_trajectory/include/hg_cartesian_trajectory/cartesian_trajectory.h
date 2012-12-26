@@ -42,6 +42,8 @@
 #include <planning_environment/monitors/joint_state_monitor.h>
 #include <arm_navigation_msgs/DisplayTrajectory.h>
 #include <nav_msgs/Path.h>
+
+#include <hg_cartesian_trajectory/planning_base.h>
 #include <hg_cartesian_trajectory/HgCartesianTrajectory.h>
 
 #define HG_MAX_SIMPLE_IK_JOINT_VEL 1.0 //radians/sec
@@ -50,9 +52,9 @@ namespace hg_cartesian_trajectory
 {
 
 typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > FollowJointTrajectoryClientPtr;
-typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
+//typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
 
-class CartesianTrajectoryPlanner
+class CartesianTrajectoryPlanner : public PlanningBase
 {
 public:
   CartesianTrajectoryPlanner();
@@ -61,8 +63,8 @@ public:
   void run();
 
   bool initialize(const std::string& param_server_prefix);
-  bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
-                                         std::vector<std::string> &group_names);
+  //bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
+  //                                       std::vector<std::string> &group_names);
 
 
   bool executeCartesianTrajectoryPlanner(HgCartesianTrajectory::Request &request,
@@ -79,16 +81,17 @@ protected:
 
 
 protected:
-  ros::NodeHandle nh_;
-  ros::NodeHandle nh_private_;
-  boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
-  std::map<std::string, std::string> tip_link_map_;
-  std::map<std::string, ros::ServiceClient> ik_client_map_;
-  std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
+  //ros::NodeHandle nh_;
+  //ros::NodeHandle nh_private_;
+  //boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
+  //std::map<std::string, std::string> tip_link_map_;
+  //std::map<std::string, ros::ServiceClient> ik_client_map_;
+  //std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
+  //kinematics_msgs::GetPositionIK::Request ik_request_;
+  //kinematics_msgs::GetPositionIK::Response ik_respond_;
+
   std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceServer service_;
-  kinematics_msgs::GetPositionIK::Request ik_request_;
-  kinematics_msgs::GetPositionIK::Response ik_respond_;
   planning_environment::JointStateMonitor joint_state_monitor;
   ros::Publisher display_trajectory_publisher_;
   ros::Publisher display_trajectory_path_publisher_;
