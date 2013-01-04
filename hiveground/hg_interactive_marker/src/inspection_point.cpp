@@ -31,6 +31,7 @@
  * Author: Mahisorn Wongphati
  */
 
+#include <hg_interactive_marker/inspection_point_marker_server.h>
 #include <hg_interactive_marker/inspection_point.h>
 
 
@@ -38,7 +39,7 @@ using namespace hg_interactive_marker;
 using namespace visualization_msgs;
 using namespace interactive_markers;
 
-InspectionPoint::InspectionPoint(interactive_markers::InteractiveMarkerServer& server,
+InspectionPoint::InspectionPoint(InspectionPointMarkerServer* server,
                                       const std::string& name,
                                       const std::string& frame_id,
                                       const std::string& description,
@@ -94,16 +95,16 @@ InspectionPoint::InspectionPoint(interactive_markers::InteractiveMarkerServer& s
   control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
   int_marker.controls.push_back(control);
 
-  server_.insert(int_marker);
+  server_->marker_server_.insert(int_marker);
 
 
   control.interaction_mode = InteractiveMarkerControl::MENU;
     //control.markers.push_back(makeMarkerSphere(marker));
   int_marker.controls.push_back(control);
-  menu_handler_map_["Inspection Point"].apply(server_, int_marker.name);
+  menu_handler_map_["Inspection Point"].apply(server_->marker_server_, int_marker.name);
 
 
-  server_.setCallback(int_marker.name, marker_callback_ptr_);
+  server_->marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
 
 }
 
@@ -128,20 +129,20 @@ void InspectionPoint::processMarkerCallback(const visualization_msgs::Interactiv
       }
       else if(feedback->menu_entry_id == menu_entry_reset_position_)
       {
-        ROS_DEBUG_STREAM("check reset position:" << feedback->header << " " << feedback->pose);
+        ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
 
         geometry_msgs::Pose pose = feedback->pose;
         pose.position = geometry_msgs::Point();
-        server_.setPose(feedback->marker_name, pose, feedback->header);
-        server_.applyChanges();
+        server_->marker_server_.setPose(feedback->marker_name, pose, feedback->header);
+        server_->marker_server_.applyChanges();
       }
       else if(feedback->menu_entry_id == menu_entry_reset_orientation_)
       {
-        ROS_DEBUG("check reset orientation");
+        ROS_DEBUG("reset orientation");
         geometry_msgs::Pose pose = feedback->pose;
         pose.orientation = geometry_msgs::Quaternion();
-        server_.setPose(feedback->marker_name, pose, feedback->header);
-        server_.applyChanges();
+        server_->marker_server_.setPose(feedback->marker_name, pose, feedback->header);
+        server_->marker_server_.applyChanges();
       }
 
 

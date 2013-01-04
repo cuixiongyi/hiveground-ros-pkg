@@ -32,37 +32,28 @@
  */
  
 #include <ros/ros.h>
-
-#include <kinematics_msgs/GetPositionIK.h>
-#include <kinematics_msgs/GetConstraintAwarePositionIK.h>
-#include <planning_environment/models/collision_models_interface.h>
-
-#include <interactive_markers/interactive_marker_server.h>
+#include <hg_interactive_marker/inspection_point_marker_server.h>
 #include <hg_interactive_marker/inspection_point.h>
 
-#include <hg_cartesian_trajectory/planning_base.h>
+using namespace hg_interactive_marker;
 
-class InspectionPointMarkerServer : public hg_cartesian_trajectory::PlanningBase
-{
-public:
-  InspectionPointMarkerServer();
-  ~InspectionPointMarkerServer();
-
-
-
-protected:
-
-};
 
 InspectionPointMarkerServer::InspectionPointMarkerServer()
+  : marker_server_("inspection_point_marker")
 {
-
+  InspectionPoint ip(this, "test", "/base_link", "haha");
+  //InspectionPoint ip2(this, "test1", "/base_link", "haha");
+  //hg_interactive_marker::InspectionPoint ip3(this, "test2", "/base_link", "haha");
+  //hg_interactive_marker::InspectionPoint ip4(this, "test3", "/base_link", "haha");
+  //hg_interactive_marker::InspectionPoint ip5(this, "test4", "/base_link", "haha");
+  marker_server_.applyChanges();
 }
 
 InspectionPointMarkerServer::~InspectionPointMarkerServer()
 {
 
 }
+
 
 int main(int argc, char** argv)
 {
@@ -85,6 +76,8 @@ int main(int argc, char** argv)
 
   InspectionPointMarkerServer inspection_point_marker_server;
   inspection_point_marker_server.run();
+
+
 
 
   // start the ROS main loop

@@ -36,6 +36,7 @@
 
 #include <interactive_markers/interactive_marker_server.h>
 #include <interactive_markers/menu_handler.h>
+#include <hg_interactive_marker/inspection_point_marker_server.h>
 
 
 namespace hg_interactive_marker
@@ -45,10 +46,11 @@ typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> Men
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
+class InspectionPointMarkerServer;
 class InspectionPoint
 {
 public:
-  InspectionPoint(interactive_markers::InteractiveMarkerServer& server,
+  InspectionPoint(InspectionPointMarkerServer* server,
                     const std::string& name,
                     const std::string& frame_id,
                     const std::string& description,
@@ -65,7 +67,7 @@ public:
       interactive_markers::MenuHandler& handler, MenuEntryHandleMap& map, std::string name);
 
 
-  interactive_markers::InteractiveMarkerServer& server_;
+  InspectionPointMarkerServer* server_;
   std::string name_;
   std::string frame_id_;
   std::string description_;
