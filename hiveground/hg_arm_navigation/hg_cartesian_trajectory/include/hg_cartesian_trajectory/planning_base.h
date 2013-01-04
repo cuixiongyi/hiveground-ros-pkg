@@ -59,13 +59,14 @@ public:
 
   virtual bool initialize(const std::string& param_server_prefix);
   virtual bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
-                                                  std::vector<std::string> &group_names);
+                                            std::vector<std::string> &group_names);
 
 
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
+  //std::map<std::string, std::vector<std::string> > joints_map_;
   std::map<std::string, std::string> tip_link_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;

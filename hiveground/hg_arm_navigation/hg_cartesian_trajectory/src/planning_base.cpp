@@ -73,17 +73,26 @@ bool PlanningBase::initialize(const std::string& param_server_prefix)
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
   for (KinematicModelGroupConfigMap::const_iterator it = group_config_map.begin(); it != group_config_map.end(); it++)
   {
+
     std::string ik_service_name = collision_models_interface_->getKinematicModel()->getRobotName() + "_" + it->first
         + "_kinematics/";
     std::string ik_collision_aware_name = ik_service_name + "get_constraint_aware_ik";
     std::string ik_none_collision_aware_name = ik_service_name + "get_ik";
-    ROS_DEBUG_STREAM("Tip link: " << it->second.tip_link_);
+    ROS_INFO_STREAM("Tip link: " << it->second.tip_link_);
     ROS_DEBUG_STREAM(ik_service_name);
     ROS_DEBUG_STREAM(ik_collision_aware_name);
     ROS_DEBUG_STREAM(ik_none_collision_aware_name);
 
     while (!ros::service::waitForService(ik_collision_aware_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_none_collision_aware_name, ros::Duration(1.0))) { }
+    //ROS_INFO_STREAM(it->second.subgroups_.size());
+    //ROS_INFO_STREAM(it->second.joints_.size());
+    //joints_map_[it->first] = it->second.joints_;
+    //ROS_INFO_STREAM("joint count: " << it->second.joints_.size());
+    //for(int i = 0; i < it->second.joints_.size(); i++)
+    //{
+      //ROS_INFO_STREAM(it->second.joints_[i]);
+    //}
     tip_link_map_[it->first] = it->second.tip_link_;
     ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(
         ik_collision_aware_name, true);
