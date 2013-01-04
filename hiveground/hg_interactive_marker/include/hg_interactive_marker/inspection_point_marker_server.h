@@ -40,19 +40,57 @@
 
 #include <hg_cartesian_trajectory/planning_base.h>
 
+#include <boost/thread.hpp>
+
 namespace hg_interactive_marker
 {
 
+typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
+typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
+typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
+
 class InspectionPointMarkerServer : public hg_cartesian_trajectory::PlanningBase
 {
+  friend class InspectionPoint;
 public:
-  InspectionPointMarkerServer();
+  InspectionPointMarkerServer(const std::string& group_name="manipulator");
   ~InspectionPointMarkerServer();
 
+  void addMarker(const std::string& name, geometry_msgs::Pose pose = geometry_msgs::Pose() ,double arrow_length = 0.1);
+
+protected:
+
+  void jointStateCallback(const sensor_msgs::JointStateConstPtr& msg);
+  void processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+  bool checkIK(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+
+  visualization_msgs::Marker makeBox(visualization_msgs::InteractiveMarker &msg);
+  visualization_msgs::Marker makeArrow(visualization_msgs::InteractiveMarker &msg, double arrow_length);
+  visualization_msgs::InteractiveMarkerControl& makeArrowControl(visualization_msgs::InteractiveMarker &msg,
+                                                                 double arrow_length);
+  void makeMenu();
+  interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
+                                                                  MenuEntryHandleMap& map, std::string name);
 
 
-
+protected:
+  ros::NodeHandle nh_;
   interactive_markers::InteractiveMarkerServer marker_server_;
+  std::string group_name_;
+  ros::Subscriber joint_state_subscriber_;
+  int name_count_;
+  std::map<std::string, geometry_msgs::Pose> marker_poses_;
+  interactive_markers::MenuHandler::FeedbackCallback marker_callback_ptr_;
+  sensor_msgs::JointState joint_state_;
+  boost::mutex mutex_;
+
+
+
+  MenuEntryMap menu_entry_maps_;
+  MenuHandlerMap menu_handler_map_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_check_ik_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
 };
 
 }

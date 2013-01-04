@@ -77,7 +77,7 @@ bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_pref
 }
 
 bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTrajectory::Request &request,
-                                                                            HgCartesianTrajectory::Response &respond)
+                                                                   HgCartesianTrajectory::Response &respond)
 {
   switch(request.type)
   {
@@ -97,10 +97,10 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
 }
 
 bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
-                                            const arm_navigation_msgs::RobotState& robot_state,
-                                            geometry_msgs::PoseStamped pose,
-                                            std::vector<double>& start_position,
-                                            std::vector<double>& solution)
+                                       const arm_navigation_msgs::RobotState& robot_state,
+                                       geometry_msgs::PoseStamped pose,
+                                       std::vector<double>& start_position,
+                                       std::vector<double>& solution)
 {
   kinematics_msgs::GetPositionIK::Request ik_request;
   kinematics_msgs::GetPositionIK::Response ik_response;

@@ -99,7 +99,6 @@ InspectionPoint::InspectionPoint(InspectionPointMarkerServer* server,
 
 
   control.interaction_mode = InteractiveMarkerControl::MENU;
-    //control.markers.push_back(makeMarkerSphere(marker));
   int_marker.controls.push_back(control);
   menu_handler_map_["Inspection Point"].apply(server_->marker_server_, int_marker.name);
 
@@ -116,20 +115,67 @@ InspectionPoint::~InspectionPoint()
 
 void InspectionPoint::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
-  ROS_DEBUG_STREAM(
+  ROS_INFO_STREAM(
       feedback->marker_name << " is now at " << feedback->pose.position.x << ", " << feedback->pose.position.y << ", " << feedback->pose.position.z);
-
+  ROS_INFO("event type %d", feedback->event_type);
   switch (feedback->event_type)
   {
     case InteractiveMarkerFeedback::MENU_SELECT:
-      ROS_DEBUG("%s %d" , feedback->marker_name.c_str(), feedback->menu_entry_id);
+      ROS_INFO("%s %d" , feedback->marker_name.c_str(), feedback->menu_entry_id);
       if(feedback->menu_entry_id == menu_entry_check_ik_)
       {
         ROS_INFO("check ik");
+
+        kinematics_msgs::GetPositionIK::Request ik_request;
+        kinematics_msgs::GetPositionIK::Response ik_response;
+
+        ik_request.ik_request.ik_link_name = server_->tip_link_map_[server_->group_name_];
+        ik_request.ik_request.pose_stamped.header.frame_id = server_->collision_models_interface_->getWorldFrameId();
+        ik_request.ik_request.pose_stamped.header.stamp = ros::Time::now();
+        ik_request.ik_request.pose_stamped.pose = feedback->pose;
+
+        //ik_request.ik_request.ik_seed_state.joint_state.position = server_->;
+        //ik_request.ik_request.ik_seed_state.joint_state.name = robot_state.joint_state.name;
+        ik_request.timeout = ros::Duration(5.0);
+
+        ROS_DEBUG(
+            "request pose: (%0.3f %0.3f %0.3f) (%0.3f %0.3f %0.3f %0.3f)",
+            feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z,
+            feedback->pose.orientation.x, feedback->pose.orientation.y, feedback->pose.orientation.z, feedback->pose.orientation.w);
+
+        bool ik_service_call = server_->ik_none_collision_client_map_[server_->group_name_].call(ik_request, ik_response);
+        if (!ik_service_call)
+        {
+          ROS_ERROR("IK service call failed!");
+          //return 0;
+        }
+
+        if (ik_response.error_code.val == ik_response.error_code.SUCCESS)
+        {
+          //solution = ik_response.solution.joint_state.position;
+          //for(int i = 0; i < (int)solution.size(); i++)
+          //{
+            //ROS_DEBUG("Joint %s solution angles [%d]: %f", robot_state.joint_state.name[i].c_str(), i, solution[i]);
+         // }
+          ROS_DEBUG("IK service call succeeded");
+          //return 1;
+        }
+        else
+        {
+          ROS_DEBUG("IK service call error code: %d", ik_response.error_code.val);
+        }
+        //return 0;
+
+
+
+
+
+
+
       }
       else if(feedback->menu_entry_id == menu_entry_reset_position_)
       {
-        ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+        ROS_INFO_STREAM("reset position:" << feedback->header << " " << feedback->pose);
 
         geometry_msgs::Pose pose = feedback->pose;
         pose.position = geometry_msgs::Point();
@@ -138,7 +184,7 @@ void InspectionPoint::processMarkerCallback(const visualization_msgs::Interactiv
       }
       else if(feedback->menu_entry_id == menu_entry_reset_orientation_)
       {
-        ROS_DEBUG("reset orientation");
+        ROS_INFO("reset orientation");
         geometry_msgs::Pose pose = feedback->pose;
         pose.orientation = geometry_msgs::Quaternion();
         server_->marker_server_.setPose(feedback->marker_name, pose, feedback->header);
