@@ -36,10 +36,10 @@
 
 
 #include <interactive_markers/interactive_marker_server.h>
-#include <hg_interactive_marker/inspection_point.h>
-
 #include <hg_cartesian_trajectory/planning_base.h>
-
+#include <interactive_markers/menu_handler.h>
+#include <kinematics_msgs/GetKinematicSolverInfo.h>
+#include <tf/transform_listener.h>
 #include <boost/thread.hpp>
 
 namespace hg_interactive_marker
@@ -49,18 +49,16 @@ typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> Men
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
-class InspectionPointMarkerServer : public hg_cartesian_trajectory::PlanningBase
+class InspectionPointMarkerServer
 {
   friend class InspectionPoint;
 public:
-  InspectionPointMarkerServer(const std::string& group_name="manipulator");
+  InspectionPointMarkerServer();
   ~InspectionPointMarkerServer();
 
   void addMarker(const std::string& name, geometry_msgs::Pose pose = geometry_msgs::Pose() ,double arrow_length = 0.1);
 
 protected:
-
-  void jointStateCallback(const sensor_msgs::JointStateConstPtr& msg);
   void processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
   bool checkIK(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
@@ -74,23 +72,29 @@ protected:
 
 
 protected:
-  ros::NodeHandle nh_;
+  ros::NodeHandle nh_, nh_private_;
   interactive_markers::InteractiveMarkerServer marker_server_;
-  std::string group_name_;
-  ros::Subscriber joint_state_subscriber_;
+  tf::TransformListener listener_;
+  std::string world_frame_;
+  std::string base_link_;
+  ros::ServiceClient ik_query_client_;
+  ros::ServiceClient ik_client_;
+  kinematics_msgs::GetKinematicSolverInfo::Response response_;
   int name_count_;
   std::map<std::string, geometry_msgs::Pose> marker_poses_;
   interactive_markers::MenuHandler::FeedbackCallback marker_callback_ptr_;
-  sensor_msgs::JointState joint_state_;
-  boost::mutex mutex_;
-
 
 
   MenuEntryMap menu_entry_maps_;
   MenuHandlerMap menu_handler_map_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_top_add_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_top_clear_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_check_ik_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_add_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_add_here_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
 };
 
 }

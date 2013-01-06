@@ -31,6 +31,5 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 
 rosbuild_add_executable(inspection_point_marker_server 
-  src/inspection_point_marker.cpp
-  src/inspection_point.cpp)
+  src/inspection_point_marker.cpp)
 target_link_libraries(inspection_point_marker_server hg_cartesian_trajectory)  
