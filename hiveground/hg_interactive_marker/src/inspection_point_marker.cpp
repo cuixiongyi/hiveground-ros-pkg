@@ -33,27 +33,57 @@
  
 #include <ros/ros.h>
 #include <hg_interactive_marker/inspection_point_marker_server.h>
-#include <hg_interactive_marker/inspection_point.h>
+#include <kinematics_msgs/GetKinematicSolverInfo.h>
+
 
 using namespace hg_interactive_marker;
 using namespace visualization_msgs;
 using namespace interactive_markers;
 
-InspectionPointMarkerServer::InspectionPointMarkerServer(const std::string& group_name)
-  : PlanningBase::PlanningBase(), marker_server_("inspection_point_marker"), group_name_(group_name)
+InspectionPointMarkerServer::InspectionPointMarkerServer()
+ : nh_(),
+   nh_private_("~"),
+   marker_server_("inspection_point_marker")
 {
-  joint_state_subscriber_ = nh_.subscribe("/joint_states", 1, &InspectionPointMarkerServer::jointStateCallback, this);
   name_count_ = 0;
   marker_callback_ptr_ = boost::bind(&InspectionPointMarkerServer::processMarkerCallback, this, _1);
+
+  ros::service::waitForService("get_ik_solver_info");
+  ros::service::waitForService("get_ik");
+
+  ROS_ASSERT(nh_private_.getParam("world_frame", world_frame_));
+  ROS_INFO_STREAM("world_frame: " << world_frame_);
+
+  ROS_ASSERT(nh_private_.getParam("base_link", base_link_));
+  ROS_INFO_STREAM("base_link: " << base_link_);
+
+  ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
+  ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
+
+  kinematics_msgs::GetKinematicSolverInfo::Request request;
+
+
+  if (ik_query_client_.call(request, response_))
+  {
+    for (unsigned int i = 0; i < response_.kinematic_solver_info.joint_names.size(); i++)
+    {
+      ROS_INFO("Joint: %d %s", i, response_.kinematic_solver_info.joint_names[i].c_str());
+    }
+
+    for (unsigned int i = 0; i < response_.kinematic_solver_info.link_names.size(); i++)
+    {
+      ROS_INFO("Link: %d %s", i, response_.kinematic_solver_info.link_names[i].c_str());
+    }
+  }
+  else
+  {
+    ROS_ERROR("Could not call query service");
+    ros::shutdown();
+    exit(1);
+  }
+
+
   makeMenu();
-
-
-  //inspection_point_.push_back(InspectionPoint(this, "test", "/base_link", "haha"));
-  //InspectionPoint ip2(this, "test1", "/base_link", "haha");
-  //hg_interactive_marker::InspectionPoint ip3(this, "test2", "/base_link", "haha");
-  //hg_interactive_marker::InspectionPoint ip4(this, "test3", "/base_link", "haha");
-  //hg_interactive_marker::InspectionPoint ip5(this, "test4", "/base_link", "haha");
-  //marker_server_.applyChanges();
 }
 
 InspectionPointMarkerServer::~InspectionPointMarkerServer()
@@ -64,8 +94,11 @@ InspectionPointMarkerServer::~InspectionPointMarkerServer()
 void InspectionPointMarkerServer::addMarker(const std::string& name, geometry_msgs::Pose pose, double arrow_length)
 {
   InteractiveMarker int_marker;
-  int_marker.name = name;
-  int_marker.header.frame_id = collision_models_interface_->getWorldFrameId();
+  std::stringstream ss;
+  ss << "marker_" << name_count_++ << "_" << name;
+  ROS_INFO_STREAM("Added " << ss.str());
+  int_marker.name = ss.str();
+  int_marker.header.frame_id = world_frame_;
   int_marker.scale = arrow_length * 0.5;
   int_marker.pose = pose;
 
@@ -112,21 +145,12 @@ void InspectionPointMarkerServer::addMarker(const std::string& name, geometry_ms
   control.interaction_mode = InteractiveMarkerControl::MENU;
   int_marker.controls.push_back(control);
   menu_handler_map_["Inspection Point"].apply(marker_server_, int_marker.name);
-
   marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
 
 
   marker_poses_[int_marker.name] = int_marker.pose;
 
   marker_server_.applyChanges();
-}
-
-void InspectionPointMarkerServer::jointStateCallback(const sensor_msgs::JointStateConstPtr& msg)
-{
-  //ROS_INFO_STREAM_THROTTLE(1.0, *msg);
-  mutex_.lock();
-  joint_state_ = *msg;
-  mutex_.unlock();
 }
 
 void InspectionPointMarkerServer::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -136,43 +160,89 @@ void InspectionPointMarkerServer::processMarkerCallback(const visualization_msgs
     case InteractiveMarkerFeedback::POSE_UPDATE:
       ROS_DEBUG_STREAM(
            feedback->marker_name << " is now at " << feedback->pose.position.x << ", " << feedback->pose.position.y << ", " << feedback->pose.position.z);
-      //if(checkIK(feedback))
-      //{
-        //marker_poses_[feedback->marker_name] = feedback->pose;
-      //}
-      //else
-      //{
-        //marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
-        //marker_server_.applyChanges();
-      //}
-
-      marker_poses_[feedback->marker_name] = feedback->pose;
+      if(checkIK(feedback))
+      {
+        marker_poses_[feedback->marker_name] = feedback->pose;
+      }
+      else
+      {
+        marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
+        marker_server_.applyChanges();
+      }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
-      if(feedback->menu_entry_id == menu_entry_check_ik_)
-      {
-        if(checkIK(feedback))
-        {
-          //marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
-          //marker_server_.applyChanges();
-        }
 
-      }
-      else if(feedback->menu_entry_id == menu_entry_reset_position_)
+      if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
-        ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
-        geometry_msgs::Pose pose = feedback->pose;
-        pose.position = geometry_msgs::Point();
-        marker_server_.setPose(feedback->marker_name, pose, feedback->header);
-        marker_server_.applyChanges();
+        if(feedback->menu_entry_id == menu_entry_check_ik_)
+        {
+          if(!checkIK(feedback))
+          {
+            marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
+            marker_server_.applyChanges();
+          }
+        }
+        else if(feedback->menu_entry_id == menu_entry_reset_position_)
+        {
+          ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+          geometry_msgs::Pose pose = feedback->pose;
+          pose.position = geometry_msgs::Point();
+          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
+          marker_server_.applyChanges();
+        }
+        else if(feedback->menu_entry_id == menu_entry_reset_orientation_)
+        {
+          ROS_DEBUG("reset orientation");
+          geometry_msgs::Pose pose = feedback->pose;
+          pose.orientation = geometry_msgs::Quaternion();
+          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
+          marker_server_.applyChanges();
+        }
+        else if(feedback->menu_entry_id == menu_entry_add_)
+        {
+          ROS_DEBUG("add");
+          tf::StampedTransform transform;
+          listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+          geometry_msgs::Pose pose;
+          tf::poseTFToMsg(transform, pose);
+          addMarker("default", pose);
+        }
+        else if(feedback->menu_entry_id == menu_entry_add_here_)
+        {
+          ROS_DEBUG("add here");
+          addMarker("default", feedback->pose);
+        }
+        else if(feedback->menu_entry_id == menu_entry_remove_)
+        {
+          ROS_DEBUG_STREAM("remove " << feedback->marker_name);
+          marker_poses_.erase(feedback->marker_name);
+          marker_server_.erase(feedback->marker_name);
+          marker_server_.applyChanges();
+        }
       }
-      else if(feedback->menu_entry_id == menu_entry_reset_orientation_)
+      else if(feedback->marker_name == "top_level")
       {
-        ROS_DEBUG("reset orientation");
-        geometry_msgs::Pose pose = feedback->pose;
-        pose.orientation = geometry_msgs::Quaternion();
-        marker_server_.setPose(feedback->marker_name, pose, feedback->header);
-        marker_server_.applyChanges();
+        if(feedback->menu_entry_id == menu_entry_top_add_)
+        {
+          ROS_DEBUG("top add");
+          tf::StampedTransform transform;
+          listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+          geometry_msgs::Pose pose;
+          tf::poseTFToMsg(transform, pose);
+          addMarker("default", pose);
+        }
+        else if(feedback->menu_entry_id == menu_entry_top_clear_)
+        {
+          ROS_DEBUG("clear");
+          std::map<std::string, geometry_msgs::Pose>::iterator it = marker_poses_.begin();
+          while(it != marker_poses_.end())
+          {
+            marker_server_.erase(it->first);
+            it++;
+          }
+          marker_poses_.clear();
+          marker_server_.applyChanges();
+        }
       }
       break;
     default:
@@ -180,51 +250,70 @@ void InspectionPointMarkerServer::processMarkerCallback(const visualization_msgs
   }
 }
 
+
 bool InspectionPointMarkerServer::checkIK(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
-  ROS_INFO("check IK");
+  ROS_DEBUG_STREAM("check IK: " << feedback->pose);
 
-  kinematics_msgs::GetPositionIK::Request ik_request;
-  kinematics_msgs::GetPositionIK::Response ik_response;
+  kinematics_msgs::GetPositionIK::Request gpik_req;
+  kinematics_msgs::GetPositionIK::Response gpik_res;
+  gpik_req.timeout = ros::Duration(5.0);
+  gpik_req.ik_request.ik_link_name = response_.kinematic_solver_info.link_names[0];
+  gpik_req.ik_request.pose_stamped.header.frame_id = base_link_;
 
-  ik_request.ik_request.ik_link_name = tip_link_map_[group_name_];
-  ik_request.ik_request.pose_stamped.header.frame_id = collision_models_interface_->getWorldFrameId();
-  ik_request.ik_request.pose_stamped.header.stamp = ros::Time::now();
-  ik_request.ik_request.pose_stamped.pose = marker_poses_[feedback->marker_name];
-
-  mutex_.lock();
-  //hacking, it will not work on multiple arms system
-  ik_request.ik_request.ik_seed_state.joint_state = joint_state_;
-  //ik_request.ik_request.ik_seed_state.joint_state.name = robot_state.joint_state.name;
-  mutex_.unlock();
-  ik_request.ik_request.robot_state = ik_request.ik_request.ik_seed_state;
-  ik_request.timeout = ros::Duration(0.2);
-
-  ROS_INFO_STREAM(
-      feedback->marker_name << " is now at " << feedback->pose.position.x << ", " << feedback->pose.position.y << ", " << feedback->pose.position.z);
-
-  bool ik_service_call = ik_none_collision_client_map_[group_name_].call(ik_request, ik_response);
-  if (!ik_service_call)
+  geometry_msgs::Pose transformed_pose;
+  if(world_frame_ != base_link_)
   {
-    ROS_ERROR("IK service call failed!");
-    return false;
-  }
-
-  if (ik_response.error_code.val == ik_response.error_code.SUCCESS)
-  {
-    //solution = ik_response.solution.joint_state.position;
-    //for(int i = 0; i < (int)solution.size(); i++)
-    //{
-    //ROS_DEBUG("Joint %s solution angles [%d]: %f", robot_state.joint_state.name[i].c_str(), i, solution[i]);
-    //}
-    ROS_DEBUG("IK service call succeeded");
-    return true;
+    tf::StampedTransform transform;
+    try
+    {
+      listener_.lookupTransform(world_frame_, base_link_, ros::Time(0), transform);
+      tf::Transform tf;
+      tf::poseMsgToTF(feedback->pose, tf);
+      tf = transform * tf;
+      tf::poseTFToMsg(tf, transformed_pose);
+    }
+    catch (const tf::TransformException& ex)
+    {
+      ROS_ERROR("%s", ex.what());
+    }
   }
   else
   {
-    ROS_DEBUG("IK service call error code: %d", ik_response.error_code.val);
+    transformed_pose = feedback->pose;
   }
-  return false;
+
+  gpik_req.ik_request.pose_stamped.pose = transformed_pose;
+
+  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(response_.kinematic_solver_info.joint_names.size());
+  gpik_req.ik_request.ik_seed_state.joint_state.name = response_.kinematic_solver_info.joint_names;
+
+  for(unsigned int i=0; i< response_.kinematic_solver_info.joint_names.size(); i++)
+  {
+    gpik_req.ik_request.ik_seed_state.joint_state.position[i] =
+        (response_.kinematic_solver_info.limits[i].min_position +
+         response_.kinematic_solver_info.limits[i].max_position) / 2.0;
+  }
+
+  if(ik_client_.call(gpik_req, gpik_res))
+  {
+    if(gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
+    {
+      for(unsigned int i=0; i < gpik_res.solution.joint_state.name.size(); i ++)
+        ROS_DEBUG("Joint: %s %f",gpik_res.solution.joint_state.name[i].c_str(),gpik_res.solution.joint_state.position[i]);
+    }
+    else
+    {
+      ROS_ERROR("Inverse kinematics failed");
+      return false;
+    }
+  }
+  else
+  {
+    ROS_ERROR("Inverse kinematics service call failed");
+    return false;
+  }
+  return true;
 
 }
 
@@ -276,9 +365,12 @@ InteractiveMarkerControl& InspectionPointMarkerServer::makeArrowControl( Interac
 
 void InspectionPointMarkerServer::makeMenu()
 {
+  menu_entry_maps_["Top Level"] = MenuEntryHandleMap();
   menu_entry_maps_["Inspection Point"] = MenuEntryHandleMap();
 
+
   // Allocate memory to the menu handlers
+  menu_handler_map_["Top Level"];
   menu_handler_map_["Inspection Point"];
 
   menu_entry_check_ik_ = registerMenuEntry(
@@ -295,6 +387,53 @@ void InspectionPointMarkerServer::makeMenu()
       menu_handler_map_["Inspection Point"],
       menu_entry_maps_["Inspection Point"],
       "Reset orientation");
+
+  menu_entry_add_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Add");
+
+  menu_entry_add_here_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Add Here");
+
+  menu_entry_remove_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Remove");
+
+  menu_entry_top_add_ = registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Add");
+  menu_entry_top_clear_ = registerMenuEntry(menu_handler_map_["Top Level"], menu_entry_maps_["Top Level"], "Clear");
+
+
+  InteractiveMarker int_marker;
+  int_marker.pose.position.z = 2.0;
+  int_marker.name = "top_level";
+  int_marker.description = "Inspection Marker Server";
+  int_marker.header.frame_id = world_frame_;
+
+  InteractiveMarkerControl control;
+  control.interaction_mode = InteractiveMarkerControl::MENU;
+  control.always_visible = true;
+
+  Marker labelMarker;
+  labelMarker.type = Marker::TEXT_VIEW_FACING;
+  labelMarker.text = "Inspection Marker Command...";
+  labelMarker.color.r = 1.0;
+  labelMarker.color.g = 1.0;
+  labelMarker.color.b = 1.0;
+  labelMarker.color.a = 1.0;
+  labelMarker.scale.x = 0.5;
+  labelMarker.scale.y = 0.2;
+  labelMarker.scale.z = 0.1;
+  control.markers.push_back(labelMarker);
+
+  int_marker.controls.push_back(control);
+
+  marker_server_.insert(int_marker, marker_callback_ptr_);
+  menu_handler_map_["Top Level"].apply(marker_server_, int_marker.name);
+  marker_server_.applyChanges();
 }
 
 MenuHandler::EntryHandle InspectionPointMarkerServer::registerMenuEntry(interactive_markers::MenuHandler& handler, MenuEntryHandleMap& map, std::string name)
@@ -307,24 +446,12 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "inspection_point_marker");
 
-  /*
-  // create an interactive marker server on the topic namespace simple_marker
-  interactive_markers::InteractiveMarkerServer server("inspection_point_marker");
 
-  hg_interactive_marker::InspectionPoint ip(server, "test", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip2(server, "test1", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip3(server, "test2", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip4(server, "test3", "/base_link", "haha");
-  hg_interactive_marker::InspectionPoint ip5(server, "test4", "/base_link", "haha");
-
-
-  // 'commit' changes and send to all clients
-  server.applyChanges();
-  */
+  //listener.lookupTransform()
 
   InspectionPointMarkerServer inspection_point_marker_server;
-  inspection_point_marker_server.run();
-  inspection_point_marker_server.addMarker("test01");
+  //inspection_point_marker_server.run();
+  //inspection_point_marker_server.addMarker("test01");
 
 
 
