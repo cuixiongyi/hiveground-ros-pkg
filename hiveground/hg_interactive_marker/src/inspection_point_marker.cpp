@@ -174,31 +174,7 @@ void InspectionPointMarkerServer::processMarkerCallback(const visualization_msgs
 
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
-        if(feedback->menu_entry_id == menu_entry_check_ik_)
-        {
-          if(!checkIK(feedback))
-          {
-            marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
-            marker_server_.applyChanges();
-          }
-        }
-        else if(feedback->menu_entry_id == menu_entry_reset_position_)
-        {
-          ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
-          geometry_msgs::Pose pose = feedback->pose;
-          pose.position = geometry_msgs::Point();
-          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
-          marker_server_.applyChanges();
-        }
-        else if(feedback->menu_entry_id == menu_entry_reset_orientation_)
-        {
-          ROS_DEBUG("reset orientation");
-          geometry_msgs::Pose pose = feedback->pose;
-          pose.orientation = geometry_msgs::Quaternion();
-          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
-          marker_server_.applyChanges();
-        }
-        else if(feedback->menu_entry_id == menu_entry_add_)
+        if(feedback->menu_entry_id == menu_entry_add_)
         {
           ROS_DEBUG("add");
           tf::StampedTransform transform;
@@ -211,6 +187,22 @@ void InspectionPointMarkerServer::processMarkerCallback(const visualization_msgs
         {
           ROS_DEBUG("add here");
           addMarker("default", feedback->pose);
+        }
+        else if(feedback->menu_entry_id == menu_entry_reset_position_)
+        {
+          ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+          geometry_msgs::Pose pose = feedback->pose;
+          pose.position = geometry_msgs::Point();
+          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
+          marker_server_.applyChanges();
+        }
+        else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
+        {
+          ROS_DEBUG("reset orientation");
+          geometry_msgs::Pose pose = feedback->pose;
+          pose.orientation = geometry_msgs::Quaternion();
+          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
+          marker_server_.applyChanges();
         }
         else if(feedback->menu_entry_id == menu_entry_remove_)
         {
@@ -373,10 +365,15 @@ void InspectionPointMarkerServer::makeMenu()
   menu_handler_map_["Top Level"];
   menu_handler_map_["Inspection Point"];
 
-  menu_entry_check_ik_ = registerMenuEntry(
+  menu_entry_add_ = registerMenuEntry(
       menu_handler_map_["Inspection Point"],
       menu_entry_maps_["Inspection Point"],
-      "Check IK");
+      "Add");
+
+  menu_entry_add_here_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Add Here");
 
   menu_entry_reset_position_ = registerMenuEntry(
       menu_handler_map_["Inspection Point"],
@@ -387,16 +384,6 @@ void InspectionPointMarkerServer::makeMenu()
       menu_handler_map_["Inspection Point"],
       menu_entry_maps_["Inspection Point"],
       "Reset orientation");
-
-  menu_entry_add_ = registerMenuEntry(
-      menu_handler_map_["Inspection Point"],
-      menu_entry_maps_["Inspection Point"],
-      "Add");
-
-  menu_entry_add_here_ = registerMenuEntry(
-      menu_handler_map_["Inspection Point"],
-      menu_entry_maps_["Inspection Point"],
-      "Add Here");
 
   menu_entry_remove_ = registerMenuEntry(
       menu_handler_map_["Inspection Point"],
