@@ -236,9 +236,9 @@ void QtButtonPropertyBrowserPrivate::slotToggled(bool checked)
     setExpanded(item, checked);
 
     if (checked)
-        emit q_ptr->expanded(m_itemToIndex.value(item));
+        Q_EMIT q_ptr->expanded(m_itemToIndex.value(item));
     else
-        emit q_ptr->collapsed(m_itemToIndex.value(item));
+        Q_EMIT q_ptr->collapsed(m_itemToIndex.value(item));
 }
 
 void QtButtonPropertyBrowserPrivate::updateLater()
@@ -526,7 +526,7 @@ void QtButtonPropertyBrowserPrivate::updateItem(WidgetItem *item)
 /*!
     \fn void QtButtonPropertyBrowser::collapsed(QtBrowserItem *item)
 
-    This signal is emitted when the \a item is collapsed.
+    This signal is Q_EMITted when the \a item is collapsed.
 
     \sa expanded(), setExpanded()
 */
@@ -534,7 +534,7 @@ void QtButtonPropertyBrowserPrivate::updateItem(WidgetItem *item)
 /*!
     \fn void QtButtonPropertyBrowser::expanded(QtBrowserItem *item)
 
-    This signal is emitted when the \a item is expanded.
+    This signal is Q_EMITted when the \a item is expanded.
 
     \sa collapsed(), setExpanded()
 */

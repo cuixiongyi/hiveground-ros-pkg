@@ -30,87 +30,38 @@
  *
  * Author: Mahisorn Wongphati
  */
-#include <QtGui/QApplication>
-#include <qevent.h>
-
-
-#include <ros/ros.h>
-
-
-#include <boost/thread.hpp>
-
 
 #include <hg_inspector_arm/inspector_arm.h>
 
-
-InspectorArm::InspectorArm(QWidget *parent, Qt::WFlags flags)
-  : QMainWindow(parent, flags),
-    quit_thread_(false),
-    nh_(), nh_private_("~"),
-    marker_server_("inspection_point_marker")
+bool InspectorArm::initializePropertyEditor()
 {
-  ui.setupUi(this);
-}
-
-InspectorArm::~InspectorArm()
-{
-
-}
-
-bool InspectorArm::initialize()
-{
-  if(!initializePropertyEditor()) return false;
-  if(!initializeInteractiveMarkerServer()) return false;
+  double_manager_ = new QtDoublePropertyManager(this);
+  string_manager_ = new QtStringPropertyManager(this);
+  color_manager_ = new QtColorPropertyManager(this);
+  font_manager_ = new QtFontPropertyManager(this);
+  point_manager_ = new QtPointPropertyManager(this);
+  size_manager_ = new QtSizePropertyManager(this);
 
 
+  QtDoubleSpinBoxFactory *doubleSpinBoxFactory = new QtDoubleSpinBoxFactory(this);
+  QtCheckBoxFactory *checkBoxFactory = new QtCheckBoxFactory(this);
+  QtSpinBoxFactory *spinBoxFactory = new QtSpinBoxFactory(this);
+  QtLineEditFactory *lineEditFactory = new QtLineEditFactory(this);
+  QtEnumEditorFactory *comboBoxFactory = new QtEnumEditorFactory(this);
+
+  property_editor_ = new QtTreePropertyBrowser(ui.propertyDock);
+  property_editor_->setFactoryForManager(double_manager_, doubleSpinBoxFactory);
+  property_editor_->setFactoryForManager(string_manager_, lineEditFactory);
+  property_editor_->setFactoryForManager(color_manager_->subIntPropertyManager(), spinBoxFactory);
+  property_editor_->setFactoryForManager(font_manager_->subIntPropertyManager(), spinBoxFactory);
+  property_editor_->setFactoryForManager(font_manager_->subBoolPropertyManager(), checkBoxFactory);
+  property_editor_->setFactoryForManager(font_manager_->subEnumPropertyManager(), comboBoxFactory);
+  property_editor_->setFactoryForManager(point_manager_->subIntPropertyManager(), spinBoxFactory);
+  property_editor_->setFactoryForManager(size_manager_->subIntPropertyManager(), spinBoxFactory);
+  ui.propertyDock->setWidget(property_editor_);
   return true;
 }
 
 
-void InspectorArm::closeEvent(QCloseEvent *event)
-{
-  quit_thread_ = true;
-  event->accept();
-}
 
-InspectorArm* g_inspector_arm = NULL;
-bool g_initialized = false;
-
-void spin_function()
-{
-  ros::WallRate r(100.0);
-  while (ros::ok() && !g_initialized)
-  {
-    r.sleep();
-    ros::spinOnce();
-  }
-  while (ros::ok() && !g_inspector_arm->quit_thread_)
-  {
-    r.sleep();
-    ros::spinOnce();
-  }
-}
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "hg_inspection_arm", ros::init_options::NoSigintHandler);
-  boost::thread spin_thread(boost::bind(&spin_function));
-
-  QApplication a(argc, argv);
-
-  InspectorArm arm;
-  g_inspector_arm = &arm;
-  arm.show();
-
-  g_initialized = arm.initialize();
-
-  if(!g_initialized)
-    exit(-1);
-
-  int ret = a.exec();
-
-  spin_thread.join();
-
-  return ret;
-}
 

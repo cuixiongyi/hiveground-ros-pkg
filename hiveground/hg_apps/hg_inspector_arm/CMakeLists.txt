@@ -23,9 +23,12 @@ set( QT_USE_QTOPENGL TRUE )
 set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 
-#ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
 set(qt_srcs	  
+    src/inspection_point.cpp
+    src/property_editor.cpp
+	src/interactive_marker.cpp
     src/inspector_arm.cpp)
 set(qt_hdrs
     include/hg_inspector_arm/inspector_arm.h)
@@ -136,8 +139,6 @@ QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 QT4_WRAP_UI(uis_h src/inspector_arm.ui)
 
 
-
-
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
@@ -152,6 +153,9 @@ QT4_WRAP_UI(uis_h src/inspector_arm.ui)
 #target_link_libraries(example ${PROJECT_NAME})
 
 set(srcs
+    src/inspection_point.cpp
+    src/property_editor.cpp
+    src/interactive_marker.cpp
     src/inspector_arm.cpp)
     
 rosbuild_add_library(qtpropertybrowser ${SRCS})
