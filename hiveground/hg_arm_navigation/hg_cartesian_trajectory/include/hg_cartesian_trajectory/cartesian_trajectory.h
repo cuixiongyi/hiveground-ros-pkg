@@ -63,8 +63,6 @@ public:
   void run();
 
   bool initialize(const std::string& param_server_prefix);
-  //bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
-  //                                       std::vector<std::string> &group_names);
 
 
   bool executeCartesianTrajectoryPlanner(HgCartesianTrajectory::Request &request,
@@ -81,15 +79,6 @@ protected:
 
 
 protected:
-  //ros::NodeHandle nh_;
-  //ros::NodeHandle nh_private_;
-  //boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
-  //std::map<std::string, std::string> tip_link_map_;
-  //std::map<std::string, ros::ServiceClient> ik_client_map_;
-  //std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
-  //kinematics_msgs::GetPositionIK::Request ik_request_;
-  //kinematics_msgs::GetPositionIK::Response ik_respond_;
-
   std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceServer service_;
   planning_environment::JointStateMonitor joint_state_monitor;

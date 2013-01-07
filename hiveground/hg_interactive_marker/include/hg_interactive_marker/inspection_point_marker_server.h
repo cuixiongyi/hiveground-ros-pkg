@@ -89,11 +89,11 @@ protected:
   MenuHandlerMap menu_handler_map_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_top_add_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_top_clear_;
-  interactive_markers::MenuHandler::EntryHandle menu_entry_check_ik_;
-  interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
-  interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
+
   interactive_markers::MenuHandler::EntryHandle menu_entry_add_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_add_here_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
 };
 
