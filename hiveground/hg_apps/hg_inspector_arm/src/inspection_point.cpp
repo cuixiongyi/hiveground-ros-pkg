@@ -38,3 +38,36 @@ int InspectionPointItem::rtti() const { return RTTI; }
 
 int InspectionPointLookAt::RTTI = Rtti_LookAt;
 int InspectionPointLookAt::rtti() const { return RTTI; }
+
+void InspectionPointItem::move(double x, double y, double z)
+{
+  moveBy(x - tf_.getOrigin().getX(), y - tf_.getOrigin().getY(), z - tf_.getOrigin().getZ());
+}
+
+void InspectionPointItem::moveBy(double dx, double dy, double dz)
+{
+  if(dx || dy || dz)
+  {
+    tf::Vector3 origin = tf_.getOrigin();
+    tf_.getOrigin().setValue(origin.x() + dx, origin.y() + dy, origin.z() + dz);
+    geometry_msgs::Pose pose;
+    tf::poseTFToMsg(tf_, pose);
+    server_->setPose(name_.toStdString(), pose);
+    server_->applyChanges();
+  }
+}
+
+void InspectionPointItem::rotate(double roll, double pitch, double yaw)
+{
+
+}
+
+void InspectionPointItem::rotateBy(double dRoll, double dPitch, double dYaw)
+{
+
+}
+
+void InspectorArm::inspectionPointSelected(InspectionPointItem* item)
+{
+
+}
