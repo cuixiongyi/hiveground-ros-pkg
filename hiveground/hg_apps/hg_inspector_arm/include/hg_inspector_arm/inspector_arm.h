@@ -58,7 +58,7 @@ typedef QList<InspectionPointItem*> InspectionPointItemList;
 class InspectionPointItem
 {
 public:
-  InspectionPointItem();
+  InspectionPointItem(interactive_markers::InteractiveMarkerServer* server);
   virtual ~InspectionPointItem();
 
   enum RttiValue
@@ -72,24 +72,48 @@ public:
 
   QString name() { return name_; }
   void setName(const QString& a) { }
-  double x() const { return pose_.position.x; }
-  double y() const { return pose_.position.y; }
-  double z() const { return pose_.position.z; }
-  double roll() const { return 0; }
-  double pitch() const { return 0; }
-  double yaw() const { return 0; }
-  //double rx() const { tf::
-  void move(double x, double y, double z);
-  void setX(double a) { }
-  void setY(double a) { }
-  void setZ(double a) { }
+  inline double x() const { return tf_.getOrigin().getX(); }
+  inline double y() const { return tf_.getOrigin().getY(); }
+  inline double z() const { return tf_.getOrigin().getZ(); }
+  inline double roll() const
+  {
+    double roll, pitch, yaw;
+    tf::Matrix3x3(tf_.getRotation()).getEulerYPR(roll, pitch, yaw);
+    return roll;
+  }
+  inline double pitch() const
+  {
+    double roll, pitch, yaw;
+    tf::Matrix3x3(tf_.getRotation()).getEulerYPR(roll, pitch, yaw);
+    return pitch;
+  }
+  inline double yaw() const
+  {
+    double roll, pitch, yaw;
+    tf::Matrix3x3(tf_.getRotation()).getEulerYPR(roll, pitch, yaw);
+    return yaw;
+  }
+
+  void setX(double a) { move(a, y(), z()); }
+  void setY(double a) { move(x(), a, z()); }
+  void setZ(double a) { move(x(), y(), a); }
   void setRoll(double a) { }
   void setPitch(double a) { }
   void setYaw(double a) { }
 
+  void move(double x, double y, double z);
+  virtual void moveBy(double x, double y, double z);
+  void rotate(double roll, double pitch, double yaw);
+  void rotateBy(double roll, double pitch, double yaw);
+
+  geometry_msgs::Pose getPose();
+
+
 protected:
+  interactive_markers::InteractiveMarkerServer* server_;
   QString name_;
-  geometry_msgs::Pose pose_;
+  tf::Transform tf_;
+  //geometry_msgs::Pose pose_;
 
 };
 
@@ -139,7 +163,7 @@ protected:
   bool initializePropertyEditor();
 
 
-
+  //Interactive marker
   void processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
   bool checkIK(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
@@ -150,6 +174,9 @@ protected:
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
                                                                   MenuEntryHandleMap& map, std::string name);
+
+  //Inspection point
+  void inspectionPointSelected(InspectionPointItem* item);
 
 
 protected:
