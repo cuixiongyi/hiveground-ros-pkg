@@ -240,8 +240,8 @@ static void setSimpleValue(QMap<const QtProperty *, Value> &propertyMap,
 
     it.value() = val;
 
-    emit (manager->*propertyChangedSignal)(property);
-    emit (manager->*valueChangedSignal)(property, val);
+    Q_EMIT (manager->*propertyChangedSignal)(property);
+    Q_EMIT (manager->*valueChangedSignal)(property, val);
 }
 
 template <class ValueChangeParameter, class PropertyManagerPrivate, class PropertyManager, class Value>
@@ -273,8 +273,8 @@ static void setValueInRange(PropertyManager *manager, PropertyManagerPrivate *ma
     if (setSubPropertyValue)
         (managerPrivate->*setSubPropertyValue)(property, data.val);
 
-    emit (manager->*propertyChangedSignal)(property);
-    emit (manager->*valueChangedSignal)(property, data.val);
+    Q_EMIT (manager->*propertyChangedSignal)(property);
+    Q_EMIT (manager->*valueChangedSignal)(property, data.val);
 }
 
 template <class ValueChangeParameter, class PropertyManagerPrivate, class PropertyManager, class Value>
@@ -307,7 +307,7 @@ static void setBorderValues(PropertyManager *manager, PropertyManagerPrivate *ma
     data.setMinimumValue(fromVal);
     data.setMaximumValue(toVal);
 
-    emit (manager->*rangeChangedSignal)(property, data.minVal, data.maxVal);
+    Q_EMIT (manager->*rangeChangedSignal)(property, data.minVal, data.maxVal);
 
     if (setSubPropertyRange)
         (managerPrivate->*setSubPropertyRange)(property, data.minVal, data.maxVal, data.val);
@@ -315,8 +315,8 @@ static void setBorderValues(PropertyManager *manager, PropertyManagerPrivate *ma
     if (data.val == oldVal)
         return;
 
-    emit (manager->*propertyChangedSignal)(property);
-    emit (manager->*valueChangedSignal)(property, data.val);
+    Q_EMIT (manager->*propertyChangedSignal)(property);
+    Q_EMIT (manager->*valueChangedSignal)(property, data.val);
 }
 
 template <class ValueChangeParameter, class PropertyManagerPrivate, class PropertyManager, class Value, class PrivateData>
@@ -345,7 +345,7 @@ static void setBorderValue(PropertyManager *manager, PropertyManagerPrivate *man
 
     (data.*setRangeVal)(borderVal);
 
-    emit (manager->*rangeChangedSignal)(property, data.minVal, data.maxVal);
+    Q_EMIT (manager->*rangeChangedSignal)(property, data.minVal, data.maxVal);
 
     if (setSubPropertyRange)
         (managerPrivate->*setSubPropertyRange)(property, data.minVal, data.maxVal, data.val);
@@ -353,8 +353,8 @@ static void setBorderValue(PropertyManager *manager, PropertyManagerPrivate *man
     if (data.val == oldVal)
         return;
 
-    emit (manager->*propertyChangedSignal)(property);
-    emit (manager->*valueChangedSignal)(property, data.val);
+    Q_EMIT (manager->*propertyChangedSignal)(property);
+    Q_EMIT (manager->*valueChangedSignal)(property, data.val);
 }
 
 template <class ValueChangeParameter, class PropertyManagerPrivate, class PropertyManager, class Value, class PrivateData>
@@ -655,8 +655,8 @@ public:
     the range can be defined in one go using the setRange() slot.
 
     In addition, QtIntPropertyManager provides the valueChanged() signal which
-    is emitted whenever a property created by this manager changes,
-    and the rangeChanged() signal which is emitted whenever such a
+    is Q_EMITted whenever a property created by this manager changes,
+    and the rangeChanged() signal which is Q_EMITted whenever such a
     property changes its range of valid values.
 
     \sa QtAbstractPropertyManager, QtSpinBoxFactory, QtSliderFactory, QtScrollBarFactory
@@ -665,7 +665,7 @@ public:
 /*!
     \fn void QtIntPropertyManager::valueChanged(QtProperty *property, int value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -675,7 +675,7 @@ public:
 /*!
     \fn void QtIntPropertyManager::rangeChanged(QtProperty *property, int minimum, int maximum)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its range of valid values, passing a pointer to the
     \a property and the new \a minimum and \a maximum values.
 
@@ -685,7 +685,7 @@ public:
 /*!
     \fn void QtIntPropertyManager::singleStepChanged(QtProperty *property, int step)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its single step property, passing a pointer to the
     \a property and the new \a step value
 
@@ -872,7 +872,7 @@ void QtIntPropertyManager::setSingleStep(QtProperty *property, int step)
 
     it.value() = data;
 
-    emit singleStepChanged(property, data.singleStep);
+    Q_EMIT singleStepChanged(property, data.singleStep);
 }
 
 /*!
@@ -933,8 +933,8 @@ public:
     setRange() slot.
 
     In addition, QtDoublePropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the rangeChanged() signal which is emitted whenever
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the rangeChanged() signal which is Q_EMITted whenever
     such a property changes its range of valid values.
 
     \sa QtAbstractPropertyManager, QtDoubleSpinBoxFactory
@@ -943,7 +943,7 @@ public:
 /*!
     \fn void QtDoublePropertyManager::valueChanged(QtProperty *property, double value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -953,7 +953,7 @@ public:
 /*!
     \fn void QtDoublePropertyManager::rangeChanged(QtProperty *property, double minimum, double maximum)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its range of valid values, passing a pointer to the
     \a property and the new \a minimum and \a maximum values
 
@@ -963,7 +963,7 @@ public:
 /*!
     \fn void QtDoublePropertyManager::decimalsChanged(QtProperty *property, int prec)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its precision of value, passing a pointer to the
     \a property and the new \a prec value
 
@@ -973,7 +973,7 @@ public:
 /*!
     \fn void QtDoublePropertyManager::singleStepChanged(QtProperty *property, double step)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its single step property, passing a pointer to the
     \a property and the new \a step value
 
@@ -1110,7 +1110,7 @@ void QtDoublePropertyManager::setSingleStep(QtProperty *property, double step)
 
     it.value() = data;
 
-    emit singleStepChanged(property, data.singleStep);
+    Q_EMIT singleStepChanged(property, data.singleStep);
 }
 
 /*!
@@ -1142,7 +1142,7 @@ void QtDoublePropertyManager::setDecimals(QtProperty *property, int prec)
 
     it.value() = data;
 
-    emit decimalsChanged(property, data.decimals);
+    Q_EMIT decimalsChanged(property, data.decimals);
 }
 
 /*!
@@ -1256,8 +1256,8 @@ public:
     regExp() function to retrieve the currently set expression.
 
     In addition, QtStringPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the regExpChanged() signal which is emitted whenever
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the regExpChanged() signal which is Q_EMITted whenever
     such a property changes its currently set regular expression.
 
     \sa QtAbstractPropertyManager, QtLineEditFactory
@@ -1266,7 +1266,7 @@ public:
 /*!
     \fn void QtStringPropertyManager::valueChanged(QtProperty *property, const QString &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -1276,7 +1276,7 @@ public:
 /*!
     \fn void QtStringPropertyManager::regExpChanged(QtProperty *property, const QRegExp &regExp)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its currenlty set regular expression, passing a pointer to
     the \a property and the new \a regExp as parameters.
 
@@ -1391,8 +1391,8 @@ void QtStringPropertyManager::setValue(QtProperty *property, const QString &val)
 
     it.value() = data;
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -1415,7 +1415,7 @@ void QtStringPropertyManager::setRegExp(QtProperty *property, const QRegExp &reg
 
     it.value() = data;
 
-    emit regExpChanged(property, data.regExp);
+    Q_EMIT regExpChanged(property, data.regExp);
 }
 
 void QtStringPropertyManager::setEchoMode(QtProperty *property, EchoMode echoMode)
@@ -1432,8 +1432,8 @@ void QtStringPropertyManager::setEchoMode(QtProperty *property, EchoMode echoMod
     data.echoMode = echoMode;
     it.value() = data;
 
-    emit propertyChanged(property);
-    emit echoModeChanged(property, data.echoMode);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT echoModeChanged(property, data.echoMode);
 }
 
 /*!
@@ -1510,7 +1510,7 @@ QtBoolPropertyManagerPrivate::QtBoolPropertyManagerPrivate() :
     and set using the setValue() slot.
 
     In addition, QtBoolPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
+    which is Q_EMITted whenever a property created by this manager
     changes.
 
     \sa QtAbstractPropertyManager, QtCheckBoxFactory
@@ -1519,7 +1519,7 @@ QtBoolPropertyManagerPrivate::QtBoolPropertyManagerPrivate() :
 /*!
     \fn void QtBoolPropertyManager::valueChanged(QtProperty *property, bool value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 */
@@ -1655,8 +1655,8 @@ public:
     the range can be defined in one go using the setRange() slot.
 
     In addition, QtDatePropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the rangeChanged() signal which is emitted whenever
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the rangeChanged() signal which is Q_EMITted whenever
     such a property changes its range of valid dates.
 
     \sa QtAbstractPropertyManager, QtDateEditFactory, QtDateTimePropertyManager
@@ -1665,7 +1665,7 @@ public:
 /*!
     \fn void QtDatePropertyManager::valueChanged(QtProperty *property, const QDate &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -1675,7 +1675,7 @@ public:
 /*!
     \fn void QtDatePropertyManager::rangeChanged(QtProperty *property, const QDate &minimum, const QDate &maximum)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its range of valid dates, passing a pointer to the \a
     property and the new \a minimum and \a maximum dates.
 
@@ -1868,7 +1868,7 @@ public:
     function, and set using the setValue() slot.
 
     In addition, QtTimePropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
+    which is Q_EMITted whenever a property created by this manager
     changes.
 
     \sa QtAbstractPropertyManager, QtTimeEditFactory
@@ -1877,7 +1877,7 @@ public:
 /*!
     \fn void QtTimePropertyManager::valueChanged(QtProperty *property, const QTime &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -1982,7 +1982,7 @@ public:
     A date and time property has a current value which can be
     retrieved using the value() function, and set using the setValue()
     slot. In addition, QtDateTimePropertyManager provides the
-    valueChanged() signal which is emitted whenever a property created
+    valueChanged() signal which is Q_EMITted whenever a property created
     by this manager changes.
 
     \sa QtAbstractPropertyManager, QtDateTimeEditFactory, QtDatePropertyManager
@@ -1991,7 +1991,7 @@ public:
 /*!
     \fn void QtDateTimePropertyManager::valueChanged(QtProperty *property, const QDateTime &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 */
@@ -2097,7 +2097,7 @@ public:
     function, and set using the setValue() slot.
 
     In addition, QtKeySequencePropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
+    which is Q_EMITted whenever a property created by this manager
     changes.
 
     \sa QtAbstractPropertyManager
@@ -2106,7 +2106,7 @@ public:
 /*!
     \fn void QtKeySequencePropertyManager::valueChanged(QtProperty *property, const QKeySequence &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 */
@@ -2205,7 +2205,7 @@ public:
     function, and set using the setValue() slot.
 
     In addition, QtCharPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
+    which is Q_EMITted whenever a property created by this manager
     changes.
 
     \sa QtAbstractPropertyManager
@@ -2214,7 +2214,7 @@ public:
 /*!
     \fn void QtCharPropertyManager::valueChanged(QtProperty *property, const QChar &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 */
@@ -2368,7 +2368,7 @@ void QtLocalePropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     in a property browser widget, this manager must be associated with editor factory.
 
     In addition, QtLocalePropertyManager provides the valueChanged()
-    signal which is emitted whenever a property created by this
+    signal which is Q_EMITted whenever a property created by this
     manager changes.
 
     \sa QtAbstractPropertyManager, QtEnumPropertyManager
@@ -2377,7 +2377,7 @@ void QtLocalePropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtLocalePropertyManager::valueChanged(QtProperty *property, const QLocale &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -2488,8 +2488,8 @@ void QtLocalePropertyManager::setValue(QtProperty *property, const QLocale &val)
     }
     d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToCountry.value(property), countryIdx);
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, val);
 }
 
 /*!
@@ -2605,7 +2605,7 @@ void QtPointPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     editor factory.
 
     In addition, QtPointPropertyManager provides the valueChanged() signal which
-    is emitted whenever a property created by this manager changes.
+    is Q_EMITted whenever a property created by this manager changes.
 
     \sa QtAbstractPropertyManager, QtIntPropertyManager, QtPointFPropertyManager
 */
@@ -2613,7 +2613,7 @@ void QtPointPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtPointPropertyManager::valueChanged(QtProperty *property, const QPoint &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -2707,8 +2707,8 @@ void QtPointPropertyManager::setValue(QtProperty *property, const QPoint &val)
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToX[property], val.x());
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToY[property], val.y());
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, val);
 }
 
 /*!
@@ -2824,7 +2824,7 @@ void QtPointFPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     editor factory.
 
     In addition, QtPointFPropertyManager provides the valueChanged() signal which
-    is emitted whenever a property created by this manager changes.
+    is Q_EMITted whenever a property created by this manager changes.
 
     \sa QtAbstractPropertyManager, QtDoublePropertyManager, QtPointPropertyManager
 */
@@ -2832,7 +2832,7 @@ void QtPointFPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtPointFPropertyManager::valueChanged(QtProperty *property, const QPointF &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -2842,7 +2842,7 @@ void QtPointFPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtPointFPropertyManager::decimalsChanged(QtProperty *property, int prec)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its precision of value, passing a pointer to the
     \a property and the new \a prec value
 
@@ -2947,8 +2947,8 @@ void QtPointFPropertyManager::setValue(QtProperty *property, const QPointF &val)
     d_ptr->m_doublePropertyManager->setValue(d_ptr->m_propertyToX[property], val.x());
     d_ptr->m_doublePropertyManager->setValue(d_ptr->m_propertyToY[property], val.y());
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, val);
 }
 
 /*!
@@ -2982,7 +2982,7 @@ void QtPointFPropertyManager::setDecimals(QtProperty *property, int prec)
 
     it.value() = data;
 
-    emit decimalsChanged(property, data.decimals);
+    Q_EMIT decimalsChanged(property, data.decimals);
 }
 
 /*!
@@ -3132,8 +3132,8 @@ void QtSizePropertyManagerPrivate::setRange(QtProperty *property,
     be defined in one go using the setRange() slot.
 
     In addition, QtSizePropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the rangeChanged() signal which is emitted whenever
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the rangeChanged() signal which is Q_EMITted whenever
     such a property changes its range of valid sizes.
 
     \sa QtAbstractPropertyManager, QtIntPropertyManager, QtSizeFPropertyManager
@@ -3142,7 +3142,7 @@ void QtSizePropertyManagerPrivate::setRange(QtProperty *property,
 /*!
     \fn void QtSizePropertyManager::valueChanged(QtProperty *property, const QSize &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -3152,7 +3152,7 @@ void QtSizePropertyManagerPrivate::setRange(QtProperty *property,
 /*!
     \fn void QtSizePropertyManager::rangeChanged(QtProperty *property, const QSize &minimum, const QSize &maximum)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its range of valid sizes, passing a pointer to the \a
     property and the new \a minimum and \a maximum sizes.
 
@@ -3475,8 +3475,8 @@ void QtSizeFPropertyManagerPrivate::setRange(QtProperty *property,
     be defined in one go using the setRange() slot.
 
     In addition, QtSizeFPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the rangeChanged() signal which is emitted whenever
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the rangeChanged() signal which is Q_EMITted whenever
     such a property changes its range of valid sizes.
 
     \sa QtAbstractPropertyManager, QtDoublePropertyManager, QtSizePropertyManager
@@ -3485,7 +3485,7 @@ void QtSizeFPropertyManagerPrivate::setRange(QtProperty *property,
 /*!
     \fn void QtSizeFPropertyManager::valueChanged(QtProperty *property, const QSizeF &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -3495,7 +3495,7 @@ void QtSizeFPropertyManagerPrivate::setRange(QtProperty *property,
 /*!
     \fn void QtSizeFPropertyManager::rangeChanged(QtProperty *property, const QSizeF &minimum, const QSizeF &maximum)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its range of valid sizes, passing a pointer to the \a
     property and the new \a minimum and \a maximum sizes.
 
@@ -3505,7 +3505,7 @@ void QtSizeFPropertyManagerPrivate::setRange(QtProperty *property,
 /*!
     \fn void QtSizeFPropertyManager::decimalsChanged(QtProperty *property, int prec)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its precision of value, passing a pointer to the
     \a property and the new \a prec value
 
@@ -3659,7 +3659,7 @@ void QtSizeFPropertyManager::setDecimals(QtProperty *property, int prec)
 
     it.value() = data;
 
-    emit decimalsChanged(property, data.decimals);
+    Q_EMIT decimalsChanged(property, data.decimals);
 }
 
 /*!
@@ -3898,8 +3898,8 @@ void QtRectPropertyManagerPrivate::setConstraint(QtProperty *property,
     setConstraint() slot.
 
     In addition, QtRectPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the constraintChanged() signal which is emitted
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the constraintChanged() signal which is Q_EMITted
     whenever such a property changes its constraint rectangle.
 
     \sa QtAbstractPropertyManager, QtIntPropertyManager, QtRectFPropertyManager
@@ -3908,7 +3908,7 @@ void QtRectPropertyManagerPrivate::setConstraint(QtProperty *property,
 /*!
     \fn void QtRectPropertyManager::valueChanged(QtProperty *property, const QRect &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -3918,7 +3918,7 @@ void QtRectPropertyManagerPrivate::setConstraint(QtProperty *property,
 /*!
     \fn void QtRectPropertyManager::constraintChanged(QtProperty *property, const QRect &constraint)
 
-    This signal is emitted whenever property changes its constraint
+    This signal is Q_EMITted whenever property changes its constraint
     rectangle, passing a pointer to the \a property and the new \a
     constraint rectangle as parameters.
 
@@ -4046,8 +4046,8 @@ void QtRectPropertyManager::setValue(QtProperty *property, const QRect &val)
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToW[property], newRect.width());
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToH[property], newRect.height());
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -4098,15 +4098,15 @@ void QtRectPropertyManager::setConstraint(QtProperty *property, const QRect &con
 
     it.value() = data;
 
-    emit constraintChanged(property, data.constraint);
+    Q_EMIT constraintChanged(property, data.constraint);
 
     d_ptr->setConstraint(property, data.constraint, data.val);
 
     if (data.val == oldVal)
         return;
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -4307,8 +4307,8 @@ void QtRectFPropertyManagerPrivate::setConstraint(QtProperty *property,
     setConstraint() slot.
 
     In addition, QtRectFPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the constraintChanged() signal which is emitted
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the constraintChanged() signal which is Q_EMITted
     whenever such a property changes its constraint rectangle.
 
     \sa QtAbstractPropertyManager, QtDoublePropertyManager, QtRectPropertyManager
@@ -4317,7 +4317,7 @@ void QtRectFPropertyManagerPrivate::setConstraint(QtProperty *property,
 /*!
     \fn void QtRectFPropertyManager::valueChanged(QtProperty *property, const QRectF &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -4327,7 +4327,7 @@ void QtRectFPropertyManagerPrivate::setConstraint(QtProperty *property,
 /*!
     \fn void QtRectFPropertyManager::constraintChanged(QtProperty *property, const QRectF &constraint)
 
-    This signal is emitted whenever property changes its constraint
+    This signal is Q_EMITted whenever property changes its constraint
     rectangle, passing a pointer to the \a property and the new \a
     constraint rectangle as parameters.
 
@@ -4337,7 +4337,7 @@ void QtRectFPropertyManagerPrivate::setConstraint(QtProperty *property,
 /*!
     \fn void QtRectFPropertyManager::decimalsChanged(QtProperty *property, int prec)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its precision of value, passing a pointer to the
     \a property and the new \a prec value
 
@@ -4476,8 +4476,8 @@ void QtRectFPropertyManager::setValue(QtProperty *property, const QRectF &val)
     d_ptr->m_doublePropertyManager->setValue(d_ptr->m_propertyToW[property], newRect.width());
     d_ptr->m_doublePropertyManager->setValue(d_ptr->m_propertyToH[property], newRect.height());
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -4528,15 +4528,15 @@ void QtRectFPropertyManager::setConstraint(QtProperty *property, const QRectF &c
 
     it.value() = data;
 
-    emit constraintChanged(property, data.constraint);
+    Q_EMIT constraintChanged(property, data.constraint);
 
     d_ptr->setConstraint(property, data.constraint, data.val);
 
     if (data.val == oldVal)
         return;
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -4572,7 +4572,7 @@ void QtRectFPropertyManager::setDecimals(QtProperty *property, int prec)
 
     it.value() = data;
 
-    emit decimalsChanged(property, data.decimals);
+    Q_EMIT decimalsChanged(property, data.decimals);
 }
 
 /*!
@@ -4689,8 +4689,8 @@ public:
     queried with the enumIcons() function.
 
     In addition, QtEnumPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes. The enumNamesChanged() or enumIconsChanged() signal is emitted
+    which is Q_EMITted whenever a property created by this manager
+    changes. The enumNamesChanged() or enumIconsChanged() signal is Q_EMITted
     whenever the list of enum names or icons is altered.
 
     \sa QtAbstractPropertyManager, QtEnumEditorFactory
@@ -4699,7 +4699,7 @@ public:
 /*!
     \fn void QtEnumPropertyManager::valueChanged(QtProperty *property, int value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -4709,7 +4709,7 @@ public:
 /*!
     \fn void QtEnumPropertyManager::enumNamesChanged(QtProperty *property, const QStringList &names)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its enum names, passing a pointer to the \a property and
     the new \a names as parameters.
 
@@ -4719,7 +4719,7 @@ public:
 /*!
     \fn void QtEnumPropertyManager::enumIconsChanged(QtProperty *property, const QMap<int, QIcon> &icons)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its enum icons, passing a pointer to the \a property and
     the new mapping of values to \a icons as parameters.
 
@@ -4845,8 +4845,8 @@ void QtEnumPropertyManager::setValue(QtProperty *property, int val)
 
     it.value() = data;
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -4879,10 +4879,10 @@ void QtEnumPropertyManager::setEnumNames(QtProperty *property, const QStringList
 
     it.value() = data;
 
-    emit enumNamesChanged(property, data.enumNames);
+    Q_EMIT enumNamesChanged(property, data.enumNames);
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -4901,9 +4901,9 @@ void QtEnumPropertyManager::setEnumIcons(QtProperty *property, const QMap<int, Q
 
     it.value().enumIcons = enumIcons;
 
-    emit enumIconsChanged(property, it.value().enumIcons);
+    Q_EMIT enumIconsChanged(property, it.value().enumIcons);
 
-    emit propertyChanged(property);
+    Q_EMIT propertyChanged(property);
 }
 
 /*!
@@ -5008,8 +5008,8 @@ void QtFlagPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     editor factory.
 
     In addition, QtFlagPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
-    changes, and the flagNamesChanged() signal which is emitted
+    which is Q_EMITted whenever a property created by this manager
+    changes, and the flagNamesChanged() signal which is Q_EMITted
     whenever the list of flag names is altered.
 
     \sa QtAbstractPropertyManager, QtBoolPropertyManager
@@ -5018,7 +5018,7 @@ void QtFlagPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtFlagPropertyManager::valueChanged(QtProperty *property, int value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a  property and the new
     \a value as parameters.
 
@@ -5028,7 +5028,7 @@ void QtFlagPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtFlagPropertyManager::flagNamesChanged(QtProperty *property, const QStringList &names)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its flag names, passing a pointer to the \a property and the
     new \a names as parameters.
 
@@ -5168,8 +5168,8 @@ void QtFlagPropertyManager::setValue(QtProperty *property, int val)
         level++;
     }
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -5215,10 +5215,10 @@ void QtFlagPropertyManager::setFlagNames(QtProperty *property, const QStringList
         d_ptr->m_flagToProperty[prop] = property;
     }
 
-    emit flagNamesChanged(property, data.flagNames);
+    Q_EMIT flagNamesChanged(property, data.flagNames);
 
-    emit propertyChanged(property);
-    emit valueChanged(property, data.val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, data.val);
 }
 
 /*!
@@ -5344,7 +5344,7 @@ void QtSizePolicyPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *prope
     these managers must be associated with editor factories.
 
     In addition, QtSizePolicyPropertyManager provides the valueChanged()
-    signal which is emitted whenever a property created by this
+    signal which is Q_EMITted whenever a property created by this
     manager changes.
 
     \sa QtAbstractPropertyManager, QtIntPropertyManager, QtEnumPropertyManager
@@ -5353,7 +5353,7 @@ void QtSizePolicyPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *prope
 /*!
     \fn void QtSizePolicyPropertyManager::valueChanged(QtProperty *property, const QSizePolicy &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -5482,8 +5482,8 @@ void QtSizePolicyPropertyManager::setValue(QtProperty *property, const QSizePoli
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToVStretch[property],
                 val.verticalStretch());
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, val);
 }
 
 /*!
@@ -5568,7 +5568,7 @@ void QtSizePolicyPropertyManager::uninitializeProperty(QtProperty *property)
 
 // QtFontPropertyManager:
 // QtFontPropertyManagerPrivate has a mechanism for reacting
-// to QApplication::fontDatabaseChanged() [4.5], which is emitted
+// to QApplication::fontDatabaseChanged() [4.5], which is Q_EMITted
 // when someone loads an application font. The signals are compressed
 // using a timer with interval 0, which then causes the family
 // enumeration manager to re-set its strings and index values
@@ -5753,7 +5753,7 @@ void QtFontPropertyManagerPrivate::slotFontDatabaseDelayedChange()
     must be associated with editor factories.
 
     In addition, QtFontPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
+    which is Q_EMITted whenever a property created by this manager
     changes.
 
     \sa QtAbstractPropertyManager, QtEnumPropertyManager, QtIntPropertyManager, QtBoolPropertyManager
@@ -5762,7 +5762,7 @@ void QtFontPropertyManagerPrivate::slotFontDatabaseDelayedChange()
 /*!
     \fn void QtFontPropertyManager::valueChanged(QtProperty *property, const QFont &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
     new \a value as parameters.
 
@@ -5923,8 +5923,8 @@ void QtFontPropertyManager::setValue(QtProperty *property, const QFont &val)
     d_ptr->m_boolPropertyManager->setValue(d_ptr->m_propertyToKerning[property], val.kerning());
     d_ptr->m_settingValue = settingValue;
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, val);
 }
 
 /*!
@@ -6130,7 +6130,7 @@ void QtColorPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     editor factory.
 
     In addition, QtColorPropertyManager provides the valueChanged() signal
-    which is emitted whenever a property created by this manager
+    which is Q_EMITted whenever a property created by this manager
     changes.
 
     \sa QtAbstractPropertyManager, QtAbstractPropertyBrowser, QtIntPropertyManager
@@ -6139,7 +6139,7 @@ void QtColorPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
 /*!
     \fn void QtColorPropertyManager::valueChanged(QtProperty *property, const QColor &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -6249,8 +6249,8 @@ void QtColorPropertyManager::setValue(QtProperty *property, const QColor &val)
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToB[property], val.blue());
     d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToA[property], val.alpha());
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, val);
 }
 
 /*!
@@ -6368,7 +6368,7 @@ public:
     A cursor property has a current value which can be
     retrieved using the value() function, and set using the setValue()
     slot. In addition, QtCursorPropertyManager provides the
-    valueChanged() signal which is emitted whenever a property created
+    valueChanged() signal which is Q_EMITted whenever a property created
     by this manager changes.
 
     \sa QtAbstractPropertyManager
@@ -6377,7 +6377,7 @@ public:
 /*!
     \fn void QtCursorPropertyManager::valueChanged(QtProperty *property, const QCursor &value)
 
-    This signal is emitted whenever a property created by this manager
+    This signal is Q_EMITted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
     \a value as parameters.
 
@@ -6461,8 +6461,8 @@ void QtCursorPropertyManager::setValue(QtProperty *property, const QCursor &valu
 
     it.value() = value;
 
-    emit propertyChanged(property);
-    emit valueChanged(property, value);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, value);
 #endif
 }
 

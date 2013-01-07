@@ -344,7 +344,7 @@ void QtKeySequenceEdit::slotClearShortcut()
     if (m_keySequence.isEmpty())
         return;
     setKeySequence(QKeySequence());
-    emit keySequenceChanged(m_keySequence);
+    Q_EMIT keySequenceChanged(m_keySequence);
 }
 
 void QtKeySequenceEdit::handleKeyEvent(QKeyEvent *e)
@@ -373,7 +373,7 @@ void QtKeySequenceEdit::handleKeyEvent(QKeyEvent *e)
     m_keySequence = QKeySequence(k0, k1, k2, k3);
     m_lineEdit->setText(m_keySequence.toString(QKeySequence::NativeText));
     e->accept();
-    emit keySequenceChanged(m_keySequence);
+    Q_EMIT keySequenceChanged(m_keySequence);
 }
 
 void QtKeySequenceEdit::setKeySequence(const QKeySequence &sequence)

@@ -511,7 +511,7 @@ void QtProperty::propertyChanged()
 void QtAbstractPropertyManagerPrivate::propertyDestroyed(QtProperty *property)
 {
     if (m_properties.contains(property)) {
-        emit q_ptr->propertyDestroyed(property);
+        Q_EMIT q_ptr->propertyDestroyed(property);
         q_ptr->uninitializeProperty(property);
         m_properties.remove(property);
     }
@@ -519,19 +519,19 @@ void QtAbstractPropertyManagerPrivate::propertyDestroyed(QtProperty *property)
 
 void QtAbstractPropertyManagerPrivate::propertyChanged(QtProperty *property) const
 {
-    emit q_ptr->propertyChanged(property);
+    Q_EMIT q_ptr->propertyChanged(property);
 }
 
 void QtAbstractPropertyManagerPrivate::propertyRemoved(QtProperty *property,
             QtProperty *parentProperty) const
 {
-    emit q_ptr->propertyRemoved(property, parentProperty);
+    Q_EMIT q_ptr->propertyRemoved(property, parentProperty);
 }
 
 void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
             QtProperty *parentProperty, QtProperty *afterProperty) const
 {
-    emit q_ptr->propertyInserted(property, parentProperty, afterProperty);
+    Q_EMIT q_ptr->propertyInserted(property, parentProperty, afterProperty);
 }
 
 /*!
@@ -555,7 +555,7 @@ void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
     like creating a property using the addProperty() function, and
     retrieving the properties created by the manager using the
     properties() function. The class also provides signals that are
-    emitted when the manager's properties change: propertyInserted(),
+    Q_EMITted when the manager's properties change: propertyInserted(),
     propertyRemoved(), propertyChanged() and propertyDestroyed().
 
     QtAbstractPropertyManager subclasses are supposed to provide their
@@ -589,14 +589,14 @@ void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
     \fn void QtAbstractPropertyManager::propertyInserted(QtProperty *newProperty,
                 QtProperty *parentProperty, QtProperty *precedingProperty)
 
-    This signal is emitted when a new subproperty is inserted into an
+    This signal is Q_EMITted when a new subproperty is inserted into an
     existing property, passing pointers to the \a newProperty, \a
     parentProperty and \a precedingProperty as parameters.
 
     If \a precedingProperty is 0, the \a newProperty was inserted at
     the beginning of the \a parentProperty's subproperties list.
 
-    Note that signal is emitted only if the \a parentProperty is created
+    Note that signal is Q_EMITted only if the \a parentProperty is created
     by this manager.
 
     \sa QtAbstractPropertyBrowser::itemInserted()
@@ -605,10 +605,10 @@ void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
 /*!
     \fn void QtAbstractPropertyManager::propertyChanged(QtProperty *property)
 
-    This signal is emitted whenever a property's data changes, passing
+    This signal is Q_EMITted whenever a property's data changes, passing
     a pointer to the \a property as parameter.
 
-    Note that signal is only emitted for properties that are created by
+    Note that signal is only Q_EMITted for properties that are created by
     this manager.
 
     \sa QtAbstractPropertyBrowser::itemChanged()
@@ -617,11 +617,11 @@ void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
 /*!
     \fn void QtAbstractPropertyManager::propertyRemoved(QtProperty *property, QtProperty *parent)
 
-    This signal is emitted when a subproperty is removed, passing
+    This signal is Q_EMITted when a subproperty is removed, passing
     pointers to the removed \a property and the \a parent property as
     parameters.
 
-    Note that signal is emitted only when the \a parent property is
+    Note that signal is Q_EMITted only when the \a parent property is
     created by this manager.
 
     \sa QtAbstractPropertyBrowser::itemRemoved()
@@ -630,10 +630,10 @@ void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
 /*!
     \fn void QtAbstractPropertyManager::propertyDestroyed(QtProperty *property)
 
-    This signal is emitted when the specified \a property is about to
+    This signal is Q_EMITted when the specified \a property is about to
     be destroyed.
 
-    Note that signal is only emitted for properties that are created
+    Note that signal is only Q_EMITted for properties that are created
     by this manager.
 
     \sa clear(), uninitializeProperty()
@@ -642,7 +642,7 @@ void QtAbstractPropertyManagerPrivate::propertyInserted(QtProperty *property,
 /*!
     \fn void QtAbstractPropertyBrowser::currentItemChanged(QtBrowserItem *current)
 
-    This signal is emitted when the current item changes. The current item is specified by \a current.
+    This signal is Q_EMITted when the current item changes. The current item is specified by \a current.
 
     \sa QtAbstractPropertyBrowser::setCurrentItem()
 */
@@ -1030,7 +1030,7 @@ void QtAbstractPropertyManager::uninitializeProperty(QtProperty *property)
     This function is used internally by the addPropertyManager() function, and
     makes it possible to update an editing widget when the associated
     property's data changes. This is typically done in custom slots
-    responding to the signals emitted by the property's manager,
+    responding to the signals Q_EMITted by the property's manager,
     e.g. QtIntPropertyManager::valueChanged() and
     QtIntPropertyManager::rangeChanged().
 
@@ -1050,7 +1050,7 @@ void QtAbstractPropertyManager::uninitializeProperty(QtProperty *property)
     recommended to store a pointer to the widget and map it to the
     given \a property, since the widget must be updated whenever the
     associated property's data changes. This is typically done in
-    custom slots responding to the signals emitted by the property's
+    custom slots responding to the signals Q_EMITted by the property's
     manager, e.g. QtIntPropertyManager::valueChanged() and
     QtIntPropertyManager::rangeChanged().
 
@@ -2016,7 +2016,7 @@ void QtAbstractPropertyBrowser::setCurrentItem(QtBrowserItem *item)
     QtBrowserItem *oldItem = d_ptr->m_currentItem;
     d_ptr->m_currentItem = item;
     if (oldItem != item)
-        emit  currentItemChanged(item);
+        Q_EMIT  currentItemChanged(item);
 }
 
 #if QT_VERSION >= 0x040400
