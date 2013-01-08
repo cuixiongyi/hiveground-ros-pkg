@@ -132,38 +132,43 @@ void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, 
   control.interaction_mode = InteractiveMarkerControl::MENU;
   int_marker.controls.push_back(control);
   menu_handler_map_["Inspection Point"].apply(marker_server_, int_marker.name);
+
+  markers_[int_marker.name] = new InspectionPointItem(&marker_server_, int_marker.pose);
+  markers_[int_marker.name]->setName(int_marker.name.c_str());
+
   marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
-
-
-  marker_poses_[int_marker.name] = int_marker.pose;
-
   marker_server_.applyChanges();
+
+  Q_EMIT inspectionPointClickedSignal(markers_[int_marker.name]);
 }
 
 void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
   switch (feedback->event_type)
   {
+    case InteractiveMarkerFeedback::MOUSE_DOWN:
+      Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
+      break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
-      ROS_DEBUG_STREAM(
-           feedback->marker_name << " is now at " << feedback->pose.position.x << ", " << feedback->pose.position.y << ", " << feedback->pose.position.z);
       if(checkIK(feedback))
       {
-        marker_poses_[feedback->marker_name] = feedback->pose;
+        markers_[feedback->marker_name]->setPose(feedback->pose);
+        Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
       }
       else
       {
-        marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
-        marker_server_.applyChanges();
+        if(markers_[feedback->marker_name])
+        {
+          marker_server_.setPose(feedback->marker_name, markers_[feedback->marker_name]->pose());
+          marker_server_.applyChanges();
+        }
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
-
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
         if(feedback->menu_entry_id == menu_entry_add_)
         {
-          ROS_DEBUG("add");
           tf::StampedTransform transform;
           listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
           geometry_msgs::Pose pose;
@@ -172,7 +177,6 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         }
         else if(feedback->menu_entry_id == menu_entry_add_here_)
         {
-          ROS_DEBUG("add here");
           addMarker("default", feedback->pose);
         }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
@@ -182,6 +186,8 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           pose.position = geometry_msgs::Point();
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
+          markers_[feedback->marker_name]->setPose(pose);
+          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
@@ -190,13 +196,17 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           pose.orientation = geometry_msgs::Quaternion();
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
+          markers_[feedback->marker_name]->setPose(pose);
+          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
         }
         else if(feedback->menu_entry_id == menu_entry_remove_)
         {
           ROS_DEBUG_STREAM("remove " << feedback->marker_name);
-          marker_poses_.erase(feedback->marker_name);
+          delete markers_[feedback->marker_name];
+          markers_.erase(feedback->marker_name);
           marker_server_.erase(feedback->marker_name);
           marker_server_.applyChanges();
+          Q_EMIT inspectionPointClickedSignal(0);
         }
       }
       else if(feedback->marker_name == "top_level")
@@ -213,14 +223,16 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         else if(feedback->menu_entry_id == menu_entry_top_clear_)
         {
           ROS_DEBUG("clear");
-          std::map<std::string, geometry_msgs::Pose>::iterator it = marker_poses_.begin();
-          while(it != marker_poses_.end())
+          std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+          while(it != markers_.end())
           {
+            delete it->second;
             marker_server_.erase(it->first);
             it++;
           }
-          marker_poses_.clear();
+          markers_.clear();
           marker_server_.applyChanges();
+          Q_EMIT inspectionPointClickedSignal(0);
         }
       }
       break;
