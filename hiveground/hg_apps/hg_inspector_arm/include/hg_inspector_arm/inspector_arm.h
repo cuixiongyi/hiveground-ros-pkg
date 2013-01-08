@@ -37,9 +37,6 @@
 
 #include <qmainwindow.h>
 #include "ui_inspector_arm.h"
-#include "qtpropertymanager.h"
-#include "qteditorfactory.h"
-#include "qttreepropertybrowser.h"
 
 #include <ros/ros.h>
 #include <interactive_markers/interactive_marker_server.h>
@@ -49,96 +46,7 @@
 #include <tf/transform_listener.h>
 #include <tf/tf.h>
 
-class InspectionPointLookAt;
-class InspectionPointItem;
-
-
-typedef QList<InspectionPointItem*> InspectionPointItemList;
-
-class InspectionPointItem
-{
-public:
-  InspectionPointItem(interactive_markers::InteractiveMarkerServer* server);
-  virtual ~InspectionPointItem();
-
-  enum RttiValue
-  {
-    Rtti_Item = 0,
-    Rtti_LookAt = 1
-  };
-
-  virtual int rtti() const;
-  static int RTTI;
-
-  QString name() { return name_; }
-  void setName(const QString& a) { }
-  inline double x() const { return tf_.getOrigin().getX(); }
-  inline double y() const { return tf_.getOrigin().getY(); }
-  inline double z() const { return tf_.getOrigin().getZ(); }
-  inline double roll() const
-  {
-    double roll, pitch, yaw;
-    tf::Matrix3x3(tf_.getRotation()).getEulerYPR(roll, pitch, yaw);
-    return roll;
-  }
-  inline double pitch() const
-  {
-    double roll, pitch, yaw;
-    tf::Matrix3x3(tf_.getRotation()).getEulerYPR(roll, pitch, yaw);
-    return pitch;
-  }
-  inline double yaw() const
-  {
-    double roll, pitch, yaw;
-    tf::Matrix3x3(tf_.getRotation()).getEulerYPR(roll, pitch, yaw);
-    return yaw;
-  }
-
-  void setX(double a) { move(a, y(), z()); }
-  void setY(double a) { move(x(), a, z()); }
-  void setZ(double a) { move(x(), y(), a); }
-  void setRoll(double a) { }
-  void setPitch(double a) { }
-  void setYaw(double a) { }
-
-  void move(double x, double y, double z);
-  virtual void moveBy(double x, double y, double z);
-  void rotate(double roll, double pitch, double yaw);
-  void rotateBy(double roll, double pitch, double yaw);
-
-  geometry_msgs::Pose getPose();
-
-
-protected:
-  interactive_markers::InteractiveMarkerServer* server_;
-  QString name_;
-  tf::Transform tf_;
-  //geometry_msgs::Pose pose_;
-
-};
-
-class InspectionPointLookAt : public InspectionPointItem
-{
-public:
-  InspectionPointLookAt();
-  ~InspectionPointLookAt();
-
-  void setZoom(double a);
-  double zoomFactor() const { return zoom_factor_; }
-
-  int rtti() const;
-  static int RTTI;
-
-private:
-  double zoom_factor_;
-
-};
-
-
-
-
-
-
+#include <hg_inspector_arm/inspection_point.h>
 
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
@@ -174,10 +82,26 @@ protected:
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
                                                                   MenuEntryHandleMap& map, std::string name);
+  //Interactive marker
 
-  //Inspection point
-  void inspectionPointSelected(InspectionPointItem* item);
+  //Inspection point property
+  void updateExpandState();
+  void addProperty(QtProperty *property, const QString &id);
 
+Q_SIGNALS:
+  void inspectionPointClickedSignal(InspectionPointItem *item);
+  void inspectionPointMovedSignal(InspectionPointItem *item);
+
+private Q_SLOTS:
+  void inspectionPointClicked(InspectionPointItem* item);
+  void inspectionPointMoved(InspectionPointItem* item);
+  void valueChanged(QtProperty *property, double value);
+  void valueChanged(QtProperty *property, const QString &value);
+  void valueChanged(QtProperty *property, const QColor &value);
+  void valueChanged(QtProperty *property, const QFont &value);
+  void valueChanged(QtProperty *property, const QPoint &value);
+  void valueChanged(QtProperty *property, const QSize &value);
+  //Inspection point property
 
 protected:
   void closeEvent(QCloseEvent *evencurrentItemt);
@@ -199,6 +123,9 @@ private:
   QtSizePropertyManager *size_manager_;
 
   InspectionPointItem* current_item_;
+  QMap<QtProperty *, QString> property_to_id_;
+  QMap<QString, QtProperty *> id_to_property_;
+  QMap<QString, bool> id_to_expanded_;
 
 
 
@@ -211,7 +138,7 @@ private:
   ros::ServiceClient ik_client_;
   kinematics_msgs::GetKinematicSolverInfo::Response response_;
   int name_count_;
-  std::map<std::string, geometry_msgs::Pose> marker_poses_;
+  std::map<std::string, InspectionPointItem*> markers_;
   interactive_markers::MenuHandler::FeedbackCallback marker_callback_ptr_;
   MenuEntryMap menu_entry_maps_;
   MenuHandlerMap menu_handler_map_;
