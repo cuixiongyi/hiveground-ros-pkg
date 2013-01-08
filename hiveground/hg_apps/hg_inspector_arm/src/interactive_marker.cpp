@@ -142,6 +142,15 @@ void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, 
   Q_EMIT inspectionPointClickedSignal(markers_[int_marker.name]);
 }
 
+void InspectorArm::addMarkerAtEndEffector()
+{
+  tf::StampedTransform transform;
+  listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+  geometry_msgs::Pose pose;
+  tf::poseTFToMsg(transform, pose);
+  addMarker("default", pose);
+}
+
 void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
   switch (feedback->event_type)
@@ -213,12 +222,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       {
         if(feedback->menu_entry_id == menu_entry_top_add_)
         {
-          ROS_DEBUG("top add");
-          tf::StampedTransform transform;
-          listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
-          geometry_msgs::Pose pose;
-          tf::poseTFToMsg(transform, pose);
-          addMarker("default", pose);
+          addMarkerAtEndEffector();
         }
         else if(feedback->menu_entry_id == menu_entry_top_clear_)
         {

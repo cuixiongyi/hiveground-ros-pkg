@@ -97,10 +97,10 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
 }
 
 bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
-                                       const arm_navigation_msgs::RobotState& robot_state,
-                                       geometry_msgs::PoseStamped pose,
-                                       std::vector<double>& start_position,
-                                       std::vector<double>& solution)
+                                            const arm_navigation_msgs::RobotState& robot_state,
+                                            geometry_msgs::PoseStamped pose,
+                                            std::vector<double>& start_position,
+                                            std::vector<double>& solution)
 {
   kinematics_msgs::GetPositionIK::Request ik_request;
   kinematics_msgs::GetPositionIK::Response ik_response;
@@ -265,10 +265,10 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   trajectory_generator.parameterize(trajectory, joint_limits, spline_trajectory);
 
 
-  ROS_INFO("trajectory size %d spline size:%d", trajectory.points.size(), spline_trajectory.segments.size());
+  ROS_INFO("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
   trajectory.points.clear();
   double time = 0;
-  for(int i = 0; i < spline_trajectory.segments.size(); i++)
+  for(size_t i = 0; i < spline_trajectory.segments.size(); i++)
   {
     int step = (spline_trajectory.segments[i].duration.toSec() / 0.008) + 0.5;
     ROS_INFO("time %f total step: %d", spline_trajectory.segments[i].duration.toSec(), step);
@@ -308,7 +308,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
     time += spline_trajectory.segments[i].duration.toSec();
   }
 
-  ROS_INFO("trajectory size %d", trajectory.points.size());
+  ROS_INFO("trajectory size %lu", trajectory.points.size());
 
   if(display_trajectory_publisher_.getNumSubscribers() != 0)
   {

@@ -66,6 +66,11 @@ bool InspectorArm::initialize()
   return true;
 }
 
+void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
+{
+  addMarkerAtEndEffector();
+}
+
 
 void InspectorArm::closeEvent(QCloseEvent *event)
 {

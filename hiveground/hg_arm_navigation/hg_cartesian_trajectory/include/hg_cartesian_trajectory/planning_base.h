@@ -37,6 +37,7 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <kinematics_msgs/GetKinematicSolverInfo.h>
 #include <kinematics_msgs/GetPositionIK.h>
 #include <kinematics_msgs/GetConstraintAwarePositionIK.h>
 #include <planning_environment/models/collision_models_interface.h>
@@ -68,6 +69,7 @@ protected:
   boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
   //std::map<std::string, std::vector<std::string> > joints_map_;
   std::map<std::string, std::string> tip_link_map_;
+  std::map<std::string, ros::ServiceClient> ik_info_client_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
   kinematics_msgs::GetPositionIK::Request ik_request_;
