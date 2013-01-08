@@ -65,6 +65,7 @@ public:
 
 
   void addMarker(const std::string& name, geometry_msgs::Pose pose = geometry_msgs::Pose() ,double arrow_length = 0.1);
+  void addMarkerAtEndEffector();
 
 protected:
   bool initializeInteractiveMarkerServer();
@@ -81,18 +82,20 @@ protected:
                                                                  double arrow_length);
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
-                                                                  MenuEntryHandleMap& map, std::string name);
+                                                                     MenuEntryHandleMap& map, std::string name);
   //Interactive marker
 
   //Inspection point property
   void updateExpandState();
   void addProperty(QtProperty *property, const QString &id);
 
+
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
   void inspectionPointMovedSignal(InspectionPointItem *item);
 
 private Q_SLOTS:
+  //Inspection point property
   void inspectionPointClicked(InspectionPointItem* item);
   void inspectionPointMoved(InspectionPointItem* item);
   void valueChanged(QtProperty *property, double value);
@@ -101,7 +104,9 @@ private Q_SLOTS:
   void valueChanged(QtProperty *property, const QFont &value);
   void valueChanged(QtProperty *property, const QPoint &value);
   void valueChanged(QtProperty *property, const QSize &value);
-  //Inspection point property
+
+  //UI
+  void on_pushButtonAddInspectionPoint_clicked();
 
 protected:
   void closeEvent(QCloseEvent *evencurrentItemt);
@@ -121,6 +126,7 @@ private:
   QtFontPropertyManager *font_manager_;
   QtPointPropertyManager *point_manager_;
   QtSizePropertyManager *size_manager_;
+  QtGroupPropertyManager *group_manager_;
 
   InspectionPointItem* current_item_;
   QMap<QtProperty *, QString> property_to_id_;

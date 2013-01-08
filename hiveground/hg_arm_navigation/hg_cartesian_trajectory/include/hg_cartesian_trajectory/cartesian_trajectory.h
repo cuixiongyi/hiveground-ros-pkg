@@ -52,7 +52,7 @@ namespace hg_cartesian_trajectory
 {
 
 typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > FollowJointTrajectoryClientPtr;
-//typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
+
 
 class CartesianTrajectoryPlanner : public PlanningBase
 {

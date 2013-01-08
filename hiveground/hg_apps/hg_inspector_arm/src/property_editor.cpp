@@ -41,6 +41,7 @@ bool InspectorArm::initializePropertyEditor()
   font_manager_ = new QtFontPropertyManager(this);
   point_manager_ = new QtPointPropertyManager(this);
   size_manager_ = new QtSizePropertyManager(this);
+  group_manager_ = new QtGroupPropertyManager(this);
 
   connect(double_manager_, SIGNAL(valueChanged(QtProperty *, double)),
           this, SLOT(valueChanged(QtProperty *, double)));
@@ -79,10 +80,7 @@ bool InspectorArm::initializePropertyEditor()
   connect(this, SIGNAL(inspectionPointMovedSignal(InspectionPointItem *)),
           this, SLOT(inspectionPointMoved(InspectionPointItem *)));
 
-  //InspectionPointItem* item = new InspectionPointItem(&marker_server_);
   inspectionPointClicked(0);
-
-
   return true;
 }
 

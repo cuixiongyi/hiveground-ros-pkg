@@ -76,6 +76,7 @@ bool PlanningBase::initialize(const std::string& param_server_prefix)
 
     std::string ik_service_name = collision_models_interface_->getKinematicModel()->getRobotName() + "_" + it->first
         + "_kinematics/";
+    std::string ik_info_name = ik_service_name + "get_ik_solver_info";
     std::string ik_collision_aware_name = ik_service_name + "get_constraint_aware_ik";
     std::string ik_none_collision_aware_name = ik_service_name + "get_ik";
     ROS_INFO_STREAM("Tip link: " << it->second.tip_link_);
@@ -83,6 +84,7 @@ bool PlanningBase::initialize(const std::string& param_server_prefix)
     ROS_DEBUG_STREAM(ik_collision_aware_name);
     ROS_DEBUG_STREAM(ik_none_collision_aware_name);
 
+    while (!ros::service::waitForService(ik_info_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_collision_aware_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_none_collision_aware_name, ros::Duration(1.0))) { }
     //ROS_INFO_STREAM(it->second.subgroups_.size());
@@ -94,10 +96,9 @@ bool PlanningBase::initialize(const std::string& param_server_prefix)
       //ROS_INFO_STREAM(it->second.joints_[i]);
     //}
     tip_link_map_[it->first] = it->second.tip_link_;
-    ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(
-        ik_collision_aware_name, true);
-    ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(
-        ik_none_collision_aware_name, true);
+    ik_info_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>(ik_info_name, true);
+    ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(ik_collision_aware_name, true);
+    ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(ik_none_collision_aware_name, true);
   }
 
   return true;
