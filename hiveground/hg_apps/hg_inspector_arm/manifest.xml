@@ -12,6 +12,7 @@
   <depend package="rospy"/>
   <depend package="hg_interactive_marker"/>
   <depend package="hg_cpp"/>
+  <depend package="hg_cartesian_trajectory"/>
   
   <export>  
   	<cpp cflags="-I${prefix}/include -I${prefix}/qtpropertybrowser/src" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>  	

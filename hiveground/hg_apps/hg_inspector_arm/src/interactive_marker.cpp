@@ -41,8 +41,8 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   name_count_ = 0;
   marker_callback_ptr_ = boost::bind(&InspectorArm::processMarkerCallback, this, _1);
 
-  ros::service::waitForService("get_ik_solver_info");
-  ros::service::waitForService("get_ik");
+  //ros::service::waitForService("get_ik_solver_info");
+  //ros::service::waitForService("get_ik");
 
   ROS_ASSERT(nh_private_.getParam("world_frame", world_frame_));
   ROS_INFO_STREAM("world_frame: " << world_frame_);
@@ -50,21 +50,21 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   ROS_ASSERT(nh_private_.getParam("base_link", base_link_));
   ROS_INFO_STREAM("base_link: " << base_link_);
 
-  ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
-  ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
+  //ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
+  //ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
 
   kinematics_msgs::GetKinematicSolverInfo::Request request;
 
-  if (ik_query_client_.call(request, response_))
+  if (ik_info_client_map_["manipulator"].call(request, ik_solver_info_))
   {
-    for (unsigned int i = 0; i < response_.kinematic_solver_info.joint_names.size(); i++)
+    for (unsigned int i = 0; i < ik_solver_info_.kinematic_solver_info.joint_names.size(); i++)
     {
-      ROS_INFO("Joint: %d %s", i, response_.kinematic_solver_info.joint_names[i].c_str());
+      ROS_INFO("Joint: %d %s", i, ik_solver_info_.kinematic_solver_info.joint_names[i].c_str());
     }
 
-    for (unsigned int i = 0; i < response_.kinematic_solver_info.link_names.size(); i++)
+    for (unsigned int i = 0; i < ik_solver_info_.kinematic_solver_info.link_names.size(); i++)
     {
-      ROS_INFO("Link: %d %s", i, response_.kinematic_solver_info.link_names[i].c_str());
+      ROS_INFO("Link: %d %s", i, ik_solver_info_.kinematic_solver_info.link_names[i].c_str());
     }
   }
   else
@@ -145,7 +145,7 @@ void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, 
 void InspectorArm::addMarkerAtEndEffector()
 {
   tf::StampedTransform transform;
-  listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+  listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(transform, pose);
   addMarker("default", pose);
@@ -179,7 +179,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         if(feedback->menu_entry_id == menu_entry_add_)
         {
           tf::StampedTransform transform;
-          listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+          listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
           geometry_msgs::Pose pose;
           tf::poseTFToMsg(transform, pose);
           addMarker("default", pose);
@@ -252,7 +252,7 @@ bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackCo
   kinematics_msgs::GetPositionIK::Request gpik_req;
   kinematics_msgs::GetPositionIK::Response gpik_res;
   gpik_req.timeout = ros::Duration(5.0);
-  gpik_req.ik_request.ik_link_name = response_.kinematic_solver_info.link_names[0];
+  gpik_req.ik_request.ik_link_name = ik_solver_info_.kinematic_solver_info.link_names[0];
   gpik_req.ik_request.pose_stamped.header.frame_id = base_link_;
 
   geometry_msgs::Pose transformed_pose;
@@ -279,17 +279,17 @@ bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackCo
 
   gpik_req.ik_request.pose_stamped.pose = transformed_pose;
 
-  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(response_.kinematic_solver_info.joint_names.size());
-  gpik_req.ik_request.ik_seed_state.joint_state.name = response_.kinematic_solver_info.joint_names;
+  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(ik_solver_info_.kinematic_solver_info.joint_names.size());
+  gpik_req.ik_request.ik_seed_state.joint_state.name = ik_solver_info_.kinematic_solver_info.joint_names;
 
-  for(unsigned int i=0; i< response_.kinematic_solver_info.joint_names.size(); i++)
+  for(unsigned int i=0; i< ik_solver_info_.kinematic_solver_info.joint_names.size(); i++)
   {
     gpik_req.ik_request.ik_seed_state.joint_state.position[i] =
-        (response_.kinematic_solver_info.limits[i].min_position +
-         response_.kinematic_solver_info.limits[i].max_position) / 2.0;
+        (ik_solver_info_.kinematic_solver_info.limits[i].min_position +
+            ik_solver_info_.kinematic_solver_info.limits[i].max_position) / 2.0;
   }
 
-  if(ik_client_.call(gpik_req, gpik_res))
+  if(ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
   {
     if(gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
     {

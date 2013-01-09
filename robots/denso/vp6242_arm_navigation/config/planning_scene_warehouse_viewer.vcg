@@ -5,7 +5,7 @@ Axes.Reference\ Frame=<Fixed Frame>
 Background\ ColorB=0.12549
 Background\ ColorG=0.12549
 Background\ ColorR=0.12549
-Camera\ Config=0.394798 1.17719 2.19627 0 0 0
+Camera\ Config=0.979798 1.06219 2.13799 0 0 0
 Camera\ Type=rviz::OrbitViewController
 Fixed\ Frame=/base_link
 Grid.Alpha=0.5
@@ -93,7 +93,7 @@ Robot\:\ Robot\ Model\ Link\ link5Enabled=1
 Robot\:\ Robot\ Model\ Link\ link5Show\ Axes=0
 Robot\:\ Robot\ Model\ Link\ link5Show\ Trail=0
 TF.All\ Enabled=0
-TF.Enabled=1
+TF.Enabled=0
 TF.Frame\ Timeout=15
 TF.Marker\ Scale=0.5
 TF.Show\ Arrows=1
@@ -133,16 +133,8 @@ Name=Path
 [Display9]
 ClassName=rviz::InteractiveMarkerDisplay
 Name=InteractiveMarker
-[TF.Frames.]
-base_link.Enabled=0
-link0.Enabled=0
-link1.Enabled=0
-link2.Enabled=0
-link3.Enabled=0
-link4.Enabled=0
-link5.Enabled=1
 [Window]
-Height=1176
-Width=1920
+Height=1212
+Width=1936
 X=5077
 Y=104

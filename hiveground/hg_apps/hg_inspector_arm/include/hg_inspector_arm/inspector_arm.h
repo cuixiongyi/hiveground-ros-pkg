@@ -45,15 +45,19 @@
 #include <kinematics_msgs/GetPositionIK.h>
 #include <tf/transform_listener.h>
 #include <tf/tf.h>
+#include <planning_models/kinematic_state.h>
+
 
 #include <hg_inspector_arm/inspection_point.h>
+#include <hg_cartesian_trajectory/planning_base.h>
+#include <hg_cartesian_trajectory/HgCartesianTrajectory.h>
 
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
-class InspectorArm : public QMainWindow
+class InspectorArm : public QMainWindow, hg_cartesian_trajectory::PlanningBase
 {
   Q_OBJECT
 public:
@@ -61,15 +65,17 @@ public:
   InspectorArm(QWidget *parent = 0, Qt::WFlags flags = 0);
   ~InspectorArm();
 
-  bool initialize();
+  bool run();
 
-
+protected:
+  bool initialize(const std::string& param_server_prefix);
   void addMarker(const std::string& name, geometry_msgs::Pose pose = geometry_msgs::Pose() ,double arrow_length = 0.1);
   void addMarkerAtEndEffector();
 
-protected:
+
   bool initializeInteractiveMarkerServer();
   bool initializePropertyEditor();
+  bool initializeServiceClient();
 
 
   //Interactive marker
@@ -83,12 +89,17 @@ protected:
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
                                                                      MenuEntryHandleMap& map, std::string name);
-  //Interactive marker
+
 
   //Inspection point property
   void updateExpandState();
   void addProperty(QtProperty *property, const QString &id);
 
+
+  //Callback
+  void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
+  void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
+                                  const control_msgs::FollowJointTrajectoryResultConstPtr& result);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
@@ -107,6 +118,7 @@ private Q_SLOTS:
 
   //UI
   void on_pushButtonAddInspectionPoint_clicked();
+  void on_pushButtonPlan_clicked();
 
 protected:
   void closeEvent(QCloseEvent *evencurrentItemt);
@@ -140,9 +152,9 @@ private:
   tf::TransformListener listener_;
   std::string world_frame_;
   std::string base_link_;
-  ros::ServiceClient ik_query_client_;
-  ros::ServiceClient ik_client_;
-  kinematics_msgs::GetKinematicSolverInfo::Response response_;
+  //ros::ServiceClient ik_query_client_;
+  //ros::ServiceClient ik_client_;
+  kinematics_msgs::GetKinematicSolverInfo::Response ik_solver_info_;
   int name_count_;
   std::map<std::string, InspectionPointItem*> markers_;
   interactive_markers::MenuHandler::FeedbackCallback marker_callback_ptr_;
@@ -155,6 +167,16 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
+
+  //trajectory
+  planning_models::KinematicState* robot_state_;
+  ros::Subscriber joint_state_subscriber_;
+  sensor_msgs::JointState latest_joint_state_;
+  boost::mutex joint_state_mutex_;
+
+  typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > FollowJointTrajectoryClientPtr;
+  std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
+  ros::ServiceClient hg_cartesian_trajectory_client_;
 };
 
 

@@ -56,26 +56,23 @@ public:
   PlanningBase();
   virtual ~PlanningBase();
 
-  virtual void run();
+  virtual bool run();
+
+protected:
 
   virtual bool initialize(const std::string& param_server_prefix);
-  virtual bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
-                                            std::vector<std::string> &group_names);
+//  virtual bool getGroupNamesFromParamServer(const std::string &param_server_prefix,
+//                                                  std::vector<std::string> &group_names);
 
 
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   boost::shared_ptr<planning_environment::CollisionModelsInterface> collision_models_interface_;
-  //std::map<std::string, std::vector<std::string> > joints_map_;
   std::map<std::string, std::string> tip_link_map_;
   std::map<std::string, ros::ServiceClient> ik_info_client_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
-  kinematics_msgs::GetPositionIK::Request ik_request_;
-  kinematics_msgs::GetPositionIK::Response ik_respond_;
-  kinematics_msgs::GetConstraintAwarePositionIKRequest ik_constraint_request_;
-  kinematics_msgs::GetConstraintAwarePositionIKResponse ik_constraint_respond_;
 };
 
 }

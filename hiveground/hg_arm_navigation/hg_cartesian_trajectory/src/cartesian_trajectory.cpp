@@ -50,9 +50,9 @@ CartesianTrajectoryPlanner::~CartesianTrajectoryPlanner()
   joint_state_monitor.stop();
 }
 
-void CartesianTrajectoryPlanner::run()
+bool CartesianTrajectoryPlanner::run()
 {
-  PlanningBase::run();
+  return PlanningBase::run();
 }
 
 bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_prefix)
@@ -60,16 +60,19 @@ bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_pref
   if(!PlanningBase::initialize(param_server_prefix))
     return false;
 
-  const KinematicModelGroupConfigMap &group_config_map =
-      collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
-  for (KinematicModelGroupConfigMap::const_iterator it = group_config_map.begin(); it != group_config_map.end(); it++)
-  {
-    std::string arm_controller_name = collision_models_interface_->getKinematicModel()->getRobotName()
-        + "/follow_joint_trajectory";
-    action_client_map_[it->first] = FollowJointTrajectoryClientPtr(
-        new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller_name, true));
-    while (ros::ok() && !action_client_map_[it->first]->waitForServer(ros::Duration(1.0))) { }
-  }
+  nh_private_.getParam("time_step", time_step_);
+  ROS_INFO("time_step: %f", time_step_);
+
+//  const KinematicModelGroupConfigMap &group_config_map =
+//      collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
+//  for (KinematicModelGroupConfigMap::const_iterator it = group_config_map.begin(); it != group_config_map.end(); it++)
+//  {
+//    std::string arm_controller_name = collision_models_interface_->getKinematicModel()->getRobotName()
+//        + "/follow_joint_trajectory";
+//    action_client_map_[it->first] = FollowJointTrajectoryClientPtr(
+//        new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller_name, true));
+//    while (ros::ok() && !action_client_map_[it->first]->waitForServer(ros::Duration(1.0))) { }
+//  }
 
   service_ = nh_private_.advertiseService("plan_cartesian_path", &CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner, this);
 
@@ -77,13 +80,12 @@ bool CartesianTrajectoryPlanner::initialize(const std::string& param_server_pref
 }
 
 bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTrajectory::Request &request,
-                                                                   HgCartesianTrajectory::Response &respond)
+                                                                            HgCartesianTrajectory::Response &respond)
 {
   switch(request.type)
   {
     case HgCartesianTrajectory::Request::SIMPLE_IK:
       ROS_INFO_STREAM("Working");
-      //respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS;
       planSimpleIKTrajectory(request, respond);
       break;
     case HgCartesianTrajectory::Request::LINE:
@@ -96,7 +98,7 @@ bool CartesianTrajectoryPlanner::executeCartesianTrajectoryPlanner(HgCartesianTr
   return (respond.error_code.val == arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS);
 }
 
-bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
+bool CartesianTrajectoryPlanner::runIK(const std::string& group_name,
                                             const arm_navigation_msgs::RobotState& robot_state,
                                             geometry_msgs::PoseStamped pose,
                                             std::vector<double>& start_position,
@@ -111,7 +113,7 @@ bool CartesianTrajectoryPlanner::runIk(const std::string& group_name,
   ik_request.ik_request.pose_stamped = pose;
   ik_request.ik_request.ik_seed_state.joint_state.position = start_position;
   ik_request.ik_request.ik_seed_state.joint_state.name = robot_state.joint_state.name;
-  ik_request.timeout = ros::Duration(5.0);
+  ik_request.timeout = ros::Duration(1.0);
 
   ROS_DEBUG(
       "request pose: (%0.3f %0.3f %0.3f) (%0.3f %0.3f %0.3f %0.3f)",
@@ -160,7 +162,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   {
     stamped_pose.pose = request.poses[i];
     std::vector<double> trajectory_point;
-    success = runIk(request.motion_plan_request.group_name,
+    success = runIK(request.motion_plan_request.group_name,
                     request.motion_plan_request.start_state,
                     stamped_pose,
                     last_position,
@@ -210,7 +212,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
         max_joint_move = joint_move;
     }
     double seconds = max_joint_move / HG_MAX_SIMPLE_IK_JOINT_VEL;
-    ROS_INFO("max_joint_move: %0.3f, seconds: %0.3f", max_joint_move, seconds);
+    ROS_DEBUG("max_joint_move: %0.3f, seconds: %0.3f", max_joint_move, seconds);
     time_from_start += seconds;
     trajectory.points[i + 1].time_from_start = ros::Duration(time_from_start);
   }
@@ -218,60 +220,33 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   //when to start the trajectory
   trajectory.header.stamp = ros::Time::now() + ros::Duration(0.25);
   trajectory.header.frame_id = collision_models_interface_->getWorldFrameId();
-  respond.trajectory.joint_trajectory = trajectory;
-  respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS;
+
+  kinematics_msgs::GetKinematicSolverInfo::Request ik_info_request;
+  kinematics_msgs::GetKinematicSolverInfo::Response ik_info_respond;
+  if (!ik_info_client_map_[request.motion_plan_request.group_name].call(ik_info_request, ik_info_respond))
+  {
+    ROS_ERROR("Cannot get IK solver information");
+    respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::PLANNING_FAILED;
+    return;
+  }
 
   spline_smoother::CubicParameterizedTrajectory trajectory_generator;
-  std::vector<arm_navigation_msgs::JointLimits> joint_limits;
   spline_smoother::SplineTrajectory spline_trajectory;
-  arm_navigation_msgs::JointLimits joint_limit;
-  joint_limit.has_position_limits = true;
-  joint_limit.has_velocity_limits = true;
-  joint_limit.has_acceleration_limits = true;
-  joint_limit.max_velocity = HG_MAX_SIMPLE_IK_JOINT_VEL;
-  joint_limit.max_acceleration = 1.0;
-  joint_limit.joint_name = "J1";
-  joint_limit.min_position = -2.792526;
-  joint_limit.min_position = 2.792526;
-  joint_limits.push_back(joint_limit);
+  for(size_t i = 0; i < ik_info_respond.kinematic_solver_info.limits.size(); i++)
+  {
+    ik_info_respond.kinematic_solver_info.limits[i].has_velocity_limits = 1;
+    ik_info_respond.kinematic_solver_info.limits[i].max_velocity = 1.0;
+  }
 
-  joint_limit.joint_name = "J2";
-  joint_limit.min_position = -2.094394;
-  joint_limit.min_position = 2.094394;
-  joint_limits.push_back(joint_limit);
+  trajectory_generator.parameterize(trajectory, ik_info_respond.kinematic_solver_info.limits, spline_trajectory);
 
-  joint_limit.joint_name = "J3";
-  joint_limit.min_position = 0.331612;
-  joint_limit.min_position = 2.792526;
-  joint_limits.push_back(joint_limit);
-
-  joint_limit.joint_name = "J4";
-  joint_limit.min_position = -2.792526;
-  joint_limit.min_position = 2.792526;
-  joint_limits.push_back(joint_limit);
-
-  joint_limit.joint_name = "J5";
-  joint_limit.min_position = -2.094394;
-  joint_limit.min_position = 2.094394;
-  joint_limits.push_back(joint_limit);
-
-  joint_limit.joint_name = "J6";
-  joint_limit.min_position = -6.283185;
-  joint_limit.min_position = 6.283185;
-  joint_limits.push_back(joint_limit);
-
-
-
-  trajectory_generator.parameterize(trajectory, joint_limits, spline_trajectory);
-
-
-  ROS_INFO("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
+  ROS_DEBUG("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
   trajectory.points.clear();
   double time = 0;
   for(size_t i = 0; i < spline_trajectory.segments.size(); i++)
   {
-    int step = (spline_trajectory.segments[i].duration.toSec() / 0.008) + 0.5;
-    ROS_INFO("time %f total step: %d", spline_trajectory.segments[i].duration.toSec(), step);
+    int step = (spline_trajectory.segments[i].duration.toSec() / time_step_) + 0.5;
+    ROS_DEBUG("time %f total step: %d", spline_trajectory.segments[i].duration.toSec(), step);
 
     int n_joint = spline_trajectory.segments[i].joints.size();
     for (int k = 0; k < step; k++)
@@ -280,7 +255,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
       point.positions.resize(n_joint);
       point.velocities.resize(n_joint);
       point.accelerations.resize(n_joint);
-      double t = 0.008 * k;
+      double t = time_step_ * k;
       for (int j = 0; j < n_joint; j++)
       {
         double a0 = spline_trajectory.segments[i].joints[j].coefficients[0];
@@ -293,12 +268,12 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
 
         if((k % 100) == 0)
         {
-          ROS_INFO("Step %d J%d %f %f %f", k, j+1, point.positions[j], point.velocities[j], point.accelerations[j]);
+          ROS_DEBUG("Step %d J%d %f %f %f", k, j+1, point.positions[j], point.velocities[j], point.accelerations[j]);
         }
       }
       if((k % 100) == 0)
       {
-        ROS_INFO("================");
+        ROS_DEBUG("================");
       }
       point.time_from_start = ros::Duration(t + time);
       trajectory.points.push_back(point);
@@ -308,29 +283,11 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
     time += spline_trajectory.segments[i].duration.toSec();
   }
 
-  ROS_INFO("trajectory size %lu", trajectory.points.size());
+  ROS_DEBUG("trajectory size %lu", trajectory.points.size());
+  respond.trajectory.joint_trajectory = trajectory;
+  respond.error_code.val = arm_navigation_msgs::ArmNavigationErrorCodes::SUCCESS;
 
-  if(display_trajectory_publisher_.getNumSubscribers() != 0)
-  {
-    arm_navigation_msgs::DisplayTrajectory display_trajectory;
-    display_trajectory.model_id = request.motion_plan_request.group_name;
-    display_trajectory.trajectory.joint_trajectory = trajectory;
-    display_trajectory.robot_state.joint_state = joint_state_monitor.getJointStateRealJoints();
-    display_trajectory_publisher_.publish(display_trajectory);
-  }
-
-  if(display_trajectory_path_publisher_.getNumSubscribers() != 0)
-  {
-    nav_msgs::Path path;
-    path.header = trajectory.header;
-    for (int i = 0; i < trajectory_length; i++)
-    {
-      stamped_pose.pose = request.poses[i];
-      path.poses.push_back(stamped_pose);
-    }
-    display_trajectory_path_publisher_.publish(path);
-  }
-
+  /*
   control_msgs::FollowJointTrajectoryGoal goal;
   goal.trajectory = trajectory;
   action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal);
@@ -338,12 +295,13 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   if(action_client_map_[request.motion_plan_request.group_name]->getState() ==
       actionlib::SimpleClientGoalState::SUCCEEDED)
   {
-    ROS_INFO("Hooray, the arm finished the trajectory!");
+    ROS_DEBUG("Hooray, the arm finished the trajectory!");
   }
   else
   {
-    ROS_INFO("The arm failed to execute the trajectory.");
+    ROS_DEBUG("The arm failed to execute the trajectory.");
   }
+  */
 }
 
 
