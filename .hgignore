@@ -1,0 +1,27 @@
+/build/
+/bin/
+/lib/
+/_gtest_from_src/
+syntax: glob
+*~
+*.bak
+.cproject
+.project
+.pydevproject
+*.so
+*.orig
+*.cmake
+.settings
+
+
+*.log
+Debug/
+GeneratedFiles/
+Release/
+ReleaseWithDebugInfo/
+*.vcxproj.user
+*.sdf
+*.suo
+*.opensdf
+*.ipch
+*.vspscc

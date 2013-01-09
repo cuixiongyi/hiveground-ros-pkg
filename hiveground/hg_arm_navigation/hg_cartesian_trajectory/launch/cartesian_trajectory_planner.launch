@@ -1,0 +1,5 @@
+<launch>  
+  <node pkg="hg_cartesian_trajectory" type="cartesian_trajector_planner" name="cartesian_planner" output="screen">
+  	<rosparam command="load" file="$(find vp6242_arm_navigation)/config/cartesian_planning.yaml" />
+  </node>
+</launch>

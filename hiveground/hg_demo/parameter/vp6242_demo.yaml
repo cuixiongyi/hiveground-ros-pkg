@@ -1,0 +1,33 @@
+joints: {
+  J1: {
+    type: AbsoluteJoint,    
+  },
+  J2: {
+    type: AbsoluteJoint,  
+  },
+  J3: {
+    type: AbsoluteJoint,
+  },
+  J4: {
+    type: AbsoluteJoint,
+  },
+  J5: {
+    type: AbsoluteJoint,
+  },
+  J6: {
+    type: AbsoluteJoint,
+  }
+}
+
+#All controller information
+controllers: {
+  vp6242_arm : {
+    type: RC7MController,
+    #rate: 50, Automatically set with slave_mode
+    address: 10.0.0.101,
+    port: 5007,
+    mode: TCP,  
+    slave_mode: 2,  
+    joints: [J1, J2, J3, J4, J5, J6]     
+  }
+}
