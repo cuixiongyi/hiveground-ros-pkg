@@ -57,13 +57,99 @@ InspectorArm::~InspectorArm()
 
 }
 
-bool InspectorArm::initialize()
+bool InspectorArm::run()
 {
+  return PlanningBase::run();
+}
+
+
+bool InspectorArm::initialize(const std::string& param_server_prefix)
+{
+  if(!PlanningBase::initialize(param_server_prefix))
+     return false;
+
+  hg_cartesian_trajectory::KinematicModelGroupConfigMap::const_iterator it;
+  const hg_cartesian_trajectory::KinematicModelGroupConfigMap &group_config_map =
+      collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
+  for (it = group_config_map.begin(); it != group_config_map.end(); it++)
+  {
+    std::string arm_controller_name = collision_models_interface_->getKinematicModel()->getRobotName()
+        + "/follow_joint_trajectory";
+    action_client_map_[it->first] = FollowJointTrajectoryClientPtr(
+        new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(arm_controller_name, true));
+    while (ros::ok() && !action_client_map_[it->first]->waitForServer(ros::Duration(1.0))) { }
+  }
+
   if(!initializePropertyEditor()) return false;
   if(!initializeInteractiveMarkerServer()) return false;
+  if(!initializeServiceClient()) return false;
 
 
   return true;
+}
+
+bool InspectorArm::initializeServiceClient()
+{
+  robot_state_ = NULL;
+  joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
+
+
+  ros::service::waitForService("plan_cartesian_path");
+  hg_cartesian_trajectory_client_ =
+      nh_.serviceClient<hg_cartesian_trajectory::HgCartesianTrajectory>("plan_cartesian_path");
+  return true;
+}
+
+void InspectorArm::jointStateCallback(const sensor_msgs::JointStateConstPtr& message)
+{
+  joint_state_mutex_.lock();
+  latest_joint_state_ = *message;
+  joint_state_mutex_.unlock();
+}
+
+void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
+                                               const control_msgs::FollowJointTrajectoryResultConstPtr& result)
+{
+  ROS_INFO("trajectory done");
+}
+
+void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
+{
+  addMarkerAtEndEffector();
+}
+
+void InspectorArm::on_pushButtonPlan_clicked()
+{
+  if(markers_.size() == 0)
+    return;
+
+  hg_cartesian_trajectory::HgCartesianTrajectoryRequest request;
+  hg_cartesian_trajectory::HgCartesianTrajectoryResponse respond;
+  request.header.frame_id = "/base_link";
+  request.header.stamp = ros::Time::now();
+  request.motion_plan_request.group_name = "manipulator";
+  joint_state_mutex_.lock();
+  request.motion_plan_request.start_state.joint_state = latest_joint_state_;
+  joint_state_mutex_.unlock();
+  request.poses.clear();
+  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  while(it != markers_.end())
+  {
+    request.poses.push_back(it->second->pose());
+    it++;
+  }
+
+  if(!hg_cartesian_trajectory_client_.call(request, respond))
+  {
+    ROS_ERROR("error when calling calling plan_cartesian_path: error code %d", respond.error_code.val);
+  }
+  else
+  {
+    control_msgs::FollowJointTrajectoryGoal goal;
+    goal.trajectory = respond.trajectory.joint_trajectory;
+    action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal,
+                                                                         boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+  }
 }
 
 
@@ -102,7 +188,7 @@ int main(int argc, char** argv)
   g_inspector_arm = &arm;
   arm.show();
 
-  g_initialized = arm.initialize();
+  g_initialized = arm.run();
 
   if(!g_initialized)
     exit(-1);

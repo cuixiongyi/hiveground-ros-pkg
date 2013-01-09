@@ -162,4 +162,4 @@ rosbuild_add_library(qtpropertybrowser ${SRCS})
 target_link_libraries(qtpropertybrowser ${QT_LIBRARIES})
 
 rosbuild_add_executable(inspector_arm ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs}) 
-target_link_libraries(inspector_arm ${QT_LIBRARIES} qtpropertybrowser)
+target_link_libraries(inspector_arm ${QT_LIBRARIES} qtpropertybrowser hg_cartesian_trajectory)

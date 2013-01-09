@@ -41,8 +41,8 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   name_count_ = 0;
   marker_callback_ptr_ = boost::bind(&InspectorArm::processMarkerCallback, this, _1);
 
-  ros::service::waitForService("get_ik_solver_info");
-  ros::service::waitForService("get_ik");
+  //ros::service::waitForService("get_ik_solver_info");
+  //ros::service::waitForService("get_ik");
 
   ROS_ASSERT(nh_private_.getParam("world_frame", world_frame_));
   ROS_INFO_STREAM("world_frame: " << world_frame_);
@@ -50,21 +50,21 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   ROS_ASSERT(nh_private_.getParam("base_link", base_link_));
   ROS_INFO_STREAM("base_link: " << base_link_);
 
-  ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
-  ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
+  //ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
+  //ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
 
   kinematics_msgs::GetKinematicSolverInfo::Request request;
 
-  if (ik_query_client_.call(request, response_))
+  if (ik_info_client_map_["manipulator"].call(request, ik_solver_info_))
   {
-    for (unsigned int i = 0; i < response_.kinematic_solver_info.joint_names.size(); i++)
+    for (unsigned int i = 0; i < ik_solver_info_.kinematic_solver_info.joint_names.size(); i++)
     {
-      ROS_INFO("Joint: %d %s", i, response_.kinematic_solver_info.joint_names[i].c_str());
+      ROS_INFO("Joint: %d %s", i, ik_solver_info_.kinematic_solver_info.joint_names[i].c_str());
     }
 
-    for (unsigned int i = 0; i < response_.kinematic_solver_info.link_names.size(); i++)
+    for (unsigned int i = 0; i < ik_solver_info_.kinematic_solver_info.link_names.size(); i++)
     {
-      ROS_INFO("Link: %d %s", i, response_.kinematic_solver_info.link_names[i].c_str());
+      ROS_INFO("Link: %d %s", i, ik_solver_info_.kinematic_solver_info.link_names[i].c_str());
     }
   }
   else
@@ -132,47 +132,60 @@ void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, 
   control.interaction_mode = InteractiveMarkerControl::MENU;
   int_marker.controls.push_back(control);
   menu_handler_map_["Inspection Point"].apply(marker_server_, int_marker.name);
+
+  markers_[int_marker.name] = new InspectionPointItem(&marker_server_, int_marker.pose);
+  markers_[int_marker.name]->setName(int_marker.name.c_str());
+
   marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
-
-
-  marker_poses_[int_marker.name] = int_marker.pose;
-
   marker_server_.applyChanges();
+
+  Q_EMIT inspectionPointClickedSignal(markers_[int_marker.name]);
+}
+
+void InspectorArm::addMarkerAtEndEffector()
+{
+  tf::StampedTransform transform;
+  listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+  geometry_msgs::Pose pose;
+  tf::poseTFToMsg(transform, pose);
+  addMarker("default", pose);
 }
 
 void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
   switch (feedback->event_type)
   {
+    case InteractiveMarkerFeedback::MOUSE_DOWN:
+      Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
+      break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
-      ROS_DEBUG_STREAM(
-           feedback->marker_name << " is now at " << feedback->pose.position.x << ", " << feedback->pose.position.y << ", " << feedback->pose.position.z);
       if(checkIK(feedback))
       {
-        marker_poses_[feedback->marker_name] = feedback->pose;
+        markers_[feedback->marker_name]->setPose(feedback->pose);
+        Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
       }
       else
       {
-        marker_server_.setPose(feedback->marker_name, marker_poses_[feedback->marker_name], feedback->header);
-        marker_server_.applyChanges();
+        if(markers_[feedback->marker_name])
+        {
+          marker_server_.setPose(feedback->marker_name, markers_[feedback->marker_name]->pose());
+          marker_server_.applyChanges();
+        }
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
-
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
         if(feedback->menu_entry_id == menu_entry_add_)
         {
-          ROS_DEBUG("add");
           tf::StampedTransform transform;
-          listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+          listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
           geometry_msgs::Pose pose;
           tf::poseTFToMsg(transform, pose);
           addMarker("default", pose);
         }
         else if(feedback->menu_entry_id == menu_entry_add_here_)
         {
-          ROS_DEBUG("add here");
           addMarker("default", feedback->pose);
         }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
@@ -182,6 +195,8 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           pose.position = geometry_msgs::Point();
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
+          markers_[feedback->marker_name]->setPose(pose);
+          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
@@ -190,37 +205,38 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           pose.orientation = geometry_msgs::Quaternion();
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
+          markers_[feedback->marker_name]->setPose(pose);
+          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
         }
         else if(feedback->menu_entry_id == menu_entry_remove_)
         {
           ROS_DEBUG_STREAM("remove " << feedback->marker_name);
-          marker_poses_.erase(feedback->marker_name);
+          delete markers_[feedback->marker_name];
+          markers_.erase(feedback->marker_name);
           marker_server_.erase(feedback->marker_name);
           marker_server_.applyChanges();
+          Q_EMIT inspectionPointClickedSignal(0);
         }
       }
       else if(feedback->marker_name == "top_level")
       {
         if(feedback->menu_entry_id == menu_entry_top_add_)
         {
-          ROS_DEBUG("top add");
-          tf::StampedTransform transform;
-          listener_.lookupTransform(world_frame_, response_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
-          geometry_msgs::Pose pose;
-          tf::poseTFToMsg(transform, pose);
-          addMarker("default", pose);
+          addMarkerAtEndEffector();
         }
         else if(feedback->menu_entry_id == menu_entry_top_clear_)
         {
           ROS_DEBUG("clear");
-          std::map<std::string, geometry_msgs::Pose>::iterator it = marker_poses_.begin();
-          while(it != marker_poses_.end())
+          std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+          while(it != markers_.end())
           {
+            delete it->second;
             marker_server_.erase(it->first);
             it++;
           }
-          marker_poses_.clear();
+          markers_.clear();
           marker_server_.applyChanges();
+          Q_EMIT inspectionPointClickedSignal(0);
         }
       }
       break;
@@ -236,7 +252,7 @@ bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackCo
   kinematics_msgs::GetPositionIK::Request gpik_req;
   kinematics_msgs::GetPositionIK::Response gpik_res;
   gpik_req.timeout = ros::Duration(5.0);
-  gpik_req.ik_request.ik_link_name = response_.kinematic_solver_info.link_names[0];
+  gpik_req.ik_request.ik_link_name = ik_solver_info_.kinematic_solver_info.link_names[0];
   gpik_req.ik_request.pose_stamped.header.frame_id = base_link_;
 
   geometry_msgs::Pose transformed_pose;
@@ -263,17 +279,17 @@ bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackCo
 
   gpik_req.ik_request.pose_stamped.pose = transformed_pose;
 
-  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(response_.kinematic_solver_info.joint_names.size());
-  gpik_req.ik_request.ik_seed_state.joint_state.name = response_.kinematic_solver_info.joint_names;
+  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(ik_solver_info_.kinematic_solver_info.joint_names.size());
+  gpik_req.ik_request.ik_seed_state.joint_state.name = ik_solver_info_.kinematic_solver_info.joint_names;
 
-  for(unsigned int i=0; i< response_.kinematic_solver_info.joint_names.size(); i++)
+  for(unsigned int i=0; i< ik_solver_info_.kinematic_solver_info.joint_names.size(); i++)
   {
     gpik_req.ik_request.ik_seed_state.joint_state.position[i] =
-        (response_.kinematic_solver_info.limits[i].min_position +
-         response_.kinematic_solver_info.limits[i].max_position) / 2.0;
+        (ik_solver_info_.kinematic_solver_info.limits[i].min_position +
+            ik_solver_info_.kinematic_solver_info.limits[i].max_position) / 2.0;
   }
 
-  if(ik_client_.call(gpik_req, gpik_res))
+  if(ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
   {
     if(gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
     {
