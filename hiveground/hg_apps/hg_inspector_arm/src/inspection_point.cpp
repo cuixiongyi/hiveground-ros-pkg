@@ -39,35 +39,65 @@ int InspectionPointItem::rtti() const { return RTTI; }
 int InspectionPointLookAt::RTTI = Rtti_LookAt;
 int InspectionPointLookAt::rtti() const { return RTTI; }
 
+InspectionPointItem::InspectionPointItem(interactive_markers::InteractiveMarkerServer* server,
+                                               const geometry_msgs::Pose& pose)
+  : server_(server), pose_(pose)
+{
+
+}
+
+InspectionPointItem::~InspectionPointItem()
+{
+
+}
+
+void InspectionPointItem::setPose(const geometry_msgs::Pose& pose)
+{
+  pose_ = pose;
+}
+
 void InspectionPointItem::move(double x, double y, double z)
 {
-  moveBy(x - tf_.getOrigin().getX(), y - tf_.getOrigin().getY(), z - tf_.getOrigin().getZ());
+  moveBy(x - pose_.position.x, y - pose_.position.y, z - pose_.position.z);
 }
 
 void InspectionPointItem::moveBy(double dx, double dy, double dz)
 {
   if(dx || dy || dz)
   {
-    tf::Vector3 origin = tf_.getOrigin();
-    tf_.getOrigin().setValue(origin.x() + dx, origin.y() + dy, origin.z() + dz);
-    geometry_msgs::Pose pose;
-    tf::poseTFToMsg(tf_, pose);
-    server_->setPose(name_.toStdString(), pose);
+    pose_.position.x += dx;
+    pose_.position.y += dy;
+    pose_.position.z += dz;
+    ROS_DEBUG_STREAM(name_.toStdString());
+    ROS_DEBUG_STREAM(pose_);
+    server_->setPose(name_.toStdString(), pose_);
     server_->applyChanges();
   }
 }
 
 void InspectionPointItem::rotate(double roll, double pitch, double yaw)
 {
-
+  rotateBy(roll - this->roll(), pitch - this->pitch(), yaw - this->yaw());
 }
 
 void InspectionPointItem::rotateBy(double dRoll, double dPitch, double dYaw)
 {
-
+  if(dRoll || dPitch || dYaw)
+  {
+    double roll, pitch, yaw;
+    tf::Quaternion q;
+    tf::quaternionMsgToTF(pose_.orientation, q);
+    tf::Matrix3x3(q).getEulerYPR(yaw, pitch, roll);
+    roll += dRoll;
+    pitch += dPitch;
+    yaw += dYaw;
+    q.setRPY(roll, pitch, yaw);
+    tf::quaternionTFToMsg(q, pose_.orientation);
+    ROS_DEBUG_STREAM(name_.toStdString());
+    ROS_DEBUG_STREAM(pose_);
+    server_->setPose(name_.toStdString(), pose_);
+    server_->applyChanges();
+  }
 }
 
-void InspectorArm::inspectionPointSelected(InspectionPointItem* item)
-{
 
-}

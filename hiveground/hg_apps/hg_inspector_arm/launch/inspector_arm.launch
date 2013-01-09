@@ -1,8 +1,10 @@
 <launch>  
   <node pkg="hg_inspector_arm" type="inspector_arm" name="inspector_arm" output="screen">
+    <rosparam command="load" file="$(find vp6242_arm_navigation)/config/cartesian_planning.yaml" />
     <param name="base_link" value="base_link" />    
     <param name="world_frame" value="base_link" />    
-    <remap from="get_ik_solver_info" to="vp6242_manipulator_kinematics/get_ik_solver_info"/>
-    <remap from="get_ik" to="vp6242_manipulator_kinematics/get_ik"/>  	  	
+    <!--remap from="get_ik_solver_info" to="vp6242_manipulator_kinematics/get_ik_solver_info"/-->
+    <!--remap from="get_ik" to="vp6242_manipulator_kinematics/get_ik"/-->
+    <remap from="plan_cartesian_path" to="cartesian_planner/plan_cartesian_path"/>      	  	
   </node>
 </launch>

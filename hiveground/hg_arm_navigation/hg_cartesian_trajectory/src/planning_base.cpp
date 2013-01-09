@@ -49,25 +49,26 @@ PlanningBase::~PlanningBase()
 
 }
 
-void PlanningBase::run()
+bool PlanningBase::run()
 {
   if (!initialize(nh_private_.getNamespace()))
-    return;
+    return false;
   if (!collision_models_interface_->loadedModels())
   {
     ROS_ERROR("Collision models not loaded.");
-    return;
+    return false;
   }
+  return true;
 }
 
 bool PlanningBase::initialize(const std::string& param_server_prefix)
 {
-  std::vector<std::string> group_names;
-   if(!getGroupNamesFromParamServer(param_server_prefix,group_names))
-   {
-     ROS_ERROR("Could not find groups for planning under %s",param_server_prefix.c_str());
-     return false;
-   }
+//  std::vector<std::string> group_names;
+//   if(!getGroupNamesFromParamServer(param_server_prefix,group_names))
+//   {
+//     ROS_ERROR("Could not find groups for planning under %s",param_server_prefix.c_str());
+//     return false;
+//   }
 
   const KinematicModelGroupConfigMap &group_config_map =
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
@@ -76,58 +77,52 @@ bool PlanningBase::initialize(const std::string& param_server_prefix)
 
     std::string ik_service_name = collision_models_interface_->getKinematicModel()->getRobotName() + "_" + it->first
         + "_kinematics/";
+    std::string ik_info_name = ik_service_name + "get_ik_solver_info";
     std::string ik_collision_aware_name = ik_service_name + "get_constraint_aware_ik";
     std::string ik_none_collision_aware_name = ik_service_name + "get_ik";
     ROS_INFO_STREAM("Tip link: " << it->second.tip_link_);
-    ROS_DEBUG_STREAM(ik_service_name);
-    ROS_DEBUG_STREAM(ik_collision_aware_name);
-    ROS_DEBUG_STREAM(ik_none_collision_aware_name);
+    ROS_INFO_STREAM(ik_service_name);
+    ROS_INFO_STREAM(ik_collision_aware_name);
+    ROS_INFO_STREAM(ik_none_collision_aware_name);
 
+    while (!ros::service::waitForService(ik_info_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_collision_aware_name, ros::Duration(1.0))) { }
     while (!ros::service::waitForService(ik_none_collision_aware_name, ros::Duration(1.0))) { }
-    //ROS_INFO_STREAM(it->second.subgroups_.size());
-    //ROS_INFO_STREAM(it->second.joints_.size());
-    //joints_map_[it->first] = it->second.joints_;
-    //ROS_INFO_STREAM("joint count: " << it->second.joints_.size());
-    //for(int i = 0; i < it->second.joints_.size(); i++)
-    //{
-      //ROS_INFO_STREAM(it->second.joints_[i]);
-    //}
+
     tip_link_map_[it->first] = it->second.tip_link_;
-    ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(
-        ik_collision_aware_name, true);
-    ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(
-        ik_none_collision_aware_name, true);
+    ik_info_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>(ik_info_name);
+    ik_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetConstraintAwarePositionIK>(ik_collision_aware_name);
+    ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(ik_none_collision_aware_name);
   }
 
   return true;
 }
 
-bool PlanningBase::getGroupNamesFromParamServer(const std::string &param_server_prefix,
-                                                      std::vector<std::string> &group_names)
-{
-  XmlRpc::XmlRpcValue group_list;
-  if (!nh_.getParam(param_server_prefix + "/groups", group_list))
-  {
-    ROS_ERROR("Could not find parameter %s on param server", (param_server_prefix+"/groups").c_str());
-    return false;
-  }
-  if (group_list.getType() != XmlRpc::XmlRpcValue::TypeArray)
-  {
-    ROS_ERROR("Group list should be of XmlRpc Array type");
-    return false;
-  }
-  for (int32_t i = 0; i < group_list.size(); ++i)
-  {
-    if (group_list[i].getType() != XmlRpc::XmlRpcValue::TypeString)
-    {
-      ROS_ERROR("Group names should be strings");
-      return false;
-    }
-    group_names.push_back(static_cast<std::string>(group_list[i]));
-    ROS_INFO("Adding group: %s", group_names.back().c_str());
-  }
-  return true;
-}
+//bool PlanningBase::getGroupNamesFromParamServer(const std::string &param_server_prefix,
+//                                                      std::vector<std::string> &group_names)
+//{
+//  XmlRpc::XmlRpcValue group_list;
+//  if (!nh_.getParam(param_server_prefix + "/groups", group_list))
+//  {
+//    ROS_ERROR("Could not find parameter %s on param server", (param_server_prefix+"/groups").c_str());
+//    return false;
+//  }
+//  if (group_list.getType() != XmlRpc::XmlRpcValue::TypeArray)
+//  {
+//    ROS_ERROR("Group list should be of XmlRpc Array type");
+//    return false;
+//  }
+//  for (int32_t i = 0; i < group_list.size(); ++i)
+//  {
+//    if (group_list[i].getType() != XmlRpc::XmlRpcValue::TypeString)
+//    {
+//      ROS_ERROR("Group names should be strings");
+//      return false;
+//    }
+//    group_names.push_back(static_cast<std::string>(group_list[i]));
+//    ROS_INFO("Adding group: %s", group_names.back().c_str());
+//  }
+//  return true;
+//}
 
 #endif /* PLANNING_BASE_CPP_ */
