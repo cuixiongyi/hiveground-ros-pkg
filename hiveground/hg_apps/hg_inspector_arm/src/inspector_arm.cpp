@@ -147,20 +147,8 @@ void InspectorArm::on_pushButtonPlan_clicked()
   {
     control_msgs::FollowJointTrajectoryGoal goal;
     goal.trajectory = respond.trajectory.joint_trajectory;
-    action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal);
-    action_client_map_[request.motion_plan_request.group_name]->waitForResult();
-    if(action_client_map_[request.motion_plan_request.group_name]->getState() ==
-        actionlib::SimpleClientGoalState::SUCCEEDED)
-    {
-      ROS_DEBUG("Hooray, the arm finished the trajectory!");
-    }
-    else
-    {
-      ROS_DEBUG("The arm failed to execute the trajectory.");
-    }
-
-
-    ROS_INFO("Done! %lu", respond.trajectory.joint_trajectory.points.size());
+    action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal,
+                                                                         boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
   }
 }
 
