@@ -129,7 +129,6 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
   is_active_ = true;
   ros::Duration skip_duration = trajectory.points[0].time_from_start;
   bool success = true;
-  ros::Time last_time = trajectory_start_time + skip_duration;
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
   trajectory_msgs::JointTrajectoryPoint point;
   for (size_t i = 0; i < trajectory.points.size(); i++)
@@ -145,7 +144,7 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
 
     while ((ros::Time::now() < end_time) && (!action_server_->isPreemptRequested()))
     {
-      ros::Duration(0.0001).sleep();
+      ros::Duration(0.001).sleep();
     }
 
     if (action_server_->isPreemptRequested() || !ros::ok())
