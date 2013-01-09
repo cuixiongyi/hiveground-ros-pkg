@@ -51,16 +51,13 @@
 namespace hg_cartesian_trajectory
 {
 
-typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > FollowJointTrajectoryClientPtr;
-
-
 class CartesianTrajectoryPlanner : public PlanningBase
 {
 public:
   CartesianTrajectoryPlanner();
   ~CartesianTrajectoryPlanner();
 
-  void run();
+  bool run();
 
   bool initialize(const std::string& param_server_prefix);
 
@@ -69,21 +66,20 @@ public:
                                               HgCartesianTrajectory::Response &respond);
 
 protected:
-  bool runIk(const std::string& group_name,
+  bool runIK(const std::string& group_name,
               const arm_navigation_msgs::RobotState& robot_state,
               geometry_msgs::PoseStamped pose,
               std::vector<double>& start_position,
               std::vector<double>& solution);
+
   void planSimpleIKTrajectory(HgCartesianTrajectory::Request &request,
                                   HgCartesianTrajectory::Response &respond);
 
-
 protected:
-  std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
+  //std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceServer service_;
   planning_environment::JointStateMonitor joint_state_monitor;
-  ros::Publisher display_trajectory_publisher_;
-  ros::Publisher display_trajectory_path_publisher_;
+  double time_step_;
 };
 
 }

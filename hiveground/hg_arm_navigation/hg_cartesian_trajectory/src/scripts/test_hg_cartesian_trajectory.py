@@ -68,7 +68,7 @@ def pplist(list):
 if __name__ == "__main__":
     rospy.init_node("test_ik_simple")
     tf_listener = tf.TransformListener()
-    time.sleep(5)
+    time.sleep(1)
     
     (trans, rot) = tf_listener.lookupTransform('base_link', 'link5', rospy.Time(0))
     print "start Cartesian pose: trans", pplist(trans), "rot", pplist(rot)
