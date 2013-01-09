@@ -114,64 +114,7 @@ void RC7MController::startup()
 {
   if (!node_->is_simulated_)
   {
-    int mode = 0;
-    uint16_t mode16 = 0;
-    long result = 0;
-    BCAP_HRESULT hr;
-
-    hr = bcap_->ControllerConnect("", "", "", "", &h_controller_);
-    ROS_ASSERT(!FAILED(hr));
-
-    mode16 = 2;
-    result = 0;
-    hr = bcap_->ControllerExecute2(h_controller_, "PutAutoMode", VT_I2, 1, &mode16, &result);
-    ROS_ASSERT(!FAILED(hr));
-
-    result = 0;
-    hr = bcap_->ControllerExecute2(h_controller_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
-    ROS_ASSERT(!FAILED(hr));
-    ROS_ASSERT(result == 2);
-
-    hr = bcap_->ControllerGetTask(h_controller_, "RobSlave", "", &h_task_);
-    ROS_ASSERT(!FAILED(hr));
-
-    hr = bcap_->TaskStart(h_task_, 1, "");
-    ROS_ASSERT(!FAILED(hr));
-    ros::Duration(1.0).sleep();
-
-    hr = bcap_->ControllerGetRobot(h_controller_, "ARM", "$IsIDHandle$", &h_robot_);
-    ROS_ASSERT(!FAILED(hr));
-
-    hr = bcap_->RobotGetVariable(h_robot_, "@CURRENT_ANGLE", "", &h_joint_angle_variable_);
-    ROS_ASSERT(!FAILED(hr));
-
-    std::vector<float> joint_angle;
-    getJointFeedback(joint_angle);
-
-    //update joint information
-    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-    int i = 0;
-    double radian = 0;
-    for (it = joints_.begin(); it != joints_.end(); it++)
-    {
-      //convert to radian
-      radian = (joint_angle[i] * M_PI) / 180.0;
-      (*it)->desired_position_ = radian;
-      (*it)->last_commanded_position_ = radian;
-      (*it)->setFeedbackData(radian);
-      i++;
-    }
-
-    turnOnMotor(true);
-
-    result = 0;
-    hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &slave_mode_, &result);
-    ROS_ASSERT(!FAILED(hr));
-
-    result = 0;
-    hr = bcap_->RobotExecute2(h_robot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
-    ROS_ASSERT(!FAILED(hr));
-    ROS_ASSERT(result == slave_mode_);
+    startSlaveMode(false);
   }
 
 
@@ -208,14 +151,14 @@ void RC7MController::startup()
   if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
   {
     errno = retcode;
-    perror("pthread_setschedparam");
+    ROS_ERROR("pthread_setschedparam");
     exit(EXIT_FAILURE);
   }
 
   if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
   {
     errno = retcode;
-    perror("pthread_getschedparam");
+    ROS_ERROR("pthread_getschedparam");
     exit(EXIT_FAILURE);
   }
 
@@ -224,6 +167,18 @@ void RC7MController::startup()
              (policy == SCHED_RR) ? "SCHED_RR" :
              (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") <<
              ", priority=" << param.sched_priority);
+
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  retcode = pthread_setaffinity_np(thread_id, sizeof(cpu_set_t), &cpuset);
+  if(retcode != 0)
+  {
+    errno = retcode;
+    ROS_ERROR("pthread_setaffinity_np");
+    exit(EXIT_FAILURE);
+  }
+
 
 #endif
 
@@ -292,6 +247,8 @@ void RC7MController::control()
         startTime = ros::Time(ros::WallTime::now().toSec());
         boost::unique_lock<boost::mutex> lock(control_mutex_);
         hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
+        if(FAILED(hr))
+          ROS_ERROR("slvMove error: 0%08x", hr);
         ROS_ASSERT(!FAILED(hr));
       }
 
@@ -324,7 +281,10 @@ void RC7MController::control()
       }
     }
 
-    rate.sleep();
+    if(!rate.sleep())
+    {
+    	ROS_ERROR("Loop late error");
+    }
   }
 }
 
@@ -399,9 +359,85 @@ void RC7MController::getJointFeedback(std::vector<float>& joint_angle)
   ROS_ASSERT(!FAILED(hr));
 }
 
-void RC7MController::startSlaveMode()
+void RC7MController::startSlaveMode(bool restart)
 {
+  int mode = 0;
+  uint16_t mode16 = 0;
+  long result = 0;
+  BCAP_HRESULT hr;
 
+  if(!restart)
+  {
+    hr = bcap_->ControllerConnect("", "", "", "", &h_controller_);
+    ROS_ASSERT(!FAILED(hr));
+  }
+
+  mode16 = 2;
+  result = 0;
+  hr = bcap_->ControllerExecute2(h_controller_, "PutAutoMode", VT_I2, 1, &mode16, &result);
+  ROS_ASSERT(!FAILED(hr));
+
+  result = 0;
+  hr = bcap_->ControllerExecute2(h_controller_, "GetAutoMode", VT_EMPTY, 1, &mode, &result);
+  ROS_ASSERT(!FAILED(hr));
+  ROS_ASSERT(result == 2);
+
+  if(!restart)
+  {
+    hr = bcap_->ControllerGetTask(h_controller_, "RobSlave", "", &h_task_);
+    ROS_ASSERT(!FAILED(hr));
+  }
+
+  hr = bcap_->TaskStart(h_task_, 1, "");
+  ROS_ASSERT(!FAILED(hr));
+  ros::Duration(1.0).sleep();
+
+  std::vector<float> joint_angle;
+  if(!restart)
+  {
+    hr = bcap_->ControllerGetRobot(h_controller_, "ARM", "$IsIDHandle$", &h_robot_);
+    ROS_ASSERT(!FAILED(hr));
+
+    hr = bcap_->RobotGetVariable(h_robot_, "@CURRENT_ANGLE", "", &h_joint_angle_variable_);
+    ROS_ASSERT(!FAILED(hr));
+
+    getJointFeedback(joint_angle);
+
+
+    //update joint information
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    int i = 0;
+    double radian = 0;
+    for (it = joints_.begin(); it != joints_.end(); it++)
+    {
+      //convert to radian
+      radian = (joint_angle[i] * M_PI) / 180.0;
+      (*it)->desired_position_ = radian;
+      (*it)->last_commanded_position_ = radian;
+      (*it)->setFeedbackData(radian);
+      i++;
+    }
+  }
+
+  turnOnMotor(true);
+
+  result = 0;
+  hr = bcap_->RobotExecute2(h_robot_, "slvChangeMode", VT_I4, 1, &slave_mode_, &result);
+  ROS_ASSERT(!FAILED(hr));
+
+  result = 0;
+  hr = bcap_->RobotExecute2(h_robot_, "slvGetMode", VT_EMPTY, 1, &mode, &result);
+  ROS_ASSERT(!FAILED(hr));
+  ROS_ASSERT(result == slave_mode_);
+}
+
+void RC7MController::clearError(int code)
+{
+  long result = 0;
+  BCAP_HRESULT hr;
+  hr = bcap_->ControllerExecute2(h_controller_, "ClearError", VT_I4, 1, &code, &result);
+  ROS_ASSERT(!FAILED(hr));
+  ros::Duration(1.0).sleep();
 }
 
 void RC7MController::callbackSetMotor(const std_msgs::Bool& on)
