@@ -57,6 +57,9 @@ typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> Men
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
+#define FILE_MAGIC_MARKER 0x6602AAAA
+#define FILE_VERSION_MARKER 100
+
 class InspectorArm : public QMainWindow, hg_cartesian_trajectory::PlanningBase
 {
   Q_OBJECT
@@ -69,8 +72,13 @@ public:
 
 protected:
   bool initialize(const std::string& param_server_prefix);
-  void addMarker(const std::string& name, geometry_msgs::Pose pose = geometry_msgs::Pose() ,double arrow_length = 0.1);
+  void addMarker(const std::string& name,
+                   geometry_msgs::Pose pose = geometry_msgs::Pose(),
+                   double arrow_length = 0.1);
+  std::string getMarkerName();
   void addMarkerAtEndEffector();
+  void clearMarker();
+
 
 
   bool initializeInteractiveMarkerServer();
@@ -89,7 +97,8 @@ protected:
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
                                                                      MenuEntryHandleMap& map, std::string name);
-
+  void saveMarker();
+  void loadMarker();
 
   //Inspection point property
   void updateExpandState();
@@ -119,6 +128,18 @@ private Q_SLOTS:
   //UI
   void on_pushButtonAddInspectionPoint_clicked();
   void on_pushButtonPlan_clicked();
+
+
+  //Menu action
+  //File Menu
+
+  //Path Menu
+  void on_actionAddMarker_triggered();
+  void on_actionClearMarker_triggered();
+  void on_actionLoadMarker_triggered();
+  void on_actionSaveMarker_triggered();
+  void on_actionSaveMarkerAs_triggered();
+
 
 protected:
   void closeEvent(QCloseEvent *evencurrentItemt);
@@ -167,6 +188,8 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
+  QString markers_save_file_name_;
+  bool markers_touched_;
 
   //trajectory
   planning_models::KinematicState* robot_state_;
