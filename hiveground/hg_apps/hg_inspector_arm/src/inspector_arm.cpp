@@ -33,7 +33,7 @@
 #include <QtGui/QApplication>
 #include <qevent.h>
 #include <qfiledialog.h>
-
+#include <qmessagebox.h>
 
 #include <ros/ros.h>
 
@@ -166,7 +166,17 @@ void InspectorArm::on_actionClearMarker_triggered()
 
 void InspectorArm::on_actionLoadMarker_triggered()
 {
-  //on_actionSaveMarker_triggered();
+  if(markers_touched_)
+  {
+    int ret = QMessageBox::warning(this, tr("Inspector Arm"),
+                                    tr("The marker has been modified.\n"
+                                       "Do you want to save your changes?"),
+                                    QMessageBox::Save | QMessageBox::Discard
+                                    | QMessageBox::Cancel,
+                                    QMessageBox::Save);
+    if(ret == QMessageBox::Save)
+      on_actionSaveMarker_triggered();
+  }
   markers_save_file_name_ = QFileDialog::getOpenFileName(this, tr("Open File"),
                                                            "",
                                                            tr("Marker (*.mrk)"));
@@ -183,11 +193,12 @@ void InspectorArm::on_actionSaveMarker_triggered()
 
 void InspectorArm::on_actionSaveMarkerAs_triggered()
 {
-  markers_save_file_name_ = QFileDialog::getSaveFileName(this, tr("Save File"),
+   QString file_name = QFileDialog::getSaveFileName(this, tr("Save File"),
                                                          markers_save_file_name_,
                                                          tr("Marker (*.mrk)"));
-  if(!markers_save_file_name_.isEmpty())
-    saveMarker();
+   markers_save_file_name_ = file_name;
+   if(!markers_save_file_name_.isEmpty())
+     saveMarker();
 }
 
 void InspectorArm::closeEvent(QCloseEvent *event)

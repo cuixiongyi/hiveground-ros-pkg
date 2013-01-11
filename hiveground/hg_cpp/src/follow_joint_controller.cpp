@@ -126,6 +126,9 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     ros::Duration(0.001).sleep();
   }
 
+  try
+  {
+
   is_active_ = true;
   ros::Duration skip_duration = trajectory.points[0].time_from_start;
   bool success = true;
@@ -163,9 +166,19 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
   }
   is_active_ = false;
 
+
+
   if(success)
   {
     result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
     action_server_->setSucceeded(result);
+  }
+
+  }
+  catch(const std::exception& e)
+  {
+    ROS_ERROR("%s", e.what());
+    result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+    action_server_->setAborted(result);
   }
 }
