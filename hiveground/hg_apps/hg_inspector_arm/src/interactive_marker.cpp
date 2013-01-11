@@ -158,6 +158,7 @@ void InspectorArm::addMarkerAtEndEffector()
   item->setName(name.c_str());
   markers_[item->name().toStdString()] = item;
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
+  markers_touched_ = true;
 }
 
 void InspectorArm::clearMarker()
@@ -172,6 +173,7 @@ void InspectorArm::clearMarker()
   markers_.clear();
   marker_server_.applyChanges();
   Q_EMIT inspectionPointClickedSignal(0);
+  markers_touched_ = true;
 }
 
 void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -189,6 +191,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       {
         markers_[feedback->marker_name]->setPose(markers_[feedback->marker_name]->pose());
         Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+        markers_touched_ = true;
       }
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
@@ -196,6 +199,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       {
         markers_[feedback->marker_name]->setPose(feedback->pose);
         Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+        markers_touched_ = true;
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
@@ -232,6 +236,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose);
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+          markers_touched_ = true;
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
@@ -242,6 +247,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose);
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+          markers_touched_ = true;
         }
         else if(feedback->menu_entry_id == menu_entry_remove_)
         {
@@ -251,6 +257,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.erase(feedback->marker_name);
           marker_server_.applyChanges();
           Q_EMIT inspectionPointClickedSignal(0);
+          markers_touched_ = true;
         }
       }
       else if(feedback->marker_name == "top_level")
@@ -479,6 +486,7 @@ void InspectorArm::saveMarker()
     it++;
   }
   file.close();
+  markers_touched_  = false;
 }
 
 void InspectorArm::loadMarker()
