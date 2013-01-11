@@ -73,7 +73,8 @@ void RC7MController::initilize(hg::ControllerNode* node, const std::string& name
       rate_ = 125;
       break;
     case 0x102: //J async
-      rate_ = 1000;
+      ROS_WARN("It should be 1000 Hz according to the manual");
+      rate_ = 125;
       break;
     case 0x001:
     case 0x003:
@@ -366,11 +367,8 @@ void RC7MController::startSlaveMode(bool restart)
   long result = 0;
   BCAP_HRESULT hr;
 
-  if(!restart)
-  {
-    hr = bcap_->ControllerConnect("", "", "", "", &h_controller_);
-    ROS_ASSERT(!FAILED(hr));
-  }
+  hr = bcap_->ControllerConnect("", "", "", "", &h_controller_);
+  ROS_ASSERT(!FAILED(hr));
 
   mode16 = 2;
   result = 0;
@@ -382,42 +380,36 @@ void RC7MController::startSlaveMode(bool restart)
   ROS_ASSERT(!FAILED(hr));
   ROS_ASSERT(result == 2);
 
-  if(!restart)
-  {
-    hr = bcap_->ControllerGetTask(h_controller_, "RobSlave", "", &h_task_);
-    ROS_ASSERT(!FAILED(hr));
-  }
+  hr = bcap_->ControllerGetTask(h_controller_, "RobSlave", "", &h_task_);
+  ROS_ASSERT(!FAILED(hr));
 
   hr = bcap_->TaskStart(h_task_, 1, "");
   ROS_ASSERT(!FAILED(hr));
   ros::Duration(1.0).sleep();
 
   std::vector<float> joint_angle;
-  if(!restart)
+  hr = bcap_->ControllerGetRobot(h_controller_, "ARM", "$IsIDHandle$", &h_robot_);
+  ROS_ASSERT(!FAILED(hr));
+
+  hr = bcap_->RobotGetVariable(h_robot_, "@CURRENT_ANGLE", "", &h_joint_angle_variable_);
+  ROS_ASSERT(!FAILED(hr));
+
+  getJointFeedback(joint_angle);
+
+  //update joint information
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  int i = 0;
+  double radian = 0;
+  for (it = joints_.begin(); it != joints_.end(); it++)
   {
-    hr = bcap_->ControllerGetRobot(h_controller_, "ARM", "$IsIDHandle$", &h_robot_);
-    ROS_ASSERT(!FAILED(hr));
-
-    hr = bcap_->RobotGetVariable(h_robot_, "@CURRENT_ANGLE", "", &h_joint_angle_variable_);
-    ROS_ASSERT(!FAILED(hr));
-
-    getJointFeedback(joint_angle);
-
-
-    //update joint information
-    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-    int i = 0;
-    double radian = 0;
-    for (it = joints_.begin(); it != joints_.end(); it++)
-    {
-      //convert to radian
-      radian = (joint_angle[i] * M_PI) / 180.0;
-      (*it)->desired_position_ = radian;
-      (*it)->last_commanded_position_ = radian;
-      (*it)->setFeedbackData(radian);
-      i++;
-    }
+    //convert to radian
+    radian = (joint_angle[i] * M_PI) / 180.0;
+    (*it)->desired_position_ = radian;
+    (*it)->last_commanded_position_ = radian;
+    (*it)->setFeedbackData(radian);
+    i++;
   }
+
 
   turnOnMotor(true);
 
