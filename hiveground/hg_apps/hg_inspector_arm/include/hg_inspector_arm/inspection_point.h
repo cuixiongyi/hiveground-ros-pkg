@@ -48,7 +48,7 @@ class InspectionPointItem
 {
 public:
   InspectionPointItem(interactive_markers::InteractiveMarkerServer* server,
-                         const geometry_msgs::Pose& pose);
+                         const geometry_msgs::Pose& pose = geometry_msgs::Pose());
   virtual ~InspectionPointItem();
 
   enum RttiValue
@@ -101,10 +101,12 @@ public:
   void move(double x, double y, double z);
   virtual void moveBy(double x, double y, double z);
   void rotate(double roll, double pitch, double yaw);
-  void rotateBy(double roll, double pitch, double yaw);
+  virtual void rotateBy(double roll, double pitch, double yaw);
 
   geometry_msgs::Pose pose() const { return pose_; };
 
+  virtual void save(QDataStream& out);
+  virtual void load(QDataStream& in);
 
 protected:
   interactive_markers::InteractiveMarkerServer* server_;
