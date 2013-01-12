@@ -32,7 +32,8 @@
  */
 #include <QtGui/QApplication>
 #include <qevent.h>
-
+#include <qfiledialog.h>
+#include <qmessagebox.h>
 
 #include <ros/ros.h>
 
@@ -115,7 +116,7 @@ void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState
 
 void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
 {
-  addMarkerAtEndEffector();
+
 }
 
 void InspectorArm::on_pushButtonPlan_clicked()
@@ -152,6 +153,53 @@ void InspectorArm::on_pushButtonPlan_clicked()
   }
 }
 
+void InspectorArm::on_actionAddMarker_triggered()
+{
+  //ROS_INFO(__FUNCTION__);
+  addMarkerAtEndEffector();
+}
+
+void InspectorArm::on_actionClearMarker_triggered()
+{
+  ROS_INFO(__FUNCTION__);
+}
+
+void InspectorArm::on_actionLoadMarker_triggered()
+{
+  if(markers_touched_)
+  {
+    int ret = QMessageBox::warning(this, tr("Inspector Arm"),
+                                    tr("The marker has been modified.\n"
+                                       "Do you want to save your changes?"),
+                                    QMessageBox::Save | QMessageBox::Discard
+                                    | QMessageBox::Cancel,
+                                    QMessageBox::Save);
+    if(ret == QMessageBox::Save)
+      on_actionSaveMarker_triggered();
+  }
+  markers_save_file_name_ = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                           "",
+                                                           tr("Marker (*.mrk)"));
+  loadMarker();
+}
+
+void InspectorArm::on_actionSaveMarker_triggered()
+{
+  if(markers_save_file_name_.isEmpty())
+    on_actionSaveMarkerAs_triggered();
+  else
+    saveMarker();
+}
+
+void InspectorArm::on_actionSaveMarkerAs_triggered()
+{
+   QString file_name = QFileDialog::getSaveFileName(this, tr("Save File"),
+                                                         markers_save_file_name_,
+                                                         tr("Marker (*.mrk)"));
+   markers_save_file_name_ = file_name;
+   if(!markers_save_file_name_.isEmpty())
+     saveMarker();
+}
 
 void InspectorArm::closeEvent(QCloseEvent *event)
 {

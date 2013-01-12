@@ -32,6 +32,8 @@
  */
 
 #include <hg_inspector_arm/inspector_arm.h>
+#include <hg_inspector_arm/inspection_point.h>
+#include <qfile.h>
 
 using namespace visualization_msgs;
 using namespace interactive_markers;
@@ -74,17 +76,24 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   }
 
   makeMenu();
+
+  markers_touched_ = false;
+
   return true;
+}
+
+std::string InspectorArm::getMarkerName()
+{
+    std::stringstream ss;
+    ss << "marker_" << name_count_++;
+    return ss.str();
 }
 
 
 void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, double arrow_length)
 {
   InteractiveMarker int_marker;
-  std::stringstream ss;
-  ss << "marker_" << name_count_++ << "_" << name;
-  ROS_INFO_STREAM("Added " << ss.str());
-  int_marker.name = ss.str();
+  int_marker.name = name;
   int_marker.header.frame_id = world_frame_;
   int_marker.scale = arrow_length * 0.5;
   int_marker.pose = pose;
@@ -133,13 +142,8 @@ void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, 
   int_marker.controls.push_back(control);
   menu_handler_map_["Inspection Point"].apply(marker_server_, int_marker.name);
 
-  markers_[int_marker.name] = new InspectionPointItem(&marker_server_, int_marker.pose);
-  markers_[int_marker.name]->setName(int_marker.name.c_str());
-
   marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
   marker_server_.applyChanges();
-
-  Q_EMIT inspectionPointClickedSignal(markers_[int_marker.name]);
 }
 
 void InspectorArm::addMarkerAtEndEffector()
@@ -148,7 +152,28 @@ void InspectorArm::addMarkerAtEndEffector()
   listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(transform, pose);
-  addMarker("default", pose);
+  std::string name = getMarkerName();
+  addMarker(name, pose);
+  InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
+  item->setName(name.c_str());
+  markers_[item->name().toStdString()] = item;
+  Q_EMIT inspectionPointClickedSignal(markers_[name]);
+  markers_touched_ = true;
+}
+
+void InspectorArm::clearMarker()
+{
+  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  while (it != markers_.end())
+  {
+    delete it->second;
+    marker_server_.erase(it->first);
+    it++;
+  }
+  markers_.clear();
+  marker_server_.applyChanges();
+  Q_EMIT inspectionPointClickedSignal(0);
+  markers_touched_ = true;
 }
 
 void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
@@ -156,21 +181,25 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
   switch (feedback->event_type)
   {
     case InteractiveMarkerFeedback::MOUSE_DOWN:
-      Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
+      if(feedback->marker_name.rfind("marker_") != std::string::npos)
+      {
+        Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
+      }
+      break;
+    case InteractiveMarkerFeedback::MOUSE_UP:
+      if (feedback->marker_name.rfind("marker_") != std::string::npos)
+      {
+        markers_[feedback->marker_name]->setPose(markers_[feedback->marker_name]->pose());
+        Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+        markers_touched_ = true;
+      }
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
       if(checkIK(feedback))
       {
         markers_[feedback->marker_name]->setPose(feedback->pose);
         Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
-      }
-      else
-      {
-        if(markers_[feedback->marker_name])
-        {
-          marker_server_.setPose(feedback->marker_name, markers_[feedback->marker_name]->pose());
-          marker_server_.applyChanges();
-        }
+        markers_touched_ = true;
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
@@ -182,11 +211,21 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
           geometry_msgs::Pose pose;
           tf::poseTFToMsg(transform, pose);
-          addMarker("default", pose);
+          std::string name = getMarkerName();
+          addMarker(name, pose);
+          InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
+          item->setName(name.c_str());
+          markers_[item->name().toStdString()] = item;
+          Q_EMIT inspectionPointClickedSignal(markers_[name]);
         }
         else if(feedback->menu_entry_id == menu_entry_add_here_)
         {
-          addMarker("default", feedback->pose);
+          std::string name = getMarkerName();
+          addMarker(name, feedback->pose);
+          InspectionPointItem* item = new InspectionPointItem(&marker_server_, feedback->pose);
+          item->setName(name.c_str());
+          markers_[item->name().toStdString()] = item;
+          Q_EMIT inspectionPointClickedSignal(markers_[name]);
         }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
         {
@@ -197,6 +236,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose);
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+          markers_touched_ = true;
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
@@ -207,6 +247,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose);
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+          markers_touched_ = true;
         }
         else if(feedback->menu_entry_id == menu_entry_remove_)
         {
@@ -216,6 +257,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.erase(feedback->marker_name);
           marker_server_.applyChanges();
           Q_EMIT inspectionPointClickedSignal(0);
+          markers_touched_ = true;
         }
       }
       else if(feedback->marker_name == "top_level")
@@ -226,17 +268,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         }
         else if(feedback->menu_entry_id == menu_entry_top_clear_)
         {
-          ROS_DEBUG("clear");
-          std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
-          while(it != markers_.end())
-          {
-            delete it->second;
-            marker_server_.erase(it->first);
-            it++;
-          }
-          markers_.clear();
-          marker_server_.applyChanges();
-          Q_EMIT inspectionPointClickedSignal(0);
+          clearMarker();
         }
       }
       break;
@@ -430,5 +462,96 @@ MenuHandler::EntryHandle InspectorArm::registerMenuEntry(interactive_markers::Me
   MenuHandler::EntryHandle toReturn = handler.insert(name, marker_callback_ptr_);
   map[toReturn] = name;
   return toReturn;
+}
+
+void InspectorArm::saveMarker()
+{
+  QFile file(markers_save_file_name_);
+  file.open(QIODevice::WriteOnly);
+  if(!file.isOpen())
+  {
+    ROS_ERROR("Cannot open %s for writing", markers_save_file_name_.toStdString().c_str());
+    return;
+  }
+  QDataStream out(&file);
+
+  out << (quint32) FILE_MAGIC_MARKER;
+  out << (quint32) FILE_VERSION_MARKER;
+  out << name_count_;
+
+  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  while (it != markers_.end())
+  {
+    it->second->save(out);
+    it++;
+  }
+  file.close();
+  markers_touched_  = false;
+}
+
+void InspectorArm::loadMarker()
+{
+  QFile file(markers_save_file_name_);
+  file.open(QIODevice::ReadOnly);
+  if (!file.isOpen())
+  {
+    ROS_ERROR("Cannot open %s for reading", markers_save_file_name_.toStdString().c_str());
+    return;
+  }
+  QDataStream in(&file);
+
+  // Read and check the header
+  quint32 magic;
+  in >> magic;
+  if(magic != FILE_MAGIC_MARKER)
+  {
+    ROS_ERROR("Bad file format");
+    return;
+  }
+
+  // Read the version
+  qint32 version;
+  in >> version;
+  if (version < 100)
+  {
+    ROS_ERROR("File version is too old");
+    return;
+  }
+  if (version > 100)
+  {
+    ROS_ERROR("File version is too new");
+    return;
+  }
+
+  clearMarker();
+
+  in >> name_count_;
+
+  int rtti;
+  while(!in.atEnd())
+  {
+    in >> rtti;
+    ROS_INFO("Marker rtti %d", rtti);
+    switch(rtti)
+    {
+      case InspectionPointItem::Rtti_Item:
+        {
+          InspectionPointItem* item = new InspectionPointItem(&marker_server_);
+          item->load(in);
+          markers_[item->name().toStdString()] = item;
+          addMarker(item->name().toStdString(), item->pose());
+          Q_EMIT inspectionPointClickedSignal(item);
+        }
+        break;
+      case InspectionPointItem::Rtti_LookAt:
+        {
+        }
+        break;
+      default:
+        ROS_ERROR("Unknown InspectionPointItem::Rtti %d", rtti);
+        break;
+    }
+  }
+
 }
 
