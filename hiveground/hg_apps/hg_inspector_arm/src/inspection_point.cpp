@@ -54,6 +54,8 @@ InspectionPointItem::~InspectionPointItem()
 void InspectionPointItem::setPose(const geometry_msgs::Pose& pose)
 {
   pose_ = pose;
+  server_->setPose(name_.toStdString(), pose_);
+  server_->applyChanges();
 }
 
 void InspectionPointItem::move(double x, double y, double z)
@@ -98,6 +100,31 @@ void InspectionPointItem::rotateBy(double dRoll, double dPitch, double dYaw)
     server_->setPose(name_.toStdString(), pose_);
     server_->applyChanges();
   }
+}
+
+void InspectionPointItem::save(QDataStream& out)
+{
+  out << RTTI;
+  out << name_;
+  out << pose_.position.x;
+  out << pose_.position.y;
+  out << pose_.position.z;
+  out << pose_.orientation.x;
+  out << pose_.orientation.y;
+  out << pose_.orientation.z;
+  out << pose_.orientation.w;
+}
+
+void InspectionPointItem::load(QDataStream& in)
+{
+  in >> name_;
+  in >> pose_.position.x;
+  in >> pose_.position.y;
+  in >> pose_.position.z;
+  in >> pose_.orientation.x;
+  in >> pose_.orientation.y;
+  in >> pose_.orientation.z;
+  in >> pose_.orientation.w;
 }
 
 

@@ -230,7 +230,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
     return;
   }
 
-  spline_smoother::CubicParameterizedTrajectory trajectory_generator;
+  spline_smoother::CubicTrajectory trajectory_generator;
   spline_smoother::SplineTrajectory spline_trajectory;
   for(size_t i = 0; i < ik_info_respond.kinematic_solver_info.limits.size(); i++)
   {
@@ -246,7 +246,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   for(size_t i = 0; i < spline_trajectory.segments.size(); i++)
   {
     int step = (spline_trajectory.segments[i].duration.toSec() / time_step_) + 0.5;
-    ROS_DEBUG("time %f total step: %d", spline_trajectory.segments[i].duration.toSec(), step);
+    ROS_INFO("time %f total step: %d", spline_trajectory.segments[i].duration.toSec(), step);
 
     int n_joint = spline_trajectory.segments[i].joints.size();
     for (int k = 0; k < step; k++)
