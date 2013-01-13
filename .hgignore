@@ -1,6 +1,7 @@
 /build/
 /bin/
 /lib/
+/gen/
 /_gtest_from_src/
 syntax: glob
 *~
@@ -12,8 +13,6 @@ syntax: glob
 *.orig
 *.cmake
 .settings
-
-
 *.log
 Debug/
 GeneratedFiles/
