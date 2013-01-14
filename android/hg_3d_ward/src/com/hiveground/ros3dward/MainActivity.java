@@ -1,23 +1,40 @@
 package com.hiveground.ros3dward;
 
+import java.util.ArrayList;
+
 import android.app.Activity;
 import android.content.Context;
-import android.os.Bundle;
-import android.view.View;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
 
 public class MainActivity extends Activity {
 	private SensorManager mSensorManager;
 	private GraphView mGraphView;
+	private ListView mList;
+	private ArrayList<String> arrayList;
+	private MyCustomAdapter mAdapter;
+	private TCPClient mTcpClient;
 
 	private class GraphView extends View implements SensorEventListener {
 		private Bitmap mBitmap;
@@ -178,6 +195,38 @@ public class MainActivity extends Activity {
 		}
 	}
 
+	public class connectTask extends AsyncTask<String, String, TCPClient> {
+
+		@Override
+		protected TCPClient doInBackground(String... message) {
+
+			// we create a TCPClient object and
+			mTcpClient = new TCPClient(new TCPClient.OnMessageReceived() {
+				@Override
+				// here the messageReceived method is implemented
+				public void messageReceived(String message) {
+					// this method calls the onProgressUpdate
+					publishProgress(message);
+				}
+			});
+			mTcpClient.run();
+
+			return null;
+		}
+
+		@Override
+		protected void onProgressUpdate(String... values) {
+			super.onProgressUpdate(values);
+
+			// in the arrayList we add the messaged received from server
+			arrayList.add(values[0]);
+			// notify the adapter that the data set has changed. This means that
+			// new message received
+			// from server was added to the list
+			mAdapter.notifyDataSetChanged();
+		}
+	}
+
 	/**
 	 * Initialization of the Activity after it is first created. Must at least
 	 * call {@link android.app.Activity#setContentView setContentView()} to
@@ -188,29 +237,109 @@ public class MainActivity extends Activity {
 		// Be sure to call the super class.
 		super.onCreate(savedInstanceState);
 
-		mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-		mGraphView = new GraphView(this);
-		setContentView(mGraphView);
+		// mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+		// mGraphView = new GraphView(this);
+		// setContentView(mGraphView);
+
+		setContentView(R.layout.activity_main);
+
+		arrayList = new ArrayList<String>();
+
+		final EditText editText = (EditText) findViewById(R.id.editText);
+		Button send = (Button) findViewById(R.id.send_button);
+
+		// relate the listView from java to the one created in xml
+		mList = (ListView) findViewById(R.id.list);
+		mAdapter = new MyCustomAdapter(this, arrayList);
+		mList.setAdapter(mAdapter);
+
+		// connect to the server
+		new connectTask().execute("");
+
+		send.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+
+				String message = editText.getText().toString();
+
+				// add the text in the arrayList
+				arrayList.add("c: " + message);
+
+				// sends the message to the server
+				if (mTcpClient != null) {
+					mTcpClient.sendMessage(message);
+				}
+
+				// refresh the list
+				mAdapter.notifyDataSetChanged();
+				editText.setText("");
+			}
+		});
+
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		mSensorManager.registerListener(mGraphView,
-				mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-				SensorManager.SENSOR_DELAY_FASTEST);
-		mSensorManager.registerListener(mGraphView,
-				mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-				SensorManager.SENSOR_DELAY_FASTEST);
-		mSensorManager.registerListener(mGraphView,
-				mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-				SensorManager.SENSOR_DELAY_FASTEST);
+		/*
+		 * mSensorManager.registerListener(mGraphView,
+		 * mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+		 * SensorManager.SENSOR_DELAY_FASTEST);
+		 * mSensorManager.registerListener(mGraphView,
+		 * mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+		 * SensorManager.SENSOR_DELAY_FASTEST);
+		 * mSensorManager.registerListener(mGraphView,
+		 * mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
+		 * SensorManager.SENSOR_DELAY_FASTEST);
+		 */
+
+		// String ip = sett
+		// SharedPreferences sharedPref =
+		// PreferenceManager.getDefaultSharedPreferences(this);
+		// String ip = sharedPref.getString(SettingsActivity.KEY_PREF_IP, "");
+		// String port = sharedPref.getString(SettingsActivity.KEY_PREF_PORT,
+		// "");
+		// TextView textView = (TextView) findViewById(R.id.textViewServer);
+		// textView.setText("Server: " + ip + ":" + port);
 	}
 
 	@Override
 	protected void onStop() {
-		mSensorManager.unregisterListener(mGraphView);
+		// mSensorManager.unregisterListener(mGraphView);
 		super.onStop();
 	}
 
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.activity_main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle item selection
+		switch (item.getItemId()) {
+		case R.id.menu_settings: {
+			Log.i("info", "hello");
+			Intent setting = new Intent(this, SettingsActivity.class);
+			// Make it a subactivity so we know when it returns
+			// startActivityForResult(setting, REQUEST_CODE_PREFERENCES);
+			startActivity(setting);
+			return true;
+		}
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
+	/** Called when the user clicks the Send button */
+	/*
+	 * public void connectServer(View view) { // Do something in response to
+	 * button SharedPreferences sharedPref =
+	 * PreferenceManager.getDefaultSharedPreferences(this); String ip =
+	 * sharedPref.getString(SettingsActivity.KEY_PREF_IP, ""); String port =
+	 * sharedPref.getString(SettingsActivity.KEY_PREF_PORT, ""); Log.i("info",
+	 * "connect to: " + ip + ":" + port); new connectTask().execute(""); }
+	 */
 }
