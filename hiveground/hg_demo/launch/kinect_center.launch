@@ -1,0 +1,30 @@
+<launch>
+  <include file="$(find openni_launch)/launch/openni.launch">    
+    <arg name="camera" value="kinect_center" />
+    <arg name="device_id" value="A00362814103051A" />
+    <arg name="depth_registration" value="true" />
+    <arg name="publish_tf" value="false" />
+  </include> 
+
+  <node name="image_center" pkg="image_view" type="image_view" output="screen">    
+    <remap from="image" to="/kinect_center/rgb/image_color" />
+  </node>
+
+  <!-- PCL pipeline -->
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+  <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_center_z" args="load pcl/VoxelGrid pcl_manager" output="screen">    
+    <remap from="~input" to="/kinect_center/depth_registered/points" />
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: 0.0
+      filter_limit_max: 1.5
+      filter_limit_negative: False
+      leaf_size: 0.01
+      output_frame: /base_link
+    </rosparam>
+  </node>
+
+
+</launch>
