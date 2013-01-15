@@ -230,7 +230,7 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
     return;
   }
 
-  spline_smoother::CubicTrajectory trajectory_generator;
+  spline_smoother::CubicParameterizedTrajectory trajectory_generator;
   spline_smoother::SplineTrajectory spline_trajectory;
   for(size_t i = 0; i < ik_info_respond.kinematic_solver_info.limits.size(); i++)
   {
