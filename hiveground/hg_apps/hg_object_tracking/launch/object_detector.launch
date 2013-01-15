@@ -1,0 +1,12 @@
+<launch>
+  <node pkg="hg_object_tracking" type="object_tracking" name="object_tracking" output="screen">
+    <remap from="~cloud_in" to="voxel_grid_center_z/output" />     
+    <rosparam>                  
+      sac_distance_threshold: 0.025
+      ec_cluster_tolerance: 0.02
+      ec_min_size: 25
+      ec_max_size: 1000
+    </rosparam>
+  </node>
+</launch>  
+  
