@@ -195,27 +195,13 @@ void CartesianTrajectoryPlanner::planSimpleIKTrajectory(HgCartesianTrajectory::R
   trajectory.points[0].time_from_start = ros::Duration(0.25);
 
   //fill in the rest of the trajectory
-  double time_from_start = 0.25;
   for (int i = 0; i < trajectory_length; i++)
   {
     //fill in the joint positions (velocities of 0 mean that the arm
     //will try to stop briefly at each waypoint)
     trajectory.points[i + 1].positions = joint_trajectory[i];
     trajectory.points[i + 1].velocities.resize(joint_trajectory.size(), 0);
-
-    //compute a desired time for this trajectory point using a max
-    //joint velocity
-    double max_joint_move = 0;
-    for (size_t j = 0; j < joint_trajectory.size(); j++)
-    {
-      double joint_move = (trajectory.points[i + 1].positions[j] - trajectory.points[i].positions[j]);
-      if (joint_move > max_joint_move)
-        max_joint_move = joint_move;
-    }
-    double seconds = max_joint_move / HG_MAX_SIMPLE_IK_JOINT_VEL;
-    ROS_DEBUG("max_joint_move: %0.3f, seconds: %0.3f", max_joint_move, seconds);
-    time_from_start += seconds;
-    trajectory.points[i + 1].time_from_start = ros::Duration(time_from_start);
+    trajectory.points[i + 1].time_from_start = ros::Duration(0);
   }
 
   //when to start the trajectory
