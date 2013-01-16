@@ -37,6 +37,7 @@
 #include <spline_smoother/lspb_trajectory.h>
 #include <spline_smoother/clamped_cubic_spline_smoother.h>
 
+
 using namespace hg_cartesian_trajectory;
 
 CartesianTrajectoryPlanner::CartesianTrajectoryPlanner()

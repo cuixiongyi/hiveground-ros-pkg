@@ -113,6 +113,7 @@ protected:
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
   void inspectionPointMovedSignal(InspectionPointItem *item);
+  void followPointSignal();
 
 private Q_SLOTS:
   //Inspection point property
@@ -139,6 +140,9 @@ private Q_SLOTS:
   void on_actionLoadMarker_triggered();
   void on_actionSaveMarker_triggered();
   void on_actionSaveMarkerAs_triggered();
+
+  //Follow point
+  void followPointSlot();
 
 
 protected:

@@ -85,6 +85,7 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
   if(!initializeInteractiveMarkerServer()) return false;
   if(!initializeServiceClient()) return false;
 
+  connect(this, SIGNAL(followPointSignal()), this, SLOT(followPointSlot()));
 
   return true;
 }
@@ -161,7 +162,8 @@ void InspectorArm::on_actionAddMarker_triggered()
 
 void InspectorArm::on_actionClearMarker_triggered()
 {
-  ROS_INFO(__FUNCTION__);
+  //ROS_INFO(__FUNCTION__);
+  clearMarker();
 }
 
 void InspectorArm::on_actionLoadMarker_triggered()
@@ -199,6 +201,19 @@ void InspectorArm::on_actionSaveMarkerAs_triggered()
    markers_save_file_name_ = file_name;
    if(!markers_save_file_name_.isEmpty())
      saveMarker();
+}
+
+
+void InspectorArm::followPointSlot()
+{
+  //ROS_INFO(__FUNCTION__);
+  if(ui.checkBoxFollowPoint->isChecked())
+  {
+    if(markers_.size() == 1)
+    {
+      on_pushButtonPlan_clicked();
+    }
+  }
 }
 
 void InspectorArm::closeEvent(QCloseEvent *event)
