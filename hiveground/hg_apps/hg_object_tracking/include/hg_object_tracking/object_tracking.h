@@ -19,12 +19,13 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/tracking/tracking.h>
 
 #include <qmutex.h>
 
 #include "ui_object_tracking.h"
 
-namespace prw
+namespace hg_object_tracking
 {
 
 
@@ -57,6 +58,13 @@ protected Q_SLOTS:
   void on_spinBoxEcMinSize_valueChanged(int d);
   void on_spinBoxEcMaxSize_valueChanged(int d);
 
+  void on_doubleSpinBoxAreaXMin_valueChanged(double d);
+  void on_doubleSpinBoxAreaXMax_valueChanged(double d);
+  void on_doubleSpinBoxAreaYMin_valueChanged(double d);
+  void on_doubleSpinBoxAreaYMax_valueChanged(double d);
+  void on_doubleSpinBoxAreaZMin_valueChanged(double d);
+  void on_doubleSpinBoxAreaZMax_valueChanged(double d);
+
 
 public:
   Ui::ObjectTracking ui;
@@ -64,13 +72,17 @@ public:
   ros::NodeHandle nh_private_;
   bool quit_threads_;
 
+  QMutex mutex_cloud_;
   ros::Publisher cloud_publisher_;
   ros::Subscriber cloud_subscriber_;
   pcl::SACSegmentation<pcl::PointXYZRGB> sac_segmentator_;
   pcl::ExtractIndices<pcl::PointXYZRGB> indices_extractor_;
   pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec_extractor_;
+  double area_x_min_, area_y_min_, area_z_min_;
+  double area_x_max_, area_y_max_, area_z_max_;
 
-  QMutex mutex_cloud_;
+  ros::Publisher marker_publisher_;
+  ros::Publisher marker_array_publisher_;
 
 
 };

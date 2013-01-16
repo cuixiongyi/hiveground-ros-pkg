@@ -186,6 +186,8 @@ void InspectorArm::inspectionPointMoved(InspectionPointItem* item)
   double_manager_->setValue(id_to_property_[QLatin1String("pose_roll")], item->roll());
   double_manager_->setValue(id_to_property_[QLatin1String("pose_pitch")], item->pitch());
   double_manager_->setValue(id_to_property_[QLatin1String("pose_yaw")], item->yaw());
+
+
 }
 
 void InspectorArm::valueChanged(QtProperty *property, double value)

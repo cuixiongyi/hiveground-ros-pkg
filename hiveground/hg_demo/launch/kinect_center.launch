@@ -1,7 +1,8 @@
 <launch>
   <include file="$(find openni_launch)/launch/openni.launch">    
     <arg name="camera" value="kinect_center" />
-    <arg name="device_id" value="A00362814103051A" />
+    <!--arg name="device_id" value="A00362814103051A" /-->
+    <arg name="device_id" value="A00363807157051A" />
     <arg name="depth_registration" value="true" />
     <arg name="publish_tf" value="false" />
   </include> 
@@ -14,11 +15,11 @@
   <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
 
   <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
-  <node pkg="nodelet" type="nodelet" name="voxel_grid_center_z" args="load pcl/VoxelGrid pcl_manager" output="screen">    
+  <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">    
     <remap from="~input" to="/kinect_center/depth_registered/points" />
     <rosparam>
       filter_field_name: z
-      filter_limit_min: 0.0
+      filter_limit_min: -0.1
       filter_limit_max: 1.5
       filter_limit_negative: False
       leaf_size: 0.01
@@ -26,5 +27,27 @@
     </rosparam>
   </node>
 
+  <!-- Run a passthrough filter to clean NaNs -->
+  <node pkg="nodelet" type="nodelet" name="passthrough_x" args="load pcl/PassThrough pcl_manager" output="screen">
+    <remap from="~input" to="/voxel_grid/output" />
+    <rosparam>
+      filter_field_name: x
+      filter_limit_min: -0.1
+      filter_limit_max: 0.73
+      filter_limit_negative: False
+    </rosparam>
+  </node>
 
+  <!-- Run a passthrough filter to clean NaNs -->
+  <node pkg="nodelet" type="nodelet" name="passthrough_y" args="load pcl/PassThrough pcl_manager" output="screen">
+    <remap from="~input" to="/passthrough_x/output" />
+    <rosparam>
+      filter_field_name: y
+      filter_limit_min: -0.75
+      filter_limit_max: 0.75
+      filter_limit_negative: False
+    </rosparam>
+  </node>
+
+ 
 </launch>
