@@ -410,7 +410,6 @@ void RC7MController::startSlaveMode(bool restart)
     i++;
   }
 
-
   turnOnMotor(true);
 
   result = 0;

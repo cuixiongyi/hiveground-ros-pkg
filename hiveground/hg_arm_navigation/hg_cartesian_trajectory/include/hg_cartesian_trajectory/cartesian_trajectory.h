@@ -76,7 +76,6 @@ protected:
                                   HgCartesianTrajectory::Response &respond);
 
 protected:
-  //std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceServer service_;
   planning_environment::JointStateMonitor joint_state_monitor;
   double time_step_;
