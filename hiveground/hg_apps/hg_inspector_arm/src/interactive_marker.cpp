@@ -200,7 +200,6 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       {
         markers_[feedback->marker_name]->setPose(feedback->pose);
         Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
-        Q_EMIT followPointSignal();
         markers_touched_ = true;
       }
       break;
