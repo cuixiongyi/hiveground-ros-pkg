@@ -26,7 +26,7 @@ controllers: {
     #rate: 50, Automatically set with slave_mode
     address: 10.0.0.101,
     port: 5007,
-    mode: TCP,  
+    mode: UDP,  
     slave_mode: 258,  
     joints: [J1, J2, J3, J4, J5, J6]     
   }

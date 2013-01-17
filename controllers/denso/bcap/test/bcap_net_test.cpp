@@ -34,8 +34,8 @@
 #include <bcap/bcap_net.h>
 
 
-//BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_UDP);
-BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_TCP);
+BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_UDP);
+//BCapNet bcap_("10.0.0.101", "5007", BCapNet::BCAP_TCP);
 uint32_t hController_;
 uint32_t hTask_;
 uint32_t hRobot_;

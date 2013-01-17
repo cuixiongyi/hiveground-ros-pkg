@@ -73,8 +73,8 @@ void RC7MController::initilize(hg::ControllerNode* node, const std::string& name
       rate_ = 125;
       break;
     case 0x102: //J async
-      ROS_WARN("It should be 1000 Hz according to the manual");
-      rate_ = 125;
+      //ROS_WARN("It should be 1000 Hz according to the manual");
+      rate_ = 1000;
       break;
     case 0x001:
     case 0x003:
