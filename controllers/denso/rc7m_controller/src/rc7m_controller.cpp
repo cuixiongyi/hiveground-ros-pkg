@@ -239,7 +239,7 @@ void RC7MController::control()
         if(dt_count == rate_)
         {
           static int cnt = 0;
-          ROS_DEBUG("%d dt %f", cnt++, dt_sum / rate_);
+          ROS_INFO("%d dt %f", cnt++, dt_sum / rate_);
           dt_count = 0;
           dt_sum = 0.0;
         }
