@@ -73,6 +73,11 @@ public:
   virtual double interpolate(double dt);
 
   /**
+   * Interpolate joint position after dt with cubic spline.
+   */
+  virtual double interpolateCubic(double dt);
+
+  /**
    * Set feedback data from sensor (encoder, camera, ...).
    */
   virtual void setFeedbackData(double feedback);
@@ -81,6 +86,11 @@ public:
    * Set joint position.
    */
   virtual double setPosition(double position);
+
+  /**
+   * Set joint position with final time.
+   */
+  virtual double setPosition(double position, double final_time);
 
   /**
    * Set relative joint position.

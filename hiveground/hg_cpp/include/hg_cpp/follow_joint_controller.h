@@ -41,6 +41,7 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
+#include <arm_navigation_msgs/JointLimits.h>
 
 #include <boost/thread.hpp>
 #include <queue>
@@ -61,7 +62,7 @@ class FollowJointController : public hg::Controller
 {
 public:
   FollowJointController()
-    : hg::Controller()
+    : hg::Controller(), apply_limits_(true)
   { }
   virtual ~FollowJointController()
   { }
@@ -74,10 +75,37 @@ public:
 
   //action server
   virtual void followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
+  virtual void followJointGoalActionCallback2(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
+
+  //cubic
+  static double minSegmentTime(const double &q0,
+                                   const double &q1,
+                                   const double &v0,
+                                   const double &v1,
+                                   const arm_navigation_msgs::JointLimits &limit);
+
+  static const double EPS_TRAJECTORY = 1.0e-8;
+  static const double MAX_ALLOWABLE_TIME = 1.0e3;
+
+  static double calculateMinimumTime(const trajectory_msgs::JointTrajectoryPoint &start,
+                                          const trajectory_msgs::JointTrajectoryPoint &end,
+                                          const std::vector<arm_navigation_msgs::JointLimits> &limits);
+
+  static bool quadSolve(const double &a, const double &b, const double &c, double &solution);
+  static bool quadSolve(const double &a, const double &b, const double &c, std::vector<double> &solution);
+
+  static bool validSolution(const double &q0,
+                               const double &q1,
+                               const double &v0,
+                               const double &v1,
+                               const double &dT,
+                               const double &vmax,
+                               const double &amax);
 
 protected:
   FollowJointTrajectoryActionServerPtr action_server_;
   control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
+  bool apply_limits_;
 };
 
 

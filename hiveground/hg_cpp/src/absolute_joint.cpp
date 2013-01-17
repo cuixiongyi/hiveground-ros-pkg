@@ -139,6 +139,70 @@ double AbsoluteJoint::interpolate(double dt)
   }
 }
 
+double AbsoluteJoint::interpolateCubic(double dt)
+{
+  boost::recursive_mutex::scoped_lock(mutex_);
+
+  if(touched_)
+  {
+    if((coefficients_.size() != 4) || (final_time_ = 0) || (current_time_ >= final_time_))
+    {
+      //return current position
+      ROS_WARN_THROTTLE(1.0, "invalid cubic spline state");
+      return position_;
+    }
+
+    double command = coefficients_[0] +
+                      (coefficients_[1] * current_time_) +
+                      (coefficients_[2] * pow(current_time_, 2)) +
+                      (coefficients_[3] * pow(current_time_, 3));
+
+    current_time_ += dt;
+
+    //check velocity limit
+    double move_limit_dt = joint_info_->limits->velocity * dt;
+
+    if (command > move_limit_dt)
+    {
+      command = move_limit_dt;
+    }
+    else if (command < -move_limit_dt)
+    {
+      command = -move_limit_dt;
+    }
+
+    //check position limit
+    command = last_commanded_position_ + command;
+
+    if (command > joint_info_->limits->upper)
+    {
+      command = joint_info_->limits->upper;
+      ROS_WARN_STREAM_THROTTLE(1.0, name_ + " is reached upper limit");
+    }
+    else if (command < joint_info_->limits->lower)
+    {
+      command = joint_info_->limits->lower;
+      ROS_WARN_STREAM_THROTTLE(1.0, name_ + " is reached lower limit");
+    }
+
+    //store last command
+    last_commanded_position_ = command;
+
+    //reach target
+    if (last_commanded_position_ == desired_position_)
+    {
+      touched_ = false; //stop the movement
+    }
+    return command;
+  }
+  else
+  {
+    return desired_position_; //stop and hold position
+  }
+
+  return 0;
+}
+
 void AbsoluteJoint::setFeedbackData(double feedback)
 {
   //save current position
@@ -165,10 +229,56 @@ double AbsoluteJoint::setPosition(double position)
         name_ + " position out of range [" << joint_info_->limits->lower << ", " << joint_info_->limits->upper << "]");
     return position_;
   }
+
   mutex_.lock();
   desired_position_ = position;
   touched_ = true;
   mutex_.unlock();
+
+  return desired_position_;
+}
+
+double AbsoluteJoint::setPosition(double position, double final_time)
+{
+  //check position limit
+  if ((position > joint_info_->limits->upper) || (position < joint_info_->limits->lower))
+  {
+    ROS_WARN_STREAM_THROTTLE(
+        1.0,
+        name_ + " position out of range [" << joint_info_->limits->lower << ", " << joint_info_->limits->upper << "]");
+
+    //reset coefficients
+    coefficients_.clear();
+    final_time_ = 0;
+    return position_;
+  }
+
+  mutex_.lock();
+  double q0, q1, v0, v1;
+  q0 = position_; //current position
+  q1 = position; //desired position
+  v0 = velocity_; //computed feedback
+  v1 = 0.0; //stop at desired position
+
+  //reset time
+  current_time_ = 0;
+  final_time_ = final_time;
+
+  solveCubicSpline(q0, q1, v0, v1, final_time_, coefficients_);
+  desired_position_ = position;
+  touched_ = true;
+
+  mutex_.unlock();
+
+  ROS_INFO("q0: %f, q1 %f, v0: %f v1: %f \n "
+           "coeff[0]: %f \n"
+           "coeff[1]: %f \n"
+           "coeff[2]: %f \n"
+           "coeff[3]: %f \n", q0, q1, v0, v1,
+           coefficients_[0],
+           coefficients_[1],
+           coefficients_[2],
+           coefficients_[3]);
 
   return desired_position_;
 }

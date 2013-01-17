@@ -211,7 +211,14 @@ void InspectorArm::followPointSlot()
   {
     if(markers_.size() == 1)
     {
-      on_pushButtonPlan_clicked();
+      //on_pushButtonPlan_clicked();
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory.header.stamp = ros::Time::now();
+      goal.trajectory.joint_names = markers_.begin()->second->jointState().name;
+      trajectory_msgs::JointTrajectoryPoint point;
+      point.positions = markers_.begin()->second->jointState().position;
+      goal.trajectory.points.push_back(point);
+      action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
     }
   }
 }

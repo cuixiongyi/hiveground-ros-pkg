@@ -200,6 +200,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       {
         markers_[feedback->marker_name]->setPose(feedback->pose);
         Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+        Q_EMIT followPointSignal();
         markers_touched_ = true;
       }
       break;
@@ -326,8 +327,10 @@ bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackCo
   {
     if(gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
     {
+      markers_[feedback->marker_name]->setJointState(gpik_res.solution.joint_state);
       for(unsigned int i=0; i < gpik_res.solution.joint_state.name.size(); i ++)
         ROS_DEBUG("Joint: %s %f",gpik_res.solution.joint_state.name[i].c_str(),gpik_res.solution.joint_state.position[i]);
+
     }
     else
     {
