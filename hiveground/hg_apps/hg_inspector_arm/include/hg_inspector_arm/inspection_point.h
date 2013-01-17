@@ -38,6 +38,8 @@
 #include "qteditorfactory.h"
 #include "qttreepropertybrowser.h"
 
+#include <sensor_msgs/JointState.h>
+
 class InspectionPointLookAt;
 class InspectionPointItem;
 
@@ -98,12 +100,14 @@ public:
   void setYaw(double a) { rotate(roll(), pitch(), a); }
 
   void setPose(const geometry_msgs::Pose& pose);
+  void setJointState(const  sensor_msgs::JointState& joint_state) { joint_state_ = joint_state; }
   void move(double x, double y, double z);
   virtual void moveBy(double x, double y, double z);
   void rotate(double roll, double pitch, double yaw);
   virtual void rotateBy(double roll, double pitch, double yaw);
 
   geometry_msgs::Pose pose() const { return pose_; };
+  sensor_msgs::JointState jointState() const { return joint_state_; };
 
   virtual void save(QDataStream& out);
   virtual void load(QDataStream& in);
@@ -112,6 +116,7 @@ protected:
   interactive_markers::InteractiveMarkerServer* server_;
   QString name_;
   geometry_msgs::Pose pose_;
+  sensor_msgs::JointState joint_state_;
 
 
 };

@@ -32,3 +32,20 @@
  */
 
 #include <hg_cpp/joint.h>
+
+using namespace hg;
+
+void Joint::solveCubicSpline(const double &q0,
+                                 const double &q1,
+                                 const double &v0,
+                                 const double &v1,
+                                 const double &dt,
+                                 std::vector<double> &coefficients)
+{
+  coefficients.resize(4);
+  double diff = q1 - q0;
+  coefficients[0] = q0;
+  coefficients[1] = v0;
+  coefficients[2] = (3 * diff - (2 * v0 + v1) * dt) / (dt * dt);
+  coefficients[3] = (-2 * diff + (v0 + v1) * dt) / pow(dt, 3);
+}
