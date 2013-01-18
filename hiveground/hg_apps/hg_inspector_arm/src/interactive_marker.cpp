@@ -198,8 +198,14 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::POSE_UPDATE:
       if(checkIK(feedback))
       {
+        tf::Transform tf_old, tf_new;
+        tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
+        tf::poseMsgToTF(feedback->pose, tf_new);
+        if(tf_old == tf_new)
+          return;
         markers_[feedback->marker_name]->setPose(feedback->pose);
         Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+        Q_EMIT followPointSignal();
         markers_touched_ = true;
       }
       break;
@@ -225,6 +231,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           addMarker(name, feedback->pose);
           InspectionPointItem* item = new InspectionPointItem(&marker_server_, feedback->pose);
           item->setName(name.c_str());
+          item->setJointState(markers_[feedback->marker_name]->jointState());
           markers_[item->name().toStdString()] = item;
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
         }

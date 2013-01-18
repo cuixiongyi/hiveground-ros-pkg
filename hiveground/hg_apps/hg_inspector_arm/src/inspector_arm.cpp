@@ -125,6 +125,23 @@ void InspectorArm::on_pushButtonPlan_clicked()
   if(markers_.size() == 0)
     return;
 
+  //on_pushButtonPlan_clicked();
+  control_msgs::FollowJointTrajectoryGoal goal;
+  goal.trajectory.header.stamp = ros::Time::now();
+  goal.trajectory.joint_names = markers_.begin()->second->jointState().name;
+
+  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  trajectory_msgs::JointTrajectoryPoint point;
+  while (it != markers_.end())
+  {
+    point.positions = it->second->jointState().position;
+    goal.trajectory.points.push_back(point);
+    it++;
+  }
+
+  action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+
+#if 0
   hg_cartesian_trajectory::HgCartesianTrajectoryRequest request;
   hg_cartesian_trajectory::HgCartesianTrajectoryResponse respond;
   request.header.frame_id = "/base_link";
@@ -152,6 +169,7 @@ void InspectorArm::on_pushButtonPlan_clicked()
     action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal,
                                                                          boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
   }
+#endif
 }
 
 void InspectorArm::on_actionAddMarker_triggered()

@@ -476,11 +476,11 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
 
 
   int num_traj = trajectory.points.size();
-  ROS_INFO("Got trajectory with %d points", num_traj);
+  ROS_DEBUG("Got trajectory with %d points", num_traj);
   ros::Time trajectory_start_time = trajectory.header.stamp;
-  ROS_INFO_STREAM("Time to start: " << trajectory_start_time);
+  ROS_DEBUG_STREAM("Time to start: " << trajectory_start_time);
   double time_before_start = (trajectory.header.stamp - ros::Time::now()).toSec();
-  ROS_INFO_STREAM("Time before start: " << time_before_start);
+  ROS_DEBUG_STREAM("Time before start: " << time_before_start);
 
   //check velocity at each point
   for (int i = 0; i < num_traj; i++)
@@ -504,7 +504,7 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
     start_point.velocities[i] = joints_[i]->velocity_;
     positions_diff[i] = start_point.positions[i] - trajectory.points[0].positions[i];
     velocities_diff[i] = start_point.velocities[i] - trajectory.points[0].velocities[i];
-    ROS_INFO("Joint %d diff: [p]:%f [v]:%f", i, positions_diff[i], velocities_diff[i]);
+    ROS_DEBUG("Joint %d diff: [p]:%f [v]:%f", i, positions_diff[i], velocities_diff[i]);
     if(positions_diff[i] != 0)
       different_start_position = true;
   }
@@ -514,7 +514,7 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
   if(different_start_position)
   {
     //add current position to the trajectory
-    ROS_INFO("Trajectory did not start from current state");
+    ROS_DEBUG("Trajectory did not start from current state");
     trajectory.points.insert(trajectory.points.begin(), start_point);
   }
 
@@ -527,6 +527,8 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
     limit.min_position = joints_[i]->joint_info_->limits->lower;
     limit.has_velocity_limits = 1;
     limit.max_velocity = joints_[i]->joint_info_->limits->velocity;
+    limit.has_acceleration_limits = 1;
+    limit.max_acceleration = 1.0;
     limits.push_back(limit);
   }
 
@@ -534,7 +536,7 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
   spline_smoother::SplineTrajectory spline_trajectory;
 
   trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
-  ROS_INFO("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
+  ROS_DEBUG("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
 
   trajectory.points.clear();
   double time = 0;
@@ -566,7 +568,7 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
     }
     time += spline_trajectory.segments[i].duration.toSec();
   }
-  ROS_INFO("trajectory size %lu", trajectory.points.size());
+  ROS_DEBUG("trajectory size %lu", trajectory.points.size());
 
 
 
