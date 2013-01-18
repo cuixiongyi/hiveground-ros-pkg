@@ -113,6 +113,10 @@ void InspectionPointItem::save(QDataStream& out)
   out << pose_.orientation.y;
   out << pose_.orientation.z;
   out << pose_.orientation.w;
+  out << (qint32)joint_state_.position.size();
+  for(int i = 0; i < (int)joint_state_.position.size(); i++)
+    out << joint_state_.position[i];
+
 }
 
 void InspectionPointItem::load(QDataStream& in)
@@ -125,6 +129,12 @@ void InspectionPointItem::load(QDataStream& in)
   in >> pose_.orientation.y;
   in >> pose_.orientation.z;
   in >> pose_.orientation.w;
+  qint32 num_joint;
+  in >> num_joint;
+  joint_state_.position.resize(num_joint);
+  for(int i = 0; i < num_joint; i++)
+    in >> joint_state_.position[i];
+
 }
 
 
