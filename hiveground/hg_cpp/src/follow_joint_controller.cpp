@@ -532,7 +532,7 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
     limits.push_back(limit);
   }
 
-  spline_smoother::CubicParameterizedTrajectory trajectory_generator;
+  spline_smoother::CubicTrajectory trajectory_generator;
   spline_smoother::SplineTrajectory spline_trajectory;
 
   trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
