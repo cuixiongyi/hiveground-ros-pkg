@@ -96,9 +96,9 @@ bool InspectorArm::initializeServiceClient()
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
 
 
-  ros::service::waitForService("plan_cartesian_path");
-  hg_cartesian_trajectory_client_ =
-      nh_.serviceClient<hg_cartesian_trajectory::HgCartesianTrajectory>("plan_cartesian_path");
+//  ros::service::waitForService("plan_cartesian_path");
+//  hg_cartesian_trajectory_client_ =
+//      nh_.serviceClient<hg_cartesian_trajectory::HgCartesianTrajectory>("plan_cartesian_path");
   return true;
 }
 
@@ -128,7 +128,7 @@ void InspectorArm::on_pushButtonPlan_clicked()
   //on_pushButtonPlan_clicked();
   control_msgs::FollowJointTrajectoryGoal goal;
   goal.trajectory.header.stamp = ros::Time::now();
-  goal.trajectory.joint_names = markers_.begin()->second->jointState().name;
+  goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
 
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   trajectory_msgs::JointTrajectoryPoint point;
@@ -191,8 +191,7 @@ void InspectorArm::on_actionLoadMarker_triggered()
     int ret = QMessageBox::warning(this, tr("Inspector Arm"),
                                     tr("The marker has been modified.\n"
                                        "Do you want to save your changes?"),
-                                    QMessageBox::Save | QMessageBox::Discard
-                                    | QMessageBox::Cancel,
+                                    QMessageBox::Save | QMessageBox::Cancel,
                                     QMessageBox::Save);
     if(ret == QMessageBox::Save)
       on_actionSaveMarker_triggered();
@@ -229,10 +228,9 @@ void InspectorArm::followPointSlot()
   {
     if(markers_.size() == 1)
     {
-      //on_pushButtonPlan_clicked();
       control_msgs::FollowJointTrajectoryGoal goal;
       goal.trajectory.header.stamp = ros::Time::now();
-      goal.trajectory.joint_names = markers_.begin()->second->jointState().name;
+      goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
       trajectory_msgs::JointTrajectoryPoint point;
       point.positions = markers_.begin()->second->jointState().position;
       goal.trajectory.points.push_back(point);
