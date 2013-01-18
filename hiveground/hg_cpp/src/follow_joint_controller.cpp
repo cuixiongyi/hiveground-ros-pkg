@@ -35,6 +35,7 @@
 #include <hg_cpp/joint.h>
 #include <hg_cpp/controller_node.h>
 #include <spline_smoother/SplineTrajectory.h>
+#include <spline_smoother/cubic_parameterized_trajectory.h>
 
 using namespace hg;
 
@@ -80,7 +81,7 @@ void FollowJointController::initilize(hg::ControllerNode* node, const std::strin
 
 void FollowJointController::followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
 {
-  followJointGoalActionCallback2(goal);
+  followJointGoalActionCallback3(goal);
   return;
 
   action_goal_ = goal;
@@ -219,7 +220,7 @@ void FollowJointController::followJointGoalActionCallback2(const control_msgs::F
     return;
   }
 
-  ROS_DEBUG("Got trajectory with %d points", (int)goal->trajectory.points.size());
+  ROS_INFO("Got trajectory with %d points", (int)goal->trajectory.points.size());
 
 
 
@@ -247,7 +248,7 @@ void FollowJointController::followJointGoalActionCallback2(const control_msgs::F
   trajectory.joint_names = goal->trajectory.joint_names;
   trajectory.points.push_back(start_point);
   trajectory.points.insert(trajectory.points.end(), goal->trajectory.points.begin(), goal->trajectory.points.end());
-  ROS_DEBUG("Total trajectory point before %lu after %lu", goal->trajectory.points.size(), trajectory.points.size());
+  ROS_INFO("Total trajectory point before %lu after %lu", goal->trajectory.points.size(), trajectory.points.size());
   int num_traj = trajectory.points.size();
 
   for(int i = 1; i < num_traj; i++)
@@ -265,7 +266,7 @@ void FollowJointController::followJointGoalActionCallback2(const control_msgs::F
     min_time_01 = calculateMinimumTime(trajectory.points[i-1], trajectory.points[i], limits);
     min_time_12 = calculateMinimumTime(trajectory.points[i], trajectory.points[i+1], limits);
 
-    ROS_DEBUG_STREAM("point " << i << ":" << trajectory.points[i].time_from_start << " : " << min_time_01 << " : " << min_time_12);
+    ROS_INFO_STREAM("point " << i << ":" << trajectory.points[i].time_from_start << " : " << min_time_01 << " : " << min_time_12);
 
     for(int j = 0; j < num_joints; j++)
     {
@@ -341,7 +342,7 @@ void FollowJointController::followJointGoalActionCallback2(const control_msgs::F
   for (size_t i = 0; i < spline.segments.size(); i++)
   {
     int step = (spline.segments[i].duration.toSec() * rate_) + 0.5;
-    ROS_DEBUG("time %f total step: %d", spline.segments[i].duration.toSec(), step);
+    ROS_INFO("time %f total step: %d", spline.segments[i].duration.toSec(), step);
 
     int n_joint = spline.segments[i].joints.size();
     for (int k = 0; k < step; k++)
@@ -377,7 +378,7 @@ void FollowJointController::followJointGoalActionCallback2(const control_msgs::F
     time += spline.segments[i].duration.toSec();
   }
 
-  ROS_DEBUG("trajectory size %lu", trajectory.points.size());
+  ROS_INFO("trajectory size %lu", trajectory.points.size());
 
 
   static trajectory_msgs::JointTrajectoryPoint last_point;
@@ -437,9 +438,190 @@ void FollowJointController::followJointGoalActionCallback2(const control_msgs::F
     result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
     action_server_->setAborted(result);
   }
+}
+
+void FollowJointController::followJointGoalActionCallback3(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
+{
+  control_msgs::FollowJointTrajectoryResult result;
+  if (goal->trajectory.points.size() == 0)
+  {
+    ROS_ERROR("Trajectory is empty");
+    result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+    action_server_->setAborted(result, "Trajectory empty");
+    return;
+  }
+
+  trajectory_msgs::JointTrajectory trajectory = goal->trajectory;
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator joint_it;
+
+  int num_joints = trajectory.joint_names.size();
+  for (int i = 0; i < num_joints; i++)
+  {
+    bool found = false;
+    for (joint_it = joints_.begin(); joint_it != joints_.end(); joint_it++)
+    {
+      if ((*joint_it)->name_ == trajectory.joint_names[i])
+      {
+        found = true;
+      }
+    }
+    if (!found)
+    {
+      ROS_ERROR("Trajectory joints do not match with controller joints");
+      result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+      action_server_->setAborted(result, "Trajectory joint names do not match with controlled joints");
+      return;
+    }
+  }
+
+
+  int num_traj = trajectory.points.size();
+  ROS_INFO("Got trajectory with %d points", num_traj);
+  ros::Time trajectory_start_time = trajectory.header.stamp;
+  ROS_INFO_STREAM("Time to start: " << trajectory_start_time);
+  double time_before_start = (trajectory.header.stamp - ros::Time::now()).toSec();
+  ROS_INFO_STREAM("Time before start: " << time_before_start);
+
+  //check velocity at each point
+  for (int i = 0; i < num_traj; i++)
+  {
+    if (trajectory.points[i].velocities.empty())
+      trajectory.points[i].velocities.resize(num_joints, 0);
+  }
+
+  //check current position with start point position
+  trajectory_msgs::JointTrajectoryPoint start_point;
+  std::vector<double> positions_diff;
+  std::vector<double> velocities_diff;
+  start_point.positions.resize(num_joints, 0);
+  start_point.velocities.resize(num_joints, 0);
+  positions_diff.resize(num_joints, 0);
+  velocities_diff.resize(num_joints, 0);
+  bool different_start_position = false;
+  for(int i = 0; i < num_joints; i++)
+  {
+    start_point.positions[i] = joints_[i]->position_;
+    start_point.velocities[i] = joints_[i]->velocity_;
+    positions_diff[i] = start_point.positions[i] - trajectory.points[0].positions[i];
+    velocities_diff[i] = start_point.velocities[i] - trajectory.points[0].velocities[i];
+    ROS_INFO("Joint %d diff: [p]:%f [v]:%f", i, positions_diff[i], velocities_diff[i]);
+    if(positions_diff[i] != 0)
+      different_start_position = true;
+  }
 
 
 
+  if(different_start_position)
+  {
+    //add current position to the trajectory
+    ROS_INFO("Trajectory did not start from current state");
+    trajectory.points.insert(trajectory.points.begin(), start_point);
+  }
+
+  std::vector<arm_navigation_msgs::JointLimits> limits;
+  arm_navigation_msgs::JointLimits limit;
+  for (int i = 0; i < num_joints; i++)
+  {
+    limit.has_position_limits = 1;
+    limit.max_position = joints_[i]->joint_info_->limits->upper;
+    limit.min_position = joints_[i]->joint_info_->limits->lower;
+    limit.has_velocity_limits = 1;
+    limit.max_velocity = joints_[i]->joint_info_->limits->velocity;
+    limits.push_back(limit);
+  }
+
+  spline_smoother::CubicParameterizedTrajectory trajectory_generator;
+  spline_smoother::SplineTrajectory spline_trajectory;
+
+  trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
+  ROS_INFO("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
+
+  trajectory.points.clear();
+  double time = 0;
+  for (size_t i = 0; i < spline_trajectory.segments.size(); i++)
+  {
+    int step = (spline_trajectory.segments[i].duration.toSec() * rate_) + 0.5;
+    ROS_DEBUG("time %f total step: %d", spline_trajectory.segments[i].duration.toSec(), step);
+    double a0, a1, a2, a3;
+    for (int k = 0; k < step; k++)
+    {
+      trajectory_msgs::JointTrajectoryPoint point;
+      point.positions.resize(num_joints);
+      point.velocities.resize(num_joints);
+      point.accelerations.resize(num_joints);
+      double t = k / rate_;
+      for (int j = 0; j < num_joints; j++)
+      {
+        a0 = spline_trajectory.segments[i].joints[j].coefficients[0];
+        a1 = spline_trajectory.segments[i].joints[j].coefficients[1];
+        a2 = spline_trajectory.segments[i].joints[j].coefficients[2];
+        a3 = spline_trajectory.segments[i].joints[j].coefficients[3];
+        point.positions[j] = a0 + (a1 * t) + (a2 * t * t) + (a3 * t * t * t);
+        point.velocities[j] = a1 + (2 * a2 * t) + (3 * a3 * t * t);
+        point.accelerations[j] = 2 * a2 + (6 * a3 * t);
+      }
+      point.time_from_start = ros::Duration(t + time);
+      trajectory.points.push_back(point);
+
+    }
+    time += spline_trajectory.segments[i].duration.toSec();
+  }
+  ROS_INFO("trajectory size %lu", trajectory.points.size());
+
+
+
+  try
+  {
+    is_active_ = true;
+
+    //wait for the start time
+    while (ros::Time::now() < trajectory_start_time)
+    {
+      ros::Duration(0.001).sleep();
+    }
+
+    ros::Duration skip_duration = trajectory.points[0].time_from_start;
+    bool success = true;
+    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+    trajectory_msgs::JointTrajectoryPoint point;
+    for (size_t i = 0; i < trajectory.points.size(); i++)
+    {
+      point = trajectory.points[i];
+      ros::Time end_time = trajectory_start_time + (point.time_from_start - skip_duration);
+      it = joints_.begin();
+      for (size_t k = 0; k < point.positions.size(); k++, it++)
+      {
+        (*it)->setPosition(point.positions[k]);
+      }
+
+      while ((ros::Time::now() < end_time) && (!action_server_->isPreemptRequested()))
+      {
+        ros::Duration(0.001).sleep();
+      }
+
+      if (action_server_->isPreemptRequested() || !ros::ok())
+      {
+        ROS_DEBUG_STREAM("Preempted!! @ point" << i << ":" << point);
+        action_server_->setPreempted();
+        success = false;
+        break;
+      }
+    }
+    is_active_ = false;
+
+    if (success)
+    {
+      result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+      action_server_->setSucceeded(result);
+    }
+
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR("%s", e.what());
+    result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+    action_server_->setAborted(result);
+  }
 }
 
 double FollowJointController::calculateMinimumTime(const trajectory_msgs::JointTrajectoryPoint &start,
