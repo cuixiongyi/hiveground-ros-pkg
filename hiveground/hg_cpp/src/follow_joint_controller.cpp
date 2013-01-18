@@ -532,10 +532,20 @@ void FollowJointController::followJointGoalActionCallback3(const control_msgs::F
     limits.push_back(limit);
   }
 
-  spline_smoother::CubicParameterizedTrajectory trajectory_generator;
   spline_smoother::SplineTrajectory spline_trajectory;
 
-  trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
+  if(trajectory.points.size() == 2)
+  {
+    spline_smoother::CubicParameterizedTrajectory trajectory_generator;
+    trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
+  }
+  else
+  {
+    spline_smoother::CubicTrajectory trajectory_generator;
+    trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
+  }
+
+
   ROS_DEBUG("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
 
   trajectory.points.clear();
