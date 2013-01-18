@@ -1,0 +1,16 @@
+self_see_links:
+  - name: link4
+    padding: .04
+  - name: link3
+    padding: .04
+  - name: link2
+    padding: .04
+  - name: link1
+    padding: .04
+  - name: link0
+    padding: .04
+  - name: base_link
+    padding: .04
+
+
+
