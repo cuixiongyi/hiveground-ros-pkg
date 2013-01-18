@@ -52,7 +52,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #target_link_libraries(example ${PROJECT_NAME})
 
 set(srcs
-      src/object_tracking.cpp)
+      src/object_tracking.cpp
+      src/hand_detector.cpp)
 
 rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(object_tracking ${QT_LIBRARIES})

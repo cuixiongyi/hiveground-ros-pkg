@@ -21,7 +21,6 @@
   <depend package="image_transport"/>
   <depend package="std_srvs"/>
   <depend package="std_msgs"/>
-
 </package>
 
 

@@ -75,8 +75,6 @@ public:
 
   //action server
   virtual void followJointGoalActionCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
-  virtual void followJointGoalActionCallback2(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
-  virtual void followJointGoalActionCallback3(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
 
   //cubic
   static double minSegmentTime(const double &q0,
