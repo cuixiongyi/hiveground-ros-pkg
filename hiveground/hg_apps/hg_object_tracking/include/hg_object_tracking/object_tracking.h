@@ -39,6 +39,7 @@
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -53,6 +54,7 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/tracking/tracking.h>
+#include <pcl/common/pca.h>
 
 #include <qmutex.h>
 
@@ -60,6 +62,10 @@
 
 namespace hg_object_tracking
 {
+
+
+
+
 
 
 class ObjectTracking : public QMainWindow
@@ -78,12 +84,18 @@ public:
 protected:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& message);
 
+
   void sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_planar,
                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_objects);
-
   void objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
-                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr out);
+                             std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr >& out);
+
+  void detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds);
+  void pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca);
+  void pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca);
+  void pushSimpleMarker(double x, double y, double z,
+                           double r = 1.0, double g = 0.0, double b = 0.0);
 
 protected Q_SLOTS:
   void on_doubleSpinBoxSacDistance_valueChanged(double d);
@@ -98,6 +110,8 @@ protected Q_SLOTS:
   void on_doubleSpinBoxAreaZMin_valueChanged(double d);
   void on_doubleSpinBoxAreaZMax_valueChanged(double d);
 
+  void on_spinBoxArmMinSize_valueChanged(int d);
+  void on_spinBoxPlamMaxSize_valueChanged(int d);
 
 public:
   Ui::ObjectTracking ui;
@@ -108,14 +122,21 @@ public:
   QMutex mutex_cloud_;
   ros::Publisher cloud_publisher_;
   ros::Subscriber cloud_subscriber_;
-  pcl::SACSegmentation<pcl::PointXYZRGB> sac_segmentator_;
-  pcl::ExtractIndices<pcl::PointXYZRGB> indices_extractor_;
-  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec_extractor_;
+  double sac_distance_threshold_;
+  double ec_cluster_tolerance_;
+  double ec_min_cluster_size_;
+  double ec_max_cluster_size_;
   double area_x_min_, area_y_min_, area_z_min_;
   double area_x_max_, area_y_max_, area_z_max_;
 
   ros::Publisher marker_publisher_;
   ros::Publisher marker_array_publisher_;
+
+  int arm_min_cluster_size_;
+  int plam_max_cluster_size_;
+
+  visualization_msgs::MarkerArray marker_array_;
+  int marker_id_;
 
 
 };
