@@ -16,6 +16,11 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+#uncomment if you have defined messages
+rosbuild_genmsg()
+#uncomment if you have defined services
+#rosbuild_gensrv()
+
 #http://answers.ros.org/question/12790/ros-qt-creator-gui/
 find_package(Qt4 REQUIRED)
 # enable/disable some Qt features
@@ -38,10 +43,6 @@ QT4_WRAP_UI(uis_h src/object_tracking.ui)
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)

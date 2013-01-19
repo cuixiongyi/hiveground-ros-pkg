@@ -40,7 +40,7 @@
 
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-
+#include <hg_object_tracking/Hands.h>
 
 using namespace hg_object_tracking;
 using namespace visualization_msgs;
@@ -59,11 +59,6 @@ ObjectTracking::~ObjectTracking()
 
 bool ObjectTracking::initialize()
 {
-  sac_segmentator_.setOptimizeCoefficients(true);
-  sac_segmentator_.setModelType(pcl::SACMODEL_PLANE);
-  sac_segmentator_.setMethodType(pcl::SAC_RANSAC);
-  sac_segmentator_.setMaxIterations(1000);
-
   double d;
   int i;
   nh_private_.getParam("sac_distance_threshold", d);
@@ -88,7 +83,11 @@ bool ObjectTracking::initialize()
   nh_private_.getParam("area_z_max", d);
   ui.doubleSpinBoxAreaZMax->setValue(d);
 
+  nh_private_.getParam("arm_min_cluster_size", i);
+  ui.spinBoxArmMinSize->setValue(i);
 
+  nh_private_.getParam("plam_max_cluster_size", i);
+  ui.spinBoxPlamMaxSize->setValue(i);
 
   cloud_publisher_ = nh_private_.advertise<sensor_msgs::PointCloud2>("cloud_output", 1);
   cloud_subscriber_ = nh_private_.subscribe("cloud_in", 1, &ObjectTracking::cloudCallback, this);
@@ -102,6 +101,8 @@ bool ObjectTracking::initialize()
 void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& message)
 {
   QMutexLocker lock(&mutex_cloud_);
+  marker_array_.markers.clear();
+  marker_id_ = 0;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromROSMsg(*message, *cloud);
 
@@ -109,8 +110,11 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_objects(new pcl::PointCloud<pcl::PointXYZRGB>);
   sacSegmentation(cloud, cloud_planar, cloud_objects);
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_clustered(new pcl::PointCloud<pcl::PointXYZRGB>);
-  objectSegmentation(cloud_objects, cloud_clustered);
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clustered_clouds;
+  objectSegmentation(cloud_objects, clustered_clouds);
+
+  //Detect hand
+  detectHands(clustered_clouds);
 
   if(cloud_publisher_.getNumSubscribers() != 0)
   {
@@ -125,7 +129,12 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
     }
     else if(ui.radioButtonShowSegmentedCloud->isChecked())
     {
-      pcl::toROSMsg(*cloud_clustered, output_cloud);
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+      for(int i = 0; i < (int)clustered_clouds.size(); i++)
+      {
+        *cloud += *clustered_clouds[i];
+      }
+      pcl::toROSMsg(*cloud, output_cloud);
     }
 
     output_cloud.header.stamp = message->header.stamp;
@@ -133,7 +142,10 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
     cloud_publisher_.publish(output_cloud);
   }
 
-
+  if((marker_array_publisher_.getNumSubscribers() != 0) && (!marker_array_.markers.empty()))
+  {
+    marker_array_publisher_.publish(marker_array_);
+  }
 }
 
 void ObjectTracking::sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
@@ -143,8 +155,14 @@ void ObjectTracking::sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
-  sac_segmentator_.setInputCloud(in->makeShared());
-  sac_segmentator_.segment(*inliers, *coefficients);
+  pcl::SACSegmentation<pcl::PointXYZRGB> sac_segmentator;
+  sac_segmentator.setOptimizeCoefficients(true);
+  sac_segmentator.setModelType(pcl::SACMODEL_PLANE);
+  sac_segmentator.setMethodType(pcl::SAC_RANSAC);
+  sac_segmentator.setMaxIterations (1000);
+  sac_segmentator.setDistanceThreshold(sac_distance_threshold_);
+  sac_segmentator.setInputCloud(in->makeShared());
+  sac_segmentator.segment(*inliers, *coefficients);
 
   if (inliers->indices.size () == 0)
   {
@@ -156,155 +174,285 @@ void ObjectTracking::sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
     ROS_DEBUG("Indices size: %d", (int)inliers->indices.size ());
   }
 
-  indices_extractor_.setNegative(false);
-  indices_extractor_.setInputCloud(in);
-  indices_extractor_.setIndices(inliers);
-  indices_extractor_.filter(*out_planar);
+  pcl::ExtractIndices<pcl::PointXYZRGB> indices_extractor;
+  indices_extractor.setNegative(false);
+  indices_extractor.setInputCloud(in);
+  indices_extractor.setIndices(inliers);
+  indices_extractor.filter(*out_planar);
 
-  indices_extractor_.setNegative(true);
-  indices_extractor_.filter(*out_objects);
+  indices_extractor.setNegative(true);
+  indices_extractor.filter(*out_objects);
 }
 
 void ObjectTracking::objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
-                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr out)
+                                             std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& out)
 {
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
   tree->setInputCloud(in);
   std::vector<pcl::PointIndices> cluster_indices;
 
-  ec_extractor_.setSearchMethod(tree);
-  ec_extractor_.setInputCloud(in);
-  ec_extractor_.extract(cluster_indices);
+
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec_extractor;
+  ec_extractor.setClusterTolerance(ec_cluster_tolerance_);
+  ec_extractor.setMinClusterSize(ec_min_cluster_size_);
+  ec_extractor.setMaxClusterSize(ec_max_cluster_size_);
+  ec_extractor.setSearchMethod(tree);
+  ec_extractor.setInputCloud(in);
+  ec_extractor.extract(cluster_indices);
 
   ROS_DEBUG_THROTTLE(1.0, "total object %d", (int)cluster_indices.size());
 
-  float cx, cy, cz;
-  float cr, cg, cb;
   MarkerArray marker_array;
-  int id = 0;
+
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
   {
-    Marker marker;
-    marker.lifetime = ros::Duration(0.1);
-    marker.type = Marker::SPHERE;
-    marker.header.frame_id = "base_link";
-    marker.ns = "object_tracking";
-    marker.id = id++;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
-    cx = cy = cz = 0.0;
-    cr = cg = cb = 0.0;
-
     for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); pit++)
     {
       cloud_cluster->points.push_back(in->points[*pit]);
-
-      //compute centroid
-      cx += in->points[*pit].x;
-      cy += in->points[*pit].y;
-      cz += in->points[*pit].z;
-
-      //get color color
-      unsigned char * rgb = (unsigned char *)&(in->points[*pit].rgb);
-      cr += rgb[0];
-      cg += rgb[1];
-      cb += rgb[2];
     }
-
-
-    int size = cloud_cluster->points.size();
-    cx = cx / size;
-    cy = cy / size;
-    cz = cz / size;
-
-    if((cx < area_x_min_) || (cx > area_x_max_)) continue;
-    if((cy < area_y_min_) || (cy > area_y_max_)) continue;
-    if((cz < area_z_min_) || (cz > area_z_max_)) continue;
-
-    (*out) += (*cloud_cluster);
-
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
-    marker.pose.position.x = cx;
-    marker.pose.position.y = cy;
-    marker.pose.position.z = cz;
-    marker.pose.orientation.x = 0;
-    marker.pose.orientation.y = 0;
-    marker.pose.orientation.z = 0;
-    marker.pose.orientation.w = 1;
-    marker.color.b = (cr / size) / 255.0;
-    marker.color.g = (cg / size) / 255.0;
-    marker.color.r = (cb / size) / 255.0;
-    marker.color.a = 0.5;
-    //ROS_INFO_STREAM(marker);
-    marker_array.markers.push_back(marker);
+    cloud_cluster->width = cloud_cluster->points.size();
+    cloud_cluster->height = 1;
+    cloud_cluster->is_dense = true;
+    out.push_back(cloud_cluster);
   }
-
-  if (marker_array_publisher_.getNumSubscribers() != 0)
-  {
-    marker_array_publisher_.publish(marker_array);
-  }
-
-
 }
+
+void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds)
+{
+  pcl::PCA<pcl::PointXYZRGB> pca;
+
+  Hands hands_msg;
+  Hand hand_msg;
+  for(int i = 0; i < (int)clustered_clouds.size(); i++)
+  {
+    if((int)clustered_clouds[i]->size() < arm_min_cluster_size_) continue;
+
+    pca.setInputCloud(clustered_clouds[i]);
+    Eigen::Vector4f mean = pca.getMean();
+    if((mean.coeff(0) < area_x_min_) || (mean.coeff(0) > area_x_max_)) continue;
+    if((mean.coeff(1) < area_y_min_) || (mean.coeff(1) > area_y_max_)) continue;
+    if((mean.coeff(2) < area_z_min_) || (mean.coeff(2) > area_z_max_)) continue;
+
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "value:" << pca.getEigenValues());
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "vector:" << pca.getEigenVectors());
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "mean:" << pca.getMean());
+
+    if(ui.checkBoxShowClusterMarker->isChecked())
+      pushHandMarker(pca);
+    if(ui.checkBoxShowEigenVector->isChecked())
+      pushEigenMarker(pca);
+
+
+    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    kdtree.setInputCloud(clustered_clouds[i]);
+
+    pcl::PointXYZRGB search_point;
+    Eigen::Matrix3f ev = pca.getEigenVectors();
+    Eigen::Vector3f axis_x(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
+    axis_x = ((-axis_x) * 0.3) + Eigen::Vector3f(mean.coeff(0), mean.coeff(1), mean.coeff(2));
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "axis_x:" << axis_x);
+    pushSimpleMarker(axis_x.coeff(0), axis_x.coeff(1), axis_x.coeff(2));
+    search_point.x = axis_x.coeff(0);
+    search_point.y = axis_x.coeff(1);
+    search_point.z = axis_x.coeff(2);
+
+    int K = plam_max_cluster_size_;
+    if(K > (int)clustered_clouds[i]->points.size())
+      K = clustered_clouds[i]->points.size();
+
+    std::vector<int> pointIdxNKNSearch(K);
+    std::vector<float> pointNKNSquaredDistance(K);
+
+    if ( kdtree.nearestKSearch (search_point, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
+    {
+      ROS_DEBUG_THROTTLE(1.0, "found %lu", pointIdxNKNSearch.size ());
+      for (size_t j = 0; j < pointIdxNKNSearch.size (); ++j)
+      {
+        clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].r = 255;
+        clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].g = 0;
+        clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].b = 0;
+      }
+    }
+  }
+}
+
+void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
+{
+  Marker marker;
+  marker.type = Marker::SPHERE;
+  marker.lifetime = ros::Duration(0.1);
+  marker.header.frame_id = "base_link";
+  marker.ns = "detected_hands";
+  marker.id = marker_id_++;
+  marker.scale.x = 0.1;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
+  marker.color.r = 1.0;
+  marker.color.g = 0.5;
+  marker.color.b = 0.5;
+  marker.color.a = 1.0;
+  marker.pose.position.x = pca.getMean().coeff(0);
+  marker.pose.position.y = pca.getMean().coeff(1);
+  marker.pose.position.z = pca.getMean().coeff(2);
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0;
+  marker.pose.orientation.z = 0;
+  marker.pose.orientation.w = 1;
+  marker_array_.markers.push_back(marker);
+}
+
+void ObjectTracking::pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
+{
+  Marker marker;
+  marker.lifetime = ros::Duration(0.1);
+  marker.header.frame_id = "base_link";
+  marker.ns = "cluster_eigen";
+  marker.type = Marker::ARROW;
+  marker.scale.x = 0.1;
+  marker.scale.y = 0.1;
+  marker.pose.position.x = pca.getMean().coeff(0);
+  marker.pose.position.y = pca.getMean().coeff(1);
+  marker.pose.position.z = pca.getMean().coeff(2);
+
+  Eigen::Quaternionf qx, qy, qz;
+  Eigen::Matrix3f ev = pca.getEigenVectors();
+  Eigen::Vector3f axis_x(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
+  Eigen::Vector3f axis_y(ev.coeff(0, 1), ev.coeff(1, 1), ev.coeff(2, 1));
+  Eigen::Vector3f axis_z(ev.coeff(0, 2), ev.coeff(1, 2), ev.coeff(2, 2));
+  qx.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_x);
+  qy.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_y);
+  qz.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_z);
+
+  marker.id = marker_id_++;
+  marker.scale.z = pca.getEigenValues().coeff(0) * 0.1;
+  marker.pose.orientation.x = qx.x();
+  marker.pose.orientation.y = qx.y();
+  marker.pose.orientation.z = qx.z();
+  marker.pose.orientation.w = qx.w();
+  marker.color.b = 0.0;
+  marker.color.g = 0.0;
+  marker.color.r = 1.0;
+  marker.color.a = 1.0;
+  //ROS_INFO_STREAM(marker);
+  marker_array_.markers.push_back(marker);
+
+  marker.id = marker_id_++;
+  marker.scale.z = pca.getEigenValues().coeff(1) * 0.1;
+  marker.pose.orientation.x = qy.x();
+  marker.pose.orientation.y = qy.y();
+  marker.pose.orientation.z = qy.z();
+  marker.pose.orientation.w = qy.w();
+  marker.color.b = 0.0;
+  marker.color.g = 1.0;
+  marker.color.r = 0.0;
+  marker_array_.markers.push_back(marker);
+
+  marker.id = marker_id_++;
+  marker.scale.z = pca.getEigenValues().coeff(2) * 0.1;
+  marker.pose.orientation.x = qz.x();
+  marker.pose.orientation.y = qz.y();
+  marker.pose.orientation.z = qz.z();
+  marker.pose.orientation.w = qz.w();
+  marker.color.b = 1.0;
+  marker.color.g = 0.0;
+  marker.color.r = 0.0;
+  marker_array_.markers.push_back(marker);
+}
+
+void ObjectTracking::pushSimpleMarker(double x, double y, double z,
+                                           double r, double g, double b)
+{
+  Marker marker;
+  marker.type = Marker::SPHERE;
+  marker.lifetime = ros::Duration(0.1);
+  marker.header.frame_id = "base_link";
+  marker.ns = "simple_marker";
+  marker.id = marker_id_++;
+  marker.scale.x = 0.05;
+  marker.scale.y = 0.05;
+  marker.scale.z = 0.05;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+  marker.color.a = 1.0;
+  marker.pose.position.x = x;
+  marker.pose.position.y = y;
+  marker.pose.position.z = z;
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0;
+  marker.pose.orientation.z = 0;
+  marker.pose.orientation.w = 1;
+  marker_array_.markers.push_back(marker);
+}
+
 
 void ObjectTracking::on_doubleSpinBoxSacDistance_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != sac_segmentator_.getDistanceThreshold())
-    sac_segmentator_.setDistanceThreshold(d);
+  if(d != sac_distance_threshold_)
+    sac_distance_threshold_ = d;
 }
 
 void ObjectTracking::on_doubleSpinBoxEcTolerance_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != ec_extractor_.getClusterTolerance())
-    ec_extractor_.setClusterTolerance(d);
+  ec_cluster_tolerance_ = d;
 }
 
 void ObjectTracking::on_spinBoxEcMinSize_valueChanged(int d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != ec_extractor_.getMinClusterSize())
-    ec_extractor_.setMinClusterSize(d);
+  ec_min_cluster_size_ = d;
 }
 
 void ObjectTracking::on_spinBoxEcMaxSize_valueChanged(int d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != ec_extractor_.getMaxClusterSize())
-    ec_extractor_.setMaxClusterSize(d);
+  ec_max_cluster_size_ = d;
 }
 
 void ObjectTracking::on_doubleSpinBoxAreaXMin_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != area_x_min_) area_x_min_ = d;
+  area_x_min_ = d;
 }
 void ObjectTracking::on_doubleSpinBoxAreaXMax_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != area_x_max_) area_x_max_ = d;
+  area_x_max_ = d;
 }
 void ObjectTracking::on_doubleSpinBoxAreaYMin_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != area_y_min_) area_y_min_ = d;
+  area_y_min_ = d;
 }
 void ObjectTracking::on_doubleSpinBoxAreaYMax_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != area_y_max_) area_y_max_ = d;
+  area_y_max_ = d;
 }
 void ObjectTracking::on_doubleSpinBoxAreaZMin_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != area_z_min_) area_z_min_ = d;
+  area_z_min_ = d;
 }
 void ObjectTracking::on_doubleSpinBoxAreaZMax_valueChanged(double d)
 {
   QMutexLocker lock(&mutex_cloud_);
-  if(d != area_z_max_) area_z_max_ = d;
+  area_z_max_ = d;
+}
+
+void ObjectTracking::on_spinBoxArmMinSize_valueChanged(int d)
+{
+  QMutexLocker lock(&mutex_cloud_);
+  arm_min_cluster_size_ = d;
+}
+
+void ObjectTracking::on_spinBoxPlamMaxSize_valueChanged(int d)
+{
+  QMutexLocker lock(&mutex_cloud_);
+  plam_max_cluster_size_ = d;
 }
 
 ObjectTracking* g_object_tracking = NULL;
