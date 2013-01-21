@@ -127,7 +127,6 @@ public:
 
   ros::Publisher cloud_publisher_;
   ros::Subscriber cloud_subscriber_;
-  ros::Publisher marker_publisher_;
   ros::Publisher marker_array_publisher_;
   ros::Publisher hands_publisher_;
 

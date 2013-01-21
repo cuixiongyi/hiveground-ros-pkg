@@ -10,8 +10,8 @@
   ((arm_centroid
     :reader arm_centroid
     :initarg :arm_centroid
-    :type geometry_msgs-msg:Vector3
-    :initform (cl:make-instance 'geometry_msgs-msg:Vector3))
+    :type geometry_msgs-msg:Transform
+    :initform (cl:make-instance 'geometry_msgs-msg:Transform))
    (arm_eigen_value
     :reader arm_eigen_value
     :initarg :arm_eigen_value
@@ -25,8 +25,8 @@
    (hand_centroid
     :reader hand_centroid
     :initarg :hand_centroid
-    :type geometry_msgs-msg:Vector3
-    :initform (cl:make-instance 'geometry_msgs-msg:Vector3))
+    :type geometry_msgs-msg:Transform
+    :initform (cl:make-instance 'geometry_msgs-msg:Transform))
    (hand_eigen_value
     :reader hand_eigen_value
     :initarg :hand_eigen_value
@@ -184,16 +184,16 @@
   "hg_object_tracking/Hand")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<Hand>)))
   "Returns md5sum for a message object of type '<Hand>"
-  "7e39e5f4007986ee7e6c93ad22ce65d8")
+  "96d008446c62806065a06ae44bfb925d")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'Hand)))
   "Returns md5sum for a message object of type 'Hand"
-  "7e39e5f4007986ee7e6c93ad22ce65d8")
+  "96d008446c62806065a06ae44bfb925d")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<Hand>)))
   "Returns full string definition for message of type '<Hand>"
-  (cl:format cl:nil "geometry_msgs/Vector3 arm_centroid~%geometry_msgs/Vector3 arm_eigen_value~%geometry_msgs/Vector3[] arm_eigen_vectors~%~%geometry_msgs/Vector3 hand_centroid~%geometry_msgs/Vector3 hand_eigen_value~%geometry_msgs/Vector3[] hand_eigen_vectors~%geometry_msgs/Point[] fingers~%~%#Possibilities for state variable:~%# open - open palm, usually five fingers~%# grip - fingers curled forward~%# paddle -  fingers together and straight~%# fist   ~%string state~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Point~%# This contains the position of a point in free space~%float64 x~%float64 y~%float64 z~%~%~%"))
+  (cl:format cl:nil "geometry_msgs/Transform arm_centroid~%geometry_msgs/Vector3 arm_eigen_value~%geometry_msgs/Vector3[] arm_eigen_vectors~%~%geometry_msgs/Transform hand_centroid~%geometry_msgs/Vector3 hand_eigen_value~%geometry_msgs/Vector3[] hand_eigen_vectors~%geometry_msgs/Point[] fingers~%~%#Possibilities for state variable:~%# open - open palm, usually five fingers~%# grip - fingers curled forward~%# paddle -  fingers together and straight~%# fist   ~%string state~%~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%================================================================================~%MSG: geometry_msgs/Point~%# This contains the position of a point in free space~%float64 x~%float64 y~%float64 z~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'Hand)))
   "Returns full string definition for message of type 'Hand"
-  (cl:format cl:nil "geometry_msgs/Vector3 arm_centroid~%geometry_msgs/Vector3 arm_eigen_value~%geometry_msgs/Vector3[] arm_eigen_vectors~%~%geometry_msgs/Vector3 hand_centroid~%geometry_msgs/Vector3 hand_eigen_value~%geometry_msgs/Vector3[] hand_eigen_vectors~%geometry_msgs/Point[] fingers~%~%#Possibilities for state variable:~%# open - open palm, usually five fingers~%# grip - fingers curled forward~%# paddle -  fingers together and straight~%# fist   ~%string state~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Point~%# This contains the position of a point in free space~%float64 x~%float64 y~%float64 z~%~%~%"))
+  (cl:format cl:nil "geometry_msgs/Transform arm_centroid~%geometry_msgs/Vector3 arm_eigen_value~%geometry_msgs/Vector3[] arm_eigen_vectors~%~%geometry_msgs/Transform hand_centroid~%geometry_msgs/Vector3 hand_eigen_value~%geometry_msgs/Vector3[] hand_eigen_vectors~%geometry_msgs/Point[] fingers~%~%#Possibilities for state variable:~%# open - open palm, usually five fingers~%# grip - fingers curled forward~%# paddle -  fingers together and straight~%# fist   ~%string state~%~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%================================================================================~%MSG: geometry_msgs/Point~%# This contains the position of a point in free space~%float64 x~%float64 y~%float64 z~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <Hand>))
   (cl:+ 0
      (roslisp-msg-protocol:serialization-length (cl:slot-value msg 'arm_centroid))

@@ -2,7 +2,8 @@
   <node pkg="hg_hand_interaction" type="hand_interaction" name="hand_interaction" output="screen">
     <remap from="~hands_in" to="/object_tracking/hands" />     
     <rosparam>                  
-      filter_frames: 3
+      sweep_hand_gesture_windows: 0.3
+      sweep_hand_gesture_gap: 0.2      
     </rosparam>
   </node>
 </launch>  

@@ -9,7 +9,7 @@ import hg_object_tracking.msg
 import std_msgs.msg
 
 class Hands(genpy.Message):
-  _md5sum = "b78f3ee919c8b10900946d2e5fe0a669"
+  _md5sum = "1620114ef11440fcefdcb480209c4aae"
   _type = "hg_object_tracking/Hands"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -36,11 +36,11 @@ string frame_id
 
 ================================================================================
 MSG: hg_object_tracking/Hand
-geometry_msgs/Vector3 arm_centroid
+geometry_msgs/Transform arm_centroid
 geometry_msgs/Vector3 arm_eigen_value
 geometry_msgs/Vector3[] arm_eigen_vectors
 
-geometry_msgs/Vector3 hand_centroid
+geometry_msgs/Transform hand_centroid
 geometry_msgs/Vector3 hand_eigen_value
 geometry_msgs/Vector3[] hand_eigen_vectors
 geometry_msgs/Point[] fingers
@@ -53,12 +53,28 @@ geometry_msgs/Point[] fingers
 string state
 
 ================================================================================
+MSG: geometry_msgs/Transform
+# This represents the transform between two coordinate frames in free space.
+
+Vector3 translation
+Quaternion rotation
+
+================================================================================
 MSG: geometry_msgs/Vector3
 # This represents a vector in free space. 
 
 float64 x
 float64 y
 float64 z
+================================================================================
+MSG: geometry_msgs/Quaternion
+# This represents an orientation in free space in quaternion form.
+
+float64 x
+float64 y
+float64 z
+float64 w
+
 ================================================================================
 MSG: geometry_msgs/Point
 # This contains the position of a point in free space
@@ -119,21 +135,29 @@ float64 z
       buff.write(_struct_I.pack(length))
       for val1 in self.hands:
         _v1 = val1.arm_centroid
-        _x = _v1
-        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v2 = val1.arm_eigen_value
+        _v2 = _v1.translation
         _x = _v2
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+        _v3 = _v1.rotation
+        _x = _v3
+        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
+        _v4 = val1.arm_eigen_value
+        _x = _v4
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
         length = len(val1.arm_eigen_vectors)
         buff.write(_struct_I.pack(length))
         for val2 in val1.arm_eigen_vectors:
           _x = val2
           buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v3 = val1.hand_centroid
-        _x = _v3
+        _v5 = val1.hand_centroid
+        _v6 = _v5.translation
+        _x = _v6
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v4 = val1.hand_eigen_value
-        _x = _v4
+        _v7 = _v5.rotation
+        _x = _v7
+        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
+        _v8 = val1.hand_eigen_value
+        _x = _v8
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
         length = len(val1.hand_eigen_vectors)
         buff.write(_struct_I.pack(length))
@@ -184,13 +208,19 @@ float64 z
       self.hands = []
       for i in range(0, length):
         val1 = hg_object_tracking.msg.Hand()
-        _v5 = val1.arm_centroid
-        _x = _v5
+        _v9 = val1.arm_centroid
+        _v10 = _v9.translation
+        _x = _v10
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v6 = val1.arm_eigen_value
-        _x = _v6
+        _v11 = _v9.rotation
+        _x = _v11
+        start = end
+        end += 32
+        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        _v12 = val1.arm_eigen_value
+        _x = _v12
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
@@ -205,13 +235,19 @@ float64 z
           end += 24
           (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
           val1.arm_eigen_vectors.append(val2)
-        _v7 = val1.hand_centroid
-        _x = _v7
+        _v13 = val1.hand_centroid
+        _v14 = _v13.translation
+        _x = _v14
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v8 = val1.hand_eigen_value
-        _x = _v8
+        _v15 = _v13.rotation
+        _x = _v15
+        start = end
+        end += 32
+        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        _v16 = val1.hand_eigen_value
+        _x = _v16
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
@@ -270,22 +306,30 @@ float64 z
       length = len(self.hands)
       buff.write(_struct_I.pack(length))
       for val1 in self.hands:
-        _v9 = val1.arm_centroid
-        _x = _v9
+        _v17 = val1.arm_centroid
+        _v18 = _v17.translation
+        _x = _v18
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v10 = val1.arm_eigen_value
-        _x = _v10
+        _v19 = _v17.rotation
+        _x = _v19
+        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
+        _v20 = val1.arm_eigen_value
+        _x = _v20
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
         length = len(val1.arm_eigen_vectors)
         buff.write(_struct_I.pack(length))
         for val2 in val1.arm_eigen_vectors:
           _x = val2
           buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v11 = val1.hand_centroid
-        _x = _v11
+        _v21 = val1.hand_centroid
+        _v22 = _v21.translation
+        _x = _v22
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v12 = val1.hand_eigen_value
-        _x = _v12
+        _v23 = _v21.rotation
+        _x = _v23
+        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
+        _v24 = val1.hand_eigen_value
+        _x = _v24
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
         length = len(val1.hand_eigen_vectors)
         buff.write(_struct_I.pack(length))
@@ -337,13 +381,19 @@ float64 z
       self.hands = []
       for i in range(0, length):
         val1 = hg_object_tracking.msg.Hand()
-        _v13 = val1.arm_centroid
-        _x = _v13
+        _v25 = val1.arm_centroid
+        _v26 = _v25.translation
+        _x = _v26
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v14 = val1.arm_eigen_value
-        _x = _v14
+        _v27 = _v25.rotation
+        _x = _v27
+        start = end
+        end += 32
+        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        _v28 = val1.arm_eigen_value
+        _x = _v28
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
@@ -358,13 +408,19 @@ float64 z
           end += 24
           (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
           val1.arm_eigen_vectors.append(val2)
-        _v15 = val1.hand_centroid
-        _x = _v15
+        _v29 = val1.hand_centroid
+        _v30 = _v29.translation
+        _x = _v30
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v16 = val1.hand_eigen_value
-        _x = _v16
+        _v31 = _v29.rotation
+        _x = _v31
+        start = end
+        end += 32
+        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        _v32 = val1.hand_eigen_value
+        _x = _v32
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
@@ -406,4 +462,5 @@ float64 z
 
 _struct_I = genpy.struct_I
 _struct_3I = struct.Struct("<3I")
+_struct_4d = struct.Struct("<4d")
 _struct_3d = struct.Struct("<3d")

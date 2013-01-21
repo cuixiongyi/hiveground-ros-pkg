@@ -70,12 +70,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_object_tracking::Hands_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "b78f3ee919c8b10900946d2e5fe0a669";
+    return "1620114ef11440fcefdcb480209c4aae";
   }
 
   static const char* value(const  ::hg_object_tracking::Hands_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xb78f3ee919c8b109ULL;
-  static const uint64_t static_value2 = 0x00946d2e5fe0a669ULL;
+  static const uint64_t static_value1 = 0x1620114ef11440fcULL;
+  static const uint64_t static_value2 = 0xefdcb480209c4aaeULL;
 };
 
 template<class ContainerAllocator>
@@ -116,11 +116,11 @@ string frame_id\n\
 \n\
 ================================================================================\n\
 MSG: hg_object_tracking/Hand\n\
-geometry_msgs/Vector3 arm_centroid\n\
+geometry_msgs/Transform arm_centroid\n\
 geometry_msgs/Vector3 arm_eigen_value\n\
 geometry_msgs/Vector3[] arm_eigen_vectors\n\
 \n\
-geometry_msgs/Vector3 hand_centroid\n\
+geometry_msgs/Transform hand_centroid\n\
 geometry_msgs/Vector3 hand_eigen_value\n\
 geometry_msgs/Vector3[] hand_eigen_vectors\n\
 geometry_msgs/Point[] fingers\n\
@@ -133,12 +133,28 @@ geometry_msgs/Point[] fingers\n\
 string state\n\
 \n\
 ================================================================================\n\
+MSG: geometry_msgs/Transform\n\
+# This represents the transform between two coordinate frames in free space.\n\
+\n\
+Vector3 translation\n\
+Quaternion rotation\n\
+\n\
+================================================================================\n\
 MSG: geometry_msgs/Vector3\n\
 # This represents a vector in free space. \n\
 \n\
 float64 x\n\
 float64 y\n\
 float64 z\n\
+================================================================================\n\
+MSG: geometry_msgs/Quaternion\n\
+# This represents an orientation in free space in quaternion form.\n\
+\n\
+float64 x\n\
+float64 y\n\
+float64 z\n\
+float64 w\n\
+\n\
 ================================================================================\n\
 MSG: geometry_msgs/Point\n\
 # This contains the position of a point in free space\n\

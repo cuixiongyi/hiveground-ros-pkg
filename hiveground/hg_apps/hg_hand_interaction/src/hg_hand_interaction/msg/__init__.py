@@ -1,2 +1,1 @@
-from ._OneHandGesture import *
-from ._TwoHandGesture import *
+from ._HandGesture import *

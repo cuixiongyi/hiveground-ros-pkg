@@ -93,7 +93,6 @@ bool ObjectTracking::initialize()
 
   cloud_publisher_ = nh_private_.advertise<sensor_msgs::PointCloud2>("cloud_output", 1);
   cloud_subscriber_ = nh_private_.subscribe("cloud_in", 1, &ObjectTracking::cloudCallback, this);
-  marker_publisher_ = nh_private_.advertise<Marker>("tracked_object", 128);
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("tracked_object_array", 128);
   hands_publisher_ = nh_private_.advertise<Hands>("hands", 128);
 
@@ -263,13 +262,13 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
 
     pcl::PointXYZRGB search_point;
     Eigen::Matrix3f ev = pca.getEigenVectors();
-    Eigen::Vector3f axis_x(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
-    axis_x = ((-axis_x) * 0.3) + Eigen::Vector3f(mean.coeff(0), mean.coeff(1), mean.coeff(2));
-    ROS_DEBUG_STREAM_THROTTLE(1.0, "axis_x:" << axis_x);
-    pushSimpleMarker(axis_x.coeff(0), axis_x.coeff(1), axis_x.coeff(2));
-    search_point.x = axis_x.coeff(0);
-    search_point.y = axis_x.coeff(1);
-    search_point.z = axis_x.coeff(2);
+    Eigen::Vector3f main_axis(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
+    main_axis = ((-main_axis) * 0.3) + Eigen::Vector3f(mean.coeff(0), mean.coeff(1), mean.coeff(2));
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "axis_x:" << main_axis);
+    pushSimpleMarker(main_axis.coeff(0), main_axis.coeff(1), main_axis.coeff(2));
+    search_point.x = main_axis.coeff(0);
+    search_point.y = main_axis.coeff(1);
+    search_point.z = main_axis.coeff(2);
 
     int K = plam_max_cluster_size_;
     if(K > (int)clustered_clouds[i]->points.size())
@@ -294,13 +293,22 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
       hand_cloud->is_dense = true;
       hg_object_tracking::Hand hand;
 
-      hand.arm_centroid.x = mean.coeff(0);
-      hand.arm_centroid.y = mean.coeff(1);
-      hand.arm_centroid.z = mean.coeff(2);
+      hand.arm_centroid.translation.x = mean.coeff(0);
+      hand.arm_centroid.translation.y = mean.coeff(1);
+      hand.arm_centroid.translation.z = mean.coeff(2);
+
+      Eigen::Quaternionf q;
+      Eigen::Matrix3f ev = pca.getEigenVectors();
+      q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), main_axis.normalized());
+      hand.arm_centroid.rotation.x = q.x();
+      hand.arm_centroid.rotation.y = q.y();
+      hand.arm_centroid.rotation.z = q.z();
+      hand.arm_centroid.rotation.w = q.w();
+
       hand.arm_eigen_value.x = eigen_value(0);
       hand.arm_eigen_value.y = eigen_value(1);
       hand.arm_eigen_value.z = eigen_value(2);
-      Eigen::Matrix3f ev = pca.getEigenVectors();
+
       geometry_msgs::Vector3 v;
       v.x = ev.coeff(0, 0);
       v.y = ev.coeff(1, 0);
@@ -338,9 +346,13 @@ void ObjectTracking::detectFingers(pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_c
   if(ui.checkBoxShowEigenVector->isChecked())
     pushEigenMarker(pca, 1.0);
 
-  hand.hand_centroid.x = mean.coeff(0);
-  hand.hand_centroid.y = mean.coeff(1);
-  hand.hand_centroid.z = mean.coeff(2);
+  hand.hand_centroid.translation.x = mean.coeff(0);
+  hand.hand_centroid.translation.y = mean.coeff(1);
+  hand.hand_centroid.translation.z = mean.coeff(2);
+  hand.hand_centroid.rotation.x = 0;
+  hand.hand_centroid.rotation.y = 0;
+  hand.hand_centroid.rotation.z = 0;
+  hand.hand_centroid.rotation.w = 1;
   hand.hand_eigen_value.x = eigen_value(0);
   hand.hand_eigen_value.y = eigen_value(1);
   hand.hand_eigen_value.z = eigen_value(2);
@@ -588,3 +600,4 @@ int main(int argc, char** argv)
 
   return ret;
 }
+

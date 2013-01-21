@@ -8,9 +8,9 @@
 #include <ros/ros.h>
 
 #include "ui_hand_interaction.h"
-#include <hg_hand_interaction/OneHandGesture.h>
-#include <hg_hand_interaction/TwoHandGesture.h>
+#include <hg_hand_interaction/HandGesture.h>
 #include <hg_object_tracking/Hands.h>
+#include <hg_hand_interaction/gesture.h>
 
 namespace hg_hand_interaction
 {
@@ -35,8 +35,11 @@ public:
   bool quit_threads_;
 
   ros::Subscriber hands_subscriber_;
-  ros::Publisher one_hand_gesture_publisher_;
-  ros::Publisher two_hand_gesture_publisher_;
+  ros::Publisher hand_gesture_publisher_;
+  ros::Publisher marker_array_publisher_;
+
+  std::vector<GestureDetector*> gesture_detectors_;
+
 
 
 };
