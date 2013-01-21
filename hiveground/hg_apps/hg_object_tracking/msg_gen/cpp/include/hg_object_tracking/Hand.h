@@ -14,10 +14,10 @@
 
 #include "ros/assert.h"
 
+#include "geometry_msgs/Transform.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/Vector3.h"
-#include "geometry_msgs/Vector3.h"
-#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Transform.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/Point.h"
@@ -52,8 +52,8 @@ struct Hand_ {
   {
   }
 
-  typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _arm_centroid_type;
-   ::geometry_msgs::Vector3_<ContainerAllocator>  arm_centroid;
+  typedef  ::geometry_msgs::Transform_<ContainerAllocator>  _arm_centroid_type;
+   ::geometry_msgs::Transform_<ContainerAllocator>  arm_centroid;
 
   typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _arm_eigen_value_type;
    ::geometry_msgs::Vector3_<ContainerAllocator>  arm_eigen_value;
@@ -61,8 +61,8 @@ struct Hand_ {
   typedef std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  _arm_eigen_vectors_type;
   std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  arm_eigen_vectors;
 
-  typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _hand_centroid_type;
-   ::geometry_msgs::Vector3_<ContainerAllocator>  hand_centroid;
+  typedef  ::geometry_msgs::Transform_<ContainerAllocator>  _hand_centroid_type;
+   ::geometry_msgs::Transform_<ContainerAllocator>  hand_centroid;
 
   typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _hand_eigen_value_type;
    ::geometry_msgs::Vector3_<ContainerAllocator>  hand_eigen_value;
@@ -105,12 +105,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_object_tracking::Hand_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "7e39e5f4007986ee7e6c93ad22ce65d8";
+    return "96d008446c62806065a06ae44bfb925d";
   }
 
   static const char* value(const  ::hg_object_tracking::Hand_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x7e39e5f4007986eeULL;
-  static const uint64_t static_value2 = 0x7e6c93ad22ce65d8ULL;
+  static const uint64_t static_value1 = 0x96d008446c628060ULL;
+  static const uint64_t static_value2 = 0x65a06ae44bfb925dULL;
 };
 
 template<class ContainerAllocator>
@@ -127,11 +127,11 @@ template<class ContainerAllocator>
 struct Definition< ::hg_object_tracking::Hand_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "geometry_msgs/Vector3 arm_centroid\n\
+    return "geometry_msgs/Transform arm_centroid\n\
 geometry_msgs/Vector3 arm_eigen_value\n\
 geometry_msgs/Vector3[] arm_eigen_vectors\n\
 \n\
-geometry_msgs/Vector3 hand_centroid\n\
+geometry_msgs/Transform hand_centroid\n\
 geometry_msgs/Vector3 hand_eigen_value\n\
 geometry_msgs/Vector3[] hand_eigen_vectors\n\
 geometry_msgs/Point[] fingers\n\
@@ -144,12 +144,28 @@ geometry_msgs/Point[] fingers\n\
 string state\n\
 \n\
 ================================================================================\n\
+MSG: geometry_msgs/Transform\n\
+# This represents the transform between two coordinate frames in free space.\n\
+\n\
+Vector3 translation\n\
+Quaternion rotation\n\
+\n\
+================================================================================\n\
 MSG: geometry_msgs/Vector3\n\
 # This represents a vector in free space. \n\
 \n\
 float64 x\n\
 float64 y\n\
 float64 z\n\
+================================================================================\n\
+MSG: geometry_msgs/Quaternion\n\
+# This represents an orientation in free space in quaternion form.\n\
+\n\
+float64 x\n\
+float64 y\n\
+float64 z\n\
+float64 w\n\
+\n\
 ================================================================================\n\
 MSG: geometry_msgs/Point\n\
 # This contains the position of a point in free space\n\
@@ -202,7 +218,7 @@ struct Printer< ::hg_object_tracking::Hand_<ContainerAllocator> >
   {
     s << indent << "arm_centroid: ";
 s << std::endl;
-    Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.arm_centroid);
+    Printer< ::geometry_msgs::Transform_<ContainerAllocator> >::stream(s, indent + "  ", v.arm_centroid);
     s << indent << "arm_eigen_value: ";
 s << std::endl;
     Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.arm_eigen_value);
@@ -216,7 +232,7 @@ s << std::endl;
     }
     s << indent << "hand_centroid: ";
 s << std::endl;
-    Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.hand_centroid);
+    Printer< ::geometry_msgs::Transform_<ContainerAllocator> >::stream(s, indent + "  ", v.hand_centroid);
     s << indent << "hand_eigen_value: ";
 s << std::endl;
     Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.hand_eigen_value);

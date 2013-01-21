@@ -7,14 +7,14 @@ import struct
 import geometry_msgs.msg
 
 class Hand(genpy.Message):
-  _md5sum = "7e39e5f4007986ee7e6c93ad22ce65d8"
+  _md5sum = "96d008446c62806065a06ae44bfb925d"
   _type = "hg_object_tracking/Hand"
   _has_header = False #flag to mark the presence of a Header object
-  _full_text = """geometry_msgs/Vector3 arm_centroid
+  _full_text = """geometry_msgs/Transform arm_centroid
 geometry_msgs/Vector3 arm_eigen_value
 geometry_msgs/Vector3[] arm_eigen_vectors
 
-geometry_msgs/Vector3 hand_centroid
+geometry_msgs/Transform hand_centroid
 geometry_msgs/Vector3 hand_eigen_value
 geometry_msgs/Vector3[] hand_eigen_vectors
 geometry_msgs/Point[] fingers
@@ -27,12 +27,28 @@ geometry_msgs/Point[] fingers
 string state
 
 ================================================================================
+MSG: geometry_msgs/Transform
+# This represents the transform between two coordinate frames in free space.
+
+Vector3 translation
+Quaternion rotation
+
+================================================================================
 MSG: geometry_msgs/Vector3
 # This represents a vector in free space. 
 
 float64 x
 float64 y
 float64 z
+================================================================================
+MSG: geometry_msgs/Quaternion
+# This represents an orientation in free space in quaternion form.
+
+float64 x
+float64 y
+float64 z
+float64 w
+
 ================================================================================
 MSG: geometry_msgs/Point
 # This contains the position of a point in free space
@@ -42,7 +58,7 @@ float64 z
 
 """
   __slots__ = ['arm_centroid','arm_eigen_value','arm_eigen_vectors','hand_centroid','hand_eigen_value','hand_eigen_vectors','fingers','state']
-  _slot_types = ['geometry_msgs/Vector3','geometry_msgs/Vector3','geometry_msgs/Vector3[]','geometry_msgs/Vector3','geometry_msgs/Vector3','geometry_msgs/Vector3[]','geometry_msgs/Point[]','string']
+  _slot_types = ['geometry_msgs/Transform','geometry_msgs/Vector3','geometry_msgs/Vector3[]','geometry_msgs/Transform','geometry_msgs/Vector3','geometry_msgs/Vector3[]','geometry_msgs/Point[]','string']
 
   def __init__(self, *args, **kwds):
     """
@@ -62,13 +78,13 @@ float64 z
       super(Hand, self).__init__(*args, **kwds)
       #message fields cannot be None, assign default values for those that are
       if self.arm_centroid is None:
-        self.arm_centroid = geometry_msgs.msg.Vector3()
+        self.arm_centroid = geometry_msgs.msg.Transform()
       if self.arm_eigen_value is None:
         self.arm_eigen_value = geometry_msgs.msg.Vector3()
       if self.arm_eigen_vectors is None:
         self.arm_eigen_vectors = []
       if self.hand_centroid is None:
-        self.hand_centroid = geometry_msgs.msg.Vector3()
+        self.hand_centroid = geometry_msgs.msg.Transform()
       if self.hand_eigen_value is None:
         self.hand_eigen_value = geometry_msgs.msg.Vector3()
       if self.hand_eigen_vectors is None:
@@ -78,10 +94,10 @@ float64 z
       if self.state is None:
         self.state = ''
     else:
-      self.arm_centroid = geometry_msgs.msg.Vector3()
+      self.arm_centroid = geometry_msgs.msg.Transform()
       self.arm_eigen_value = geometry_msgs.msg.Vector3()
       self.arm_eigen_vectors = []
-      self.hand_centroid = geometry_msgs.msg.Vector3()
+      self.hand_centroid = geometry_msgs.msg.Transform()
       self.hand_eigen_value = geometry_msgs.msg.Vector3()
       self.hand_eigen_vectors = []
       self.fingers = []
@@ -100,14 +116,14 @@ float64 z
     """
     try:
       _x = self
-      buff.write(_struct_6d.pack(_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z))
+      buff.write(_struct_10d.pack(_x.arm_centroid.translation.x, _x.arm_centroid.translation.y, _x.arm_centroid.translation.z, _x.arm_centroid.rotation.x, _x.arm_centroid.rotation.y, _x.arm_centroid.rotation.z, _x.arm_centroid.rotation.w, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z))
       length = len(self.arm_eigen_vectors)
       buff.write(_struct_I.pack(length))
       for val1 in self.arm_eigen_vectors:
         _x = val1
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
       _x = self
-      buff.write(_struct_6d.pack(_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z))
+      buff.write(_struct_10d.pack(_x.hand_centroid.translation.x, _x.hand_centroid.translation.y, _x.hand_centroid.translation.z, _x.hand_centroid.rotation.x, _x.hand_centroid.rotation.y, _x.hand_centroid.rotation.z, _x.hand_centroid.rotation.w, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z))
       length = len(self.hand_eigen_vectors)
       buff.write(_struct_I.pack(length))
       for val1 in self.hand_eigen_vectors:
@@ -134,13 +150,13 @@ float64 z
     """
     try:
       if self.arm_centroid is None:
-        self.arm_centroid = geometry_msgs.msg.Vector3()
+        self.arm_centroid = geometry_msgs.msg.Transform()
       if self.arm_eigen_value is None:
         self.arm_eigen_value = geometry_msgs.msg.Vector3()
       if self.arm_eigen_vectors is None:
         self.arm_eigen_vectors = None
       if self.hand_centroid is None:
-        self.hand_centroid = geometry_msgs.msg.Vector3()
+        self.hand_centroid = geometry_msgs.msg.Transform()
       if self.hand_eigen_value is None:
         self.hand_eigen_value = geometry_msgs.msg.Vector3()
       if self.hand_eigen_vectors is None:
@@ -150,8 +166,8 @@ float64 z
       end = 0
       _x = self
       start = end
-      end += 48
-      (_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      end += 80
+      (_x.arm_centroid.translation.x, _x.arm_centroid.translation.y, _x.arm_centroid.translation.z, _x.arm_centroid.rotation.x, _x.arm_centroid.rotation.y, _x.arm_centroid.rotation.z, _x.arm_centroid.rotation.w, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z,) = _struct_10d.unpack(str[start:end])
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -165,8 +181,8 @@ float64 z
         self.arm_eigen_vectors.append(val1)
       _x = self
       start = end
-      end += 48
-      (_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      end += 80
+      (_x.hand_centroid.translation.x, _x.hand_centroid.translation.y, _x.hand_centroid.translation.z, _x.hand_centroid.rotation.x, _x.hand_centroid.rotation.y, _x.hand_centroid.rotation.z, _x.hand_centroid.rotation.w, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z,) = _struct_10d.unpack(str[start:end])
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -211,14 +227,14 @@ float64 z
     """
     try:
       _x = self
-      buff.write(_struct_6d.pack(_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z))
+      buff.write(_struct_10d.pack(_x.arm_centroid.translation.x, _x.arm_centroid.translation.y, _x.arm_centroid.translation.z, _x.arm_centroid.rotation.x, _x.arm_centroid.rotation.y, _x.arm_centroid.rotation.z, _x.arm_centroid.rotation.w, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z))
       length = len(self.arm_eigen_vectors)
       buff.write(_struct_I.pack(length))
       for val1 in self.arm_eigen_vectors:
         _x = val1
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
       _x = self
-      buff.write(_struct_6d.pack(_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z))
+      buff.write(_struct_10d.pack(_x.hand_centroid.translation.x, _x.hand_centroid.translation.y, _x.hand_centroid.translation.z, _x.hand_centroid.rotation.x, _x.hand_centroid.rotation.y, _x.hand_centroid.rotation.z, _x.hand_centroid.rotation.w, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z))
       length = len(self.hand_eigen_vectors)
       buff.write(_struct_I.pack(length))
       for val1 in self.hand_eigen_vectors:
@@ -246,13 +262,13 @@ float64 z
     """
     try:
       if self.arm_centroid is None:
-        self.arm_centroid = geometry_msgs.msg.Vector3()
+        self.arm_centroid = geometry_msgs.msg.Transform()
       if self.arm_eigen_value is None:
         self.arm_eigen_value = geometry_msgs.msg.Vector3()
       if self.arm_eigen_vectors is None:
         self.arm_eigen_vectors = None
       if self.hand_centroid is None:
-        self.hand_centroid = geometry_msgs.msg.Vector3()
+        self.hand_centroid = geometry_msgs.msg.Transform()
       if self.hand_eigen_value is None:
         self.hand_eigen_value = geometry_msgs.msg.Vector3()
       if self.hand_eigen_vectors is None:
@@ -262,8 +278,8 @@ float64 z
       end = 0
       _x = self
       start = end
-      end += 48
-      (_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      end += 80
+      (_x.arm_centroid.translation.x, _x.arm_centroid.translation.y, _x.arm_centroid.translation.z, _x.arm_centroid.rotation.x, _x.arm_centroid.rotation.y, _x.arm_centroid.rotation.z, _x.arm_centroid.rotation.w, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z,) = _struct_10d.unpack(str[start:end])
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -277,8 +293,8 @@ float64 z
         self.arm_eigen_vectors.append(val1)
       _x = self
       start = end
-      end += 48
-      (_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      end += 80
+      (_x.hand_centroid.translation.x, _x.hand_centroid.translation.y, _x.hand_centroid.translation.z, _x.hand_centroid.rotation.x, _x.hand_centroid.rotation.y, _x.hand_centroid.rotation.z, _x.hand_centroid.rotation.w, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z,) = _struct_10d.unpack(str[start:end])
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -315,5 +331,5 @@ float64 z
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
-_struct_6d = struct.Struct("<6d")
+_struct_10d = struct.Struct("<10d")
 _struct_3d = struct.Struct("<3d")
