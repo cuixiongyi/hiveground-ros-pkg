@@ -59,6 +59,7 @@
 #include <qmutex.h>
 
 #include "ui_object_tracking.h"
+#include <hg_object_tracking/Hands.h>
 
 namespace hg_object_tracking
 {
@@ -91,9 +92,13 @@ protected:
   void objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
                              std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr >& out);
 
-  void detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds);
-  void pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca);
-  void pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca);
+  void detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds,
+                     hg_object_tracking::Hands& hands);
+  void detectFingers(pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_cloud,
+                       hg_object_tracking::Hand& hand);
+
+  void pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale = 0.1);
+  void pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale = 0.1);
   void pushSimpleMarker(double x, double y, double z,
                            double r = 1.0, double g = 0.0, double b = 0.0);
 
@@ -112,6 +117,7 @@ protected Q_SLOTS:
 
   void on_spinBoxArmMinSize_valueChanged(int d);
   void on_spinBoxPlamMaxSize_valueChanged(int d);
+  void on_doubleSpinArmEigenRatio_valueChanged(double d);
 
 public:
   Ui::ObjectTracking ui;
@@ -119,9 +125,14 @@ public:
   ros::NodeHandle nh_private_;
   bool quit_threads_;
 
-  QMutex mutex_cloud_;
   ros::Publisher cloud_publisher_;
   ros::Subscriber cloud_subscriber_;
+  ros::Publisher marker_publisher_;
+  ros::Publisher marker_array_publisher_;
+  ros::Publisher hands_publisher_;
+
+
+  QMutex mutex_cloud_;
   double sac_distance_threshold_;
   double ec_cluster_tolerance_;
   double ec_min_cluster_size_;
@@ -129,11 +140,11 @@ public:
   double area_x_min_, area_y_min_, area_z_min_;
   double area_x_max_, area_y_max_, area_z_max_;
 
-  ros::Publisher marker_publisher_;
-  ros::Publisher marker_array_publisher_;
 
   int arm_min_cluster_size_;
   int plam_max_cluster_size_;
+  double arm_eigen_ratio_;
+
 
   visualization_msgs::MarkerArray marker_array_;
   int marker_id_;

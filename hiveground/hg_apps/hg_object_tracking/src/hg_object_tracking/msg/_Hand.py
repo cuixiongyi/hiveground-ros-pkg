@@ -4,44 +4,27 @@ python3 = True if sys.hexversion > 0x03000000 else False
 import genpy
 import struct
 
-import std_msgs.msg
 import geometry_msgs.msg
-import genpy
-import sensor_msgs.msg
 
 class Hand(genpy.Message):
-  _md5sum = "7cef0afb7e7be00fa897ba75c86d7ea4"
+  _md5sum = "7e39e5f4007986ee7e6c93ad22ce65d8"
   _type = "hg_object_tracking/Hand"
   _has_header = False #flag to mark the presence of a Header object
-  _full_text = """time stamp
-int32 seq    # seq is used for tracking the hand - 
-			 # if the seq number is the same, you can assume that the hand is the same as previously seen
-int32 thumb
-bool left    # if this hand is the left hand
-geometry_msgs/Point arm
-geometry_msgs/Transform palm
+  _full_text = """geometry_msgs/Vector3 arm_centroid
+geometry_msgs/Vector3 arm_eigen_value
+geometry_msgs/Vector3[] arm_eigen_vectors
+
+geometry_msgs/Vector3 hand_centroid
+geometry_msgs/Vector3 hand_eigen_value
+geometry_msgs/Vector3[] hand_eigen_vectors
 geometry_msgs/Point[] fingers
-sensor_msgs/PointCloud2 handcloud
+
 #Possibilities for state variable:
 # open - open palm, usually five fingers
 # grip - fingers curled forward
 # paddle -  fingers together and straight
 # fist   
 string state
-
-================================================================================
-MSG: geometry_msgs/Point
-# This contains the position of a point in free space
-float64 x
-float64 y
-float64 z
-
-================================================================================
-MSG: geometry_msgs/Transform
-# This represents the transform between two coordinate frames in free space.
-
-Vector3 translation
-Quaternion rotation
 
 ================================================================================
 MSG: geometry_msgs/Vector3
@@ -51,83 +34,15 @@ float64 x
 float64 y
 float64 z
 ================================================================================
-MSG: geometry_msgs/Quaternion
-# This represents an orientation in free space in quaternion form.
-
+MSG: geometry_msgs/Point
+# This contains the position of a point in free space
 float64 x
 float64 y
 float64 z
-float64 w
-
-================================================================================
-MSG: sensor_msgs/PointCloud2
-# This message holds a collection of N-dimensional points, which may
-# contain additional information such as normals, intensity, etc. The
-# point data is stored as a binary blob, its layout described by the
-# contents of the "fields" array.
-
-# The point cloud data may be organized 2d (image-like) or 1d
-# (unordered). Point clouds organized as 2d images may be produced by
-# camera depth sensors such as stereo or time-of-flight.
-
-# Time of sensor data acquisition, and the coordinate frame ID (for 3d
-# points).
-Header header
-
-# 2D structure of the point cloud. If the cloud is unordered, height is
-# 1 and width is the length of the point cloud.
-uint32 height
-uint32 width
-
-# Describes the channels and their layout in the binary data blob.
-PointField[] fields
-
-bool    is_bigendian # Is this data bigendian?
-uint32  point_step   # Length of a point in bytes
-uint32  row_step     # Length of a row in bytes
-uint8[] data         # Actual point data, size is (row_step*height)
-
-bool is_dense        # True if there are no invalid points
-
-================================================================================
-MSG: std_msgs/Header
-# Standard metadata for higher-level stamped data types.
-# This is generally used to communicate timestamped data 
-# in a particular coordinate frame.
-# 
-# sequence ID: consecutively increasing ID 
-uint32 seq
-#Two-integer timestamp that is expressed as:
-# * stamp.secs: seconds (stamp_secs) since epoch
-# * stamp.nsecs: nanoseconds since stamp_secs
-# time-handling sugar is provided by the client library
-time stamp
-#Frame this data is associated with
-# 0: no frame
-# 1: global frame
-string frame_id
-
-================================================================================
-MSG: sensor_msgs/PointField
-# This message holds the description of one point entry in the
-# PointCloud2 message format.
-uint8 INT8    = 1
-uint8 UINT8   = 2
-uint8 INT16   = 3
-uint8 UINT16  = 4
-uint8 INT32   = 5
-uint8 UINT32  = 6
-uint8 FLOAT32 = 7
-uint8 FLOAT64 = 8
-
-string name      # Name of field
-uint32 offset    # Offset from start of point struct
-uint8  datatype  # Datatype enumeration, see above
-uint32 count     # How many elements in the field
 
 """
-  __slots__ = ['stamp','seq','thumb','left','arm','palm','fingers','handcloud','state']
-  _slot_types = ['time','int32','int32','bool','geometry_msgs/Point','geometry_msgs/Transform','geometry_msgs/Point[]','sensor_msgs/PointCloud2','string']
+  __slots__ = ['arm_centroid','arm_eigen_value','arm_eigen_vectors','hand_centroid','hand_eigen_value','hand_eigen_vectors','fingers','state']
+  _slot_types = ['geometry_msgs/Vector3','geometry_msgs/Vector3','geometry_msgs/Vector3[]','geometry_msgs/Vector3','geometry_msgs/Vector3','geometry_msgs/Vector3[]','geometry_msgs/Point[]','string']
 
   def __init__(self, *args, **kwds):
     """
@@ -137,7 +52,7 @@ uint32 count     # How many elements in the field
     changes.  You cannot mix in-order arguments and keyword arguments.
 
     The available fields are:
-       stamp,seq,thumb,left,arm,palm,fingers,handcloud,state
+       arm_centroid,arm_eigen_value,arm_eigen_vectors,hand_centroid,hand_eigen_value,hand_eigen_vectors,fingers,state
 
     :param args: complete set of field values, in .msg order
     :param kwds: use keyword arguments corresponding to message field names
@@ -146,33 +61,30 @@ uint32 count     # How many elements in the field
     if args or kwds:
       super(Hand, self).__init__(*args, **kwds)
       #message fields cannot be None, assign default values for those that are
-      if self.stamp is None:
-        self.stamp = genpy.Time()
-      if self.seq is None:
-        self.seq = 0
-      if self.thumb is None:
-        self.thumb = 0
-      if self.left is None:
-        self.left = False
-      if self.arm is None:
-        self.arm = geometry_msgs.msg.Point()
-      if self.palm is None:
-        self.palm = geometry_msgs.msg.Transform()
+      if self.arm_centroid is None:
+        self.arm_centroid = geometry_msgs.msg.Vector3()
+      if self.arm_eigen_value is None:
+        self.arm_eigen_value = geometry_msgs.msg.Vector3()
+      if self.arm_eigen_vectors is None:
+        self.arm_eigen_vectors = []
+      if self.hand_centroid is None:
+        self.hand_centroid = geometry_msgs.msg.Vector3()
+      if self.hand_eigen_value is None:
+        self.hand_eigen_value = geometry_msgs.msg.Vector3()
+      if self.hand_eigen_vectors is None:
+        self.hand_eigen_vectors = []
       if self.fingers is None:
         self.fingers = []
-      if self.handcloud is None:
-        self.handcloud = sensor_msgs.msg.PointCloud2()
       if self.state is None:
         self.state = ''
     else:
-      self.stamp = genpy.Time()
-      self.seq = 0
-      self.thumb = 0
-      self.left = False
-      self.arm = geometry_msgs.msg.Point()
-      self.palm = geometry_msgs.msg.Transform()
+      self.arm_centroid = geometry_msgs.msg.Vector3()
+      self.arm_eigen_value = geometry_msgs.msg.Vector3()
+      self.arm_eigen_vectors = []
+      self.hand_centroid = geometry_msgs.msg.Vector3()
+      self.hand_eigen_value = geometry_msgs.msg.Vector3()
+      self.hand_eigen_vectors = []
       self.fingers = []
-      self.handcloud = sensor_msgs.msg.PointCloud2()
       self.state = ''
 
   def _get_types(self):
@@ -188,43 +100,24 @@ uint32 count     # How many elements in the field
     """
     try:
       _x = self
-      buff.write(_struct_2I2iB10d.pack(_x.stamp.secs, _x.stamp.nsecs, _x.seq, _x.thumb, _x.left, _x.arm.x, _x.arm.y, _x.arm.z, _x.palm.translation.x, _x.palm.translation.y, _x.palm.translation.z, _x.palm.rotation.x, _x.palm.rotation.y, _x.palm.rotation.z, _x.palm.rotation.w))
+      buff.write(_struct_6d.pack(_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z))
+      length = len(self.arm_eigen_vectors)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.arm_eigen_vectors:
+        _x = val1
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+      _x = self
+      buff.write(_struct_6d.pack(_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z))
+      length = len(self.hand_eigen_vectors)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.hand_eigen_vectors:
+        _x = val1
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
       length = len(self.fingers)
       buff.write(_struct_I.pack(length))
       for val1 in self.fingers:
         _x = val1
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-      _x = self
-      buff.write(_struct_3I.pack(_x.handcloud.header.seq, _x.handcloud.header.stamp.secs, _x.handcloud.header.stamp.nsecs))
-      _x = self.handcloud.header.frame_id
-      length = len(_x)
-      if python3 or type(_x) == unicode:
-        _x = _x.encode('utf-8')
-        length = len(_x)
-      buff.write(struct.pack('<I%ss'%length, length, _x))
-      _x = self
-      buff.write(_struct_2I.pack(_x.handcloud.height, _x.handcloud.width))
-      length = len(self.handcloud.fields)
-      buff.write(_struct_I.pack(length))
-      for val1 in self.handcloud.fields:
-        _x = val1.name
-        length = len(_x)
-        if python3 or type(_x) == unicode:
-          _x = _x.encode('utf-8')
-          length = len(_x)
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-        _x = val1
-        buff.write(_struct_IBI.pack(_x.offset, _x.datatype, _x.count))
-      _x = self
-      buff.write(_struct_B2I.pack(_x.handcloud.is_bigendian, _x.handcloud.point_step, _x.handcloud.row_step))
-      _x = self.handcloud.data
-      length = len(_x)
-      # - if encoded as a list instead, serialize as bytes instead of string
-      if type(_x) in [list, tuple]:
-        buff.write(struct.pack('<I%sB'%length, length, *_x))
-      else:
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-      buff.write(_struct_B.pack(self.handcloud.is_dense))
       _x = self.state
       length = len(_x)
       if python3 or type(_x) == unicode:
@@ -240,22 +133,51 @@ uint32 count     # How many elements in the field
     :param str: byte array of serialized message, ``str``
     """
     try:
-      if self.stamp is None:
-        self.stamp = genpy.Time()
-      if self.arm is None:
-        self.arm = geometry_msgs.msg.Point()
-      if self.palm is None:
-        self.palm = geometry_msgs.msg.Transform()
+      if self.arm_centroid is None:
+        self.arm_centroid = geometry_msgs.msg.Vector3()
+      if self.arm_eigen_value is None:
+        self.arm_eigen_value = geometry_msgs.msg.Vector3()
+      if self.arm_eigen_vectors is None:
+        self.arm_eigen_vectors = None
+      if self.hand_centroid is None:
+        self.hand_centroid = geometry_msgs.msg.Vector3()
+      if self.hand_eigen_value is None:
+        self.hand_eigen_value = geometry_msgs.msg.Vector3()
+      if self.hand_eigen_vectors is None:
+        self.hand_eigen_vectors = None
       if self.fingers is None:
         self.fingers = None
-      if self.handcloud is None:
-        self.handcloud = sensor_msgs.msg.PointCloud2()
       end = 0
       _x = self
       start = end
-      end += 97
-      (_x.stamp.secs, _x.stamp.nsecs, _x.seq, _x.thumb, _x.left, _x.arm.x, _x.arm.y, _x.arm.z, _x.palm.translation.x, _x.palm.translation.y, _x.palm.translation.z, _x.palm.rotation.x, _x.palm.rotation.y, _x.palm.rotation.z, _x.palm.rotation.w,) = _struct_2I2iB10d.unpack(str[start:end])
-      self.left = bool(self.left)
+      end += 48
+      (_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.arm_eigen_vectors = []
+      for i in range(0, length):
+        val1 = geometry_msgs.msg.Vector3()
+        _x = val1
+        start = end
+        end += 24
+        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+        self.arm_eigen_vectors.append(val1)
+      _x = self
+      start = end
+      end += 48
+      (_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.hand_eigen_vectors = []
+      for i in range(0, length):
+        val1 = geometry_msgs.msg.Vector3()
+        _x = val1
+        start = end
+        end += 24
+        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+        self.hand_eigen_vectors.append(val1)
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -267,61 +189,6 @@ uint32 count     # How many elements in the field
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
         self.fingers.append(val1)
-      _x = self
-      start = end
-      end += 12
-      (_x.handcloud.header.seq, _x.handcloud.header.stamp.secs, _x.handcloud.header.stamp.nsecs,) = _struct_3I.unpack(str[start:end])
-      start = end
-      end += 4
-      (length,) = _struct_I.unpack(str[start:end])
-      start = end
-      end += length
-      if python3:
-        self.handcloud.header.frame_id = str[start:end].decode('utf-8')
-      else:
-        self.handcloud.header.frame_id = str[start:end]
-      _x = self
-      start = end
-      end += 8
-      (_x.handcloud.height, _x.handcloud.width,) = _struct_2I.unpack(str[start:end])
-      start = end
-      end += 4
-      (length,) = _struct_I.unpack(str[start:end])
-      self.handcloud.fields = []
-      for i in range(0, length):
-        val1 = sensor_msgs.msg.PointField()
-        start = end
-        end += 4
-        (length,) = _struct_I.unpack(str[start:end])
-        start = end
-        end += length
-        if python3:
-          val1.name = str[start:end].decode('utf-8')
-        else:
-          val1.name = str[start:end]
-        _x = val1
-        start = end
-        end += 9
-        (_x.offset, _x.datatype, _x.count,) = _struct_IBI.unpack(str[start:end])
-        self.handcloud.fields.append(val1)
-      _x = self
-      start = end
-      end += 9
-      (_x.handcloud.is_bigendian, _x.handcloud.point_step, _x.handcloud.row_step,) = _struct_B2I.unpack(str[start:end])
-      self.handcloud.is_bigendian = bool(self.handcloud.is_bigendian)
-      start = end
-      end += 4
-      (length,) = _struct_I.unpack(str[start:end])
-      start = end
-      end += length
-      if python3:
-        self.handcloud.data = str[start:end].decode('utf-8')
-      else:
-        self.handcloud.data = str[start:end]
-      start = end
-      end += 1
-      (self.handcloud.is_dense,) = _struct_B.unpack(str[start:end])
-      self.handcloud.is_dense = bool(self.handcloud.is_dense)
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -331,7 +198,6 @@ uint32 count     # How many elements in the field
         self.state = str[start:end].decode('utf-8')
       else:
         self.state = str[start:end]
-      self.stamp.canon()
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
@@ -345,43 +211,24 @@ uint32 count     # How many elements in the field
     """
     try:
       _x = self
-      buff.write(_struct_2I2iB10d.pack(_x.stamp.secs, _x.stamp.nsecs, _x.seq, _x.thumb, _x.left, _x.arm.x, _x.arm.y, _x.arm.z, _x.palm.translation.x, _x.palm.translation.y, _x.palm.translation.z, _x.palm.rotation.x, _x.palm.rotation.y, _x.palm.rotation.z, _x.palm.rotation.w))
+      buff.write(_struct_6d.pack(_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z))
+      length = len(self.arm_eigen_vectors)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.arm_eigen_vectors:
+        _x = val1
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+      _x = self
+      buff.write(_struct_6d.pack(_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z))
+      length = len(self.hand_eigen_vectors)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.hand_eigen_vectors:
+        _x = val1
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
       length = len(self.fingers)
       buff.write(_struct_I.pack(length))
       for val1 in self.fingers:
         _x = val1
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-      _x = self
-      buff.write(_struct_3I.pack(_x.handcloud.header.seq, _x.handcloud.header.stamp.secs, _x.handcloud.header.stamp.nsecs))
-      _x = self.handcloud.header.frame_id
-      length = len(_x)
-      if python3 or type(_x) == unicode:
-        _x = _x.encode('utf-8')
-        length = len(_x)
-      buff.write(struct.pack('<I%ss'%length, length, _x))
-      _x = self
-      buff.write(_struct_2I.pack(_x.handcloud.height, _x.handcloud.width))
-      length = len(self.handcloud.fields)
-      buff.write(_struct_I.pack(length))
-      for val1 in self.handcloud.fields:
-        _x = val1.name
-        length = len(_x)
-        if python3 or type(_x) == unicode:
-          _x = _x.encode('utf-8')
-          length = len(_x)
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-        _x = val1
-        buff.write(_struct_IBI.pack(_x.offset, _x.datatype, _x.count))
-      _x = self
-      buff.write(_struct_B2I.pack(_x.handcloud.is_bigendian, _x.handcloud.point_step, _x.handcloud.row_step))
-      _x = self.handcloud.data
-      length = len(_x)
-      # - if encoded as a list instead, serialize as bytes instead of string
-      if type(_x) in [list, tuple]:
-        buff.write(struct.pack('<I%sB'%length, length, *_x))
-      else:
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-      buff.write(_struct_B.pack(self.handcloud.is_dense))
       _x = self.state
       length = len(_x)
       if python3 or type(_x) == unicode:
@@ -398,22 +245,51 @@ uint32 count     # How many elements in the field
     :param numpy: numpy python module
     """
     try:
-      if self.stamp is None:
-        self.stamp = genpy.Time()
-      if self.arm is None:
-        self.arm = geometry_msgs.msg.Point()
-      if self.palm is None:
-        self.palm = geometry_msgs.msg.Transform()
+      if self.arm_centroid is None:
+        self.arm_centroid = geometry_msgs.msg.Vector3()
+      if self.arm_eigen_value is None:
+        self.arm_eigen_value = geometry_msgs.msg.Vector3()
+      if self.arm_eigen_vectors is None:
+        self.arm_eigen_vectors = None
+      if self.hand_centroid is None:
+        self.hand_centroid = geometry_msgs.msg.Vector3()
+      if self.hand_eigen_value is None:
+        self.hand_eigen_value = geometry_msgs.msg.Vector3()
+      if self.hand_eigen_vectors is None:
+        self.hand_eigen_vectors = None
       if self.fingers is None:
         self.fingers = None
-      if self.handcloud is None:
-        self.handcloud = sensor_msgs.msg.PointCloud2()
       end = 0
       _x = self
       start = end
-      end += 97
-      (_x.stamp.secs, _x.stamp.nsecs, _x.seq, _x.thumb, _x.left, _x.arm.x, _x.arm.y, _x.arm.z, _x.palm.translation.x, _x.palm.translation.y, _x.palm.translation.z, _x.palm.rotation.x, _x.palm.rotation.y, _x.palm.rotation.z, _x.palm.rotation.w,) = _struct_2I2iB10d.unpack(str[start:end])
-      self.left = bool(self.left)
+      end += 48
+      (_x.arm_centroid.x, _x.arm_centroid.y, _x.arm_centroid.z, _x.arm_eigen_value.x, _x.arm_eigen_value.y, _x.arm_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.arm_eigen_vectors = []
+      for i in range(0, length):
+        val1 = geometry_msgs.msg.Vector3()
+        _x = val1
+        start = end
+        end += 24
+        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+        self.arm_eigen_vectors.append(val1)
+      _x = self
+      start = end
+      end += 48
+      (_x.hand_centroid.x, _x.hand_centroid.y, _x.hand_centroid.z, _x.hand_eigen_value.x, _x.hand_eigen_value.y, _x.hand_eigen_value.z,) = _struct_6d.unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.hand_eigen_vectors = []
+      for i in range(0, length):
+        val1 = geometry_msgs.msg.Vector3()
+        _x = val1
+        start = end
+        end += 24
+        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+        self.hand_eigen_vectors.append(val1)
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -425,61 +301,6 @@ uint32 count     # How many elements in the field
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
         self.fingers.append(val1)
-      _x = self
-      start = end
-      end += 12
-      (_x.handcloud.header.seq, _x.handcloud.header.stamp.secs, _x.handcloud.header.stamp.nsecs,) = _struct_3I.unpack(str[start:end])
-      start = end
-      end += 4
-      (length,) = _struct_I.unpack(str[start:end])
-      start = end
-      end += length
-      if python3:
-        self.handcloud.header.frame_id = str[start:end].decode('utf-8')
-      else:
-        self.handcloud.header.frame_id = str[start:end]
-      _x = self
-      start = end
-      end += 8
-      (_x.handcloud.height, _x.handcloud.width,) = _struct_2I.unpack(str[start:end])
-      start = end
-      end += 4
-      (length,) = _struct_I.unpack(str[start:end])
-      self.handcloud.fields = []
-      for i in range(0, length):
-        val1 = sensor_msgs.msg.PointField()
-        start = end
-        end += 4
-        (length,) = _struct_I.unpack(str[start:end])
-        start = end
-        end += length
-        if python3:
-          val1.name = str[start:end].decode('utf-8')
-        else:
-          val1.name = str[start:end]
-        _x = val1
-        start = end
-        end += 9
-        (_x.offset, _x.datatype, _x.count,) = _struct_IBI.unpack(str[start:end])
-        self.handcloud.fields.append(val1)
-      _x = self
-      start = end
-      end += 9
-      (_x.handcloud.is_bigendian, _x.handcloud.point_step, _x.handcloud.row_step,) = _struct_B2I.unpack(str[start:end])
-      self.handcloud.is_bigendian = bool(self.handcloud.is_bigendian)
-      start = end
-      end += 4
-      (length,) = _struct_I.unpack(str[start:end])
-      start = end
-      end += length
-      if python3:
-        self.handcloud.data = str[start:end].decode('utf-8')
-      else:
-        self.handcloud.data = str[start:end]
-      start = end
-      end += 1
-      (self.handcloud.is_dense,) = _struct_B.unpack(str[start:end])
-      self.handcloud.is_dense = bool(self.handcloud.is_dense)
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -489,16 +310,10 @@ uint32 count     # How many elements in the field
         self.state = str[start:end].decode('utf-8')
       else:
         self.state = str[start:end]
-      self.stamp.canon()
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
-_struct_IBI = struct.Struct("<IBI")
-_struct_B = struct.Struct("<B")
-_struct_2I2iB10d = struct.Struct("<2I2iB10d")
-_struct_3I = struct.Struct("<3I")
-_struct_B2I = struct.Struct("<B2I")
-_struct_2I = struct.Struct("<2I")
+_struct_6d = struct.Struct("<6d")
 _struct_3d = struct.Struct("<3d")

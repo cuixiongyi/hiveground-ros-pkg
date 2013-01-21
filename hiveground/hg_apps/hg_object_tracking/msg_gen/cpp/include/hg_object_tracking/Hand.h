@@ -14,10 +14,13 @@
 
 #include "ros/assert.h"
 
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/Point.h"
-#include "geometry_msgs/Transform.h"
-#include "geometry_msgs/Point.h"
-#include "sensor_msgs/PointCloud2.h"
 
 namespace hg_object_tracking
 {
@@ -26,54 +29,49 @@ struct Hand_ {
   typedef Hand_<ContainerAllocator> Type;
 
   Hand_()
-  : stamp()
-  , seq(0)
-  , thumb(0)
-  , left(false)
-  , arm()
-  , palm()
+  : arm_centroid()
+  , arm_eigen_value()
+  , arm_eigen_vectors()
+  , hand_centroid()
+  , hand_eigen_value()
+  , hand_eigen_vectors()
   , fingers()
-  , handcloud()
   , state()
   {
   }
 
   Hand_(const ContainerAllocator& _alloc)
-  : stamp()
-  , seq(0)
-  , thumb(0)
-  , left(false)
-  , arm(_alloc)
-  , palm(_alloc)
+  : arm_centroid(_alloc)
+  , arm_eigen_value(_alloc)
+  , arm_eigen_vectors(_alloc)
+  , hand_centroid(_alloc)
+  , hand_eigen_value(_alloc)
+  , hand_eigen_vectors(_alloc)
   , fingers(_alloc)
-  , handcloud(_alloc)
   , state(_alloc)
   {
   }
 
-  typedef ros::Time _stamp_type;
-  ros::Time stamp;
+  typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _arm_centroid_type;
+   ::geometry_msgs::Vector3_<ContainerAllocator>  arm_centroid;
 
-  typedef int32_t _seq_type;
-  int32_t seq;
+  typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _arm_eigen_value_type;
+   ::geometry_msgs::Vector3_<ContainerAllocator>  arm_eigen_value;
 
-  typedef int32_t _thumb_type;
-  int32_t thumb;
+  typedef std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  _arm_eigen_vectors_type;
+  std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  arm_eigen_vectors;
 
-  typedef uint8_t _left_type;
-  uint8_t left;
+  typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _hand_centroid_type;
+   ::geometry_msgs::Vector3_<ContainerAllocator>  hand_centroid;
 
-  typedef  ::geometry_msgs::Point_<ContainerAllocator>  _arm_type;
-   ::geometry_msgs::Point_<ContainerAllocator>  arm;
+  typedef  ::geometry_msgs::Vector3_<ContainerAllocator>  _hand_eigen_value_type;
+   ::geometry_msgs::Vector3_<ContainerAllocator>  hand_eigen_value;
 
-  typedef  ::geometry_msgs::Transform_<ContainerAllocator>  _palm_type;
-   ::geometry_msgs::Transform_<ContainerAllocator>  palm;
+  typedef std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  _hand_eigen_vectors_type;
+  std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  hand_eigen_vectors;
 
   typedef std::vector< ::geometry_msgs::Point_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Point_<ContainerAllocator> >::other >  _fingers_type;
   std::vector< ::geometry_msgs::Point_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Point_<ContainerAllocator> >::other >  fingers;
-
-  typedef  ::sensor_msgs::PointCloud2_<ContainerAllocator>  _handcloud_type;
-   ::sensor_msgs::PointCloud2_<ContainerAllocator>  handcloud;
 
   typedef std::basic_string<char, std::char_traits<char>, typename ContainerAllocator::template rebind<char>::other >  _state_type;
   std::basic_string<char, std::char_traits<char>, typename ContainerAllocator::template rebind<char>::other >  state;
@@ -107,12 +105,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_object_tracking::Hand_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "7cef0afb7e7be00fa897ba75c86d7ea4";
+    return "7e39e5f4007986ee7e6c93ad22ce65d8";
   }
 
   static const char* value(const  ::hg_object_tracking::Hand_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x7cef0afb7e7be00fULL;
-  static const uint64_t static_value2 = 0xa897ba75c86d7ea4ULL;
+  static const uint64_t static_value1 = 0x7e39e5f4007986eeULL;
+  static const uint64_t static_value2 = 0x7e6c93ad22ce65d8ULL;
 };
 
 template<class ContainerAllocator>
@@ -129,35 +127,21 @@ template<class ContainerAllocator>
 struct Definition< ::hg_object_tracking::Hand_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "time stamp\n\
-int32 seq    # seq is used for tracking the hand - \n\
-			 # if the seq number is the same, you can assume that the hand is the same as previously seen\n\
-int32 thumb\n\
-bool left    # if this hand is the left hand\n\
-geometry_msgs/Point arm\n\
-geometry_msgs/Transform palm\n\
+    return "geometry_msgs/Vector3 arm_centroid\n\
+geometry_msgs/Vector3 arm_eigen_value\n\
+geometry_msgs/Vector3[] arm_eigen_vectors\n\
+\n\
+geometry_msgs/Vector3 hand_centroid\n\
+geometry_msgs/Vector3 hand_eigen_value\n\
+geometry_msgs/Vector3[] hand_eigen_vectors\n\
 geometry_msgs/Point[] fingers\n\
-sensor_msgs/PointCloud2 handcloud\n\
+\n\
 #Possibilities for state variable:\n\
 # open - open palm, usually five fingers\n\
 # grip - fingers curled forward\n\
 # paddle -  fingers together and straight\n\
 # fist   \n\
 string state\n\
-\n\
-================================================================================\n\
-MSG: geometry_msgs/Point\n\
-# This contains the position of a point in free space\n\
-float64 x\n\
-float64 y\n\
-float64 z\n\
-\n\
-================================================================================\n\
-MSG: geometry_msgs/Transform\n\
-# This represents the transform between two coordinate frames in free space.\n\
-\n\
-Vector3 translation\n\
-Quaternion rotation\n\
 \n\
 ================================================================================\n\
 MSG: geometry_msgs/Vector3\n\
@@ -167,79 +151,11 @@ float64 x\n\
 float64 y\n\
 float64 z\n\
 ================================================================================\n\
-MSG: geometry_msgs/Quaternion\n\
-# This represents an orientation in free space in quaternion form.\n\
-\n\
+MSG: geometry_msgs/Point\n\
+# This contains the position of a point in free space\n\
 float64 x\n\
 float64 y\n\
 float64 z\n\
-float64 w\n\
-\n\
-================================================================================\n\
-MSG: sensor_msgs/PointCloud2\n\
-# This message holds a collection of N-dimensional points, which may\n\
-# contain additional information such as normals, intensity, etc. The\n\
-# point data is stored as a binary blob, its layout described by the\n\
-# contents of the \"fields\" array.\n\
-\n\
-# The point cloud data may be organized 2d (image-like) or 1d\n\
-# (unordered). Point clouds organized as 2d images may be produced by\n\
-# camera depth sensors such as stereo or time-of-flight.\n\
-\n\
-# Time of sensor data acquisition, and the coordinate frame ID (for 3d\n\
-# points).\n\
-Header header\n\
-\n\
-# 2D structure of the point cloud. If the cloud is unordered, height is\n\
-# 1 and width is the length of the point cloud.\n\
-uint32 height\n\
-uint32 width\n\
-\n\
-# Describes the channels and their layout in the binary data blob.\n\
-PointField[] fields\n\
-\n\
-bool    is_bigendian # Is this data bigendian?\n\
-uint32  point_step   # Length of a point in bytes\n\
-uint32  row_step     # Length of a row in bytes\n\
-uint8[] data         # Actual point data, size is (row_step*height)\n\
-\n\
-bool is_dense        # True if there are no invalid points\n\
-\n\
-================================================================================\n\
-MSG: std_msgs/Header\n\
-# Standard metadata for higher-level stamped data types.\n\
-# This is generally used to communicate timestamped data \n\
-# in a particular coordinate frame.\n\
-# \n\
-# sequence ID: consecutively increasing ID \n\
-uint32 seq\n\
-#Two-integer timestamp that is expressed as:\n\
-# * stamp.secs: seconds (stamp_secs) since epoch\n\
-# * stamp.nsecs: nanoseconds since stamp_secs\n\
-# time-handling sugar is provided by the client library\n\
-time stamp\n\
-#Frame this data is associated with\n\
-# 0: no frame\n\
-# 1: global frame\n\
-string frame_id\n\
-\n\
-================================================================================\n\
-MSG: sensor_msgs/PointField\n\
-# This message holds the description of one point entry in the\n\
-# PointCloud2 message format.\n\
-uint8 INT8    = 1\n\
-uint8 UINT8   = 2\n\
-uint8 INT16   = 3\n\
-uint8 UINT16  = 4\n\
-uint8 INT32   = 5\n\
-uint8 UINT32  = 6\n\
-uint8 FLOAT32 = 7\n\
-uint8 FLOAT64 = 8\n\
-\n\
-string name      # Name of field\n\
-uint32 offset    # Offset from start of point struct\n\
-uint8  datatype  # Datatype enumeration, see above\n\
-uint32 count     # How many elements in the field\n\
 \n\
 ";
   }
@@ -259,14 +175,13 @@ template<class ContainerAllocator> struct Serializer< ::hg_object_tracking::Hand
 {
   template<typename Stream, typename T> inline static void allInOne(Stream& stream, T m)
   {
-    stream.next(m.stamp);
-    stream.next(m.seq);
-    stream.next(m.thumb);
-    stream.next(m.left);
-    stream.next(m.arm);
-    stream.next(m.palm);
+    stream.next(m.arm_centroid);
+    stream.next(m.arm_eigen_value);
+    stream.next(m.arm_eigen_vectors);
+    stream.next(m.hand_centroid);
+    stream.next(m.hand_eigen_value);
+    stream.next(m.hand_eigen_vectors);
     stream.next(m.fingers);
-    stream.next(m.handcloud);
     stream.next(m.state);
   }
 
@@ -285,20 +200,34 @@ struct Printer< ::hg_object_tracking::Hand_<ContainerAllocator> >
 {
   template<typename Stream> static void stream(Stream& s, const std::string& indent, const  ::hg_object_tracking::Hand_<ContainerAllocator> & v) 
   {
-    s << indent << "stamp: ";
-    Printer<ros::Time>::stream(s, indent + "  ", v.stamp);
-    s << indent << "seq: ";
-    Printer<int32_t>::stream(s, indent + "  ", v.seq);
-    s << indent << "thumb: ";
-    Printer<int32_t>::stream(s, indent + "  ", v.thumb);
-    s << indent << "left: ";
-    Printer<uint8_t>::stream(s, indent + "  ", v.left);
-    s << indent << "arm: ";
+    s << indent << "arm_centroid: ";
 s << std::endl;
-    Printer< ::geometry_msgs::Point_<ContainerAllocator> >::stream(s, indent + "  ", v.arm);
-    s << indent << "palm: ";
+    Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.arm_centroid);
+    s << indent << "arm_eigen_value: ";
 s << std::endl;
-    Printer< ::geometry_msgs::Transform_<ContainerAllocator> >::stream(s, indent + "  ", v.palm);
+    Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.arm_eigen_value);
+    s << indent << "arm_eigen_vectors[]" << std::endl;
+    for (size_t i = 0; i < v.arm_eigen_vectors.size(); ++i)
+    {
+      s << indent << "  arm_eigen_vectors[" << i << "]: ";
+      s << std::endl;
+      s << indent;
+      Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "    ", v.arm_eigen_vectors[i]);
+    }
+    s << indent << "hand_centroid: ";
+s << std::endl;
+    Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.hand_centroid);
+    s << indent << "hand_eigen_value: ";
+s << std::endl;
+    Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "  ", v.hand_eigen_value);
+    s << indent << "hand_eigen_vectors[]" << std::endl;
+    for (size_t i = 0; i < v.hand_eigen_vectors.size(); ++i)
+    {
+      s << indent << "  hand_eigen_vectors[" << i << "]: ";
+      s << std::endl;
+      s << indent;
+      Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "    ", v.hand_eigen_vectors[i]);
+    }
     s << indent << "fingers[]" << std::endl;
     for (size_t i = 0; i < v.fingers.size(); ++i)
     {
@@ -307,9 +236,6 @@ s << std::endl;
       s << indent;
       Printer< ::geometry_msgs::Point_<ContainerAllocator> >::stream(s, indent + "    ", v.fingers[i]);
     }
-    s << indent << "handcloud: ";
-s << std::endl;
-    Printer< ::sensor_msgs::PointCloud2_<ContainerAllocator> >::stream(s, indent + "  ", v.handcloud);
     s << indent << "state: ";
     Printer<std::basic_string<char, std::char_traits<char>, typename ContainerAllocator::template rebind<char>::other > >::stream(s, indent + "  ", v.state);
   }
