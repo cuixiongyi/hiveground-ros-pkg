@@ -70,12 +70,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_object_tracking::Hands_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "a7c0ad4d5951381fcf2e9fdf1233819e";
+    return "b78f3ee919c8b10900946d2e5fe0a669";
   }
 
   static const char* value(const  ::hg_object_tracking::Hands_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xa7c0ad4d5951381fULL;
-  static const uint64_t static_value2 = 0xcf2e9fdf1233819eULL;
+  static const uint64_t static_value1 = 0xb78f3ee919c8b109ULL;
+  static const uint64_t static_value2 = 0x00946d2e5fe0a669ULL;
 };
 
 template<class ContainerAllocator>
@@ -116,35 +116,21 @@ string frame_id\n\
 \n\
 ================================================================================\n\
 MSG: hg_object_tracking/Hand\n\
-time stamp\n\
-int32 seq    # seq is used for tracking the hand - \n\
-			 # if the seq number is the same, you can assume that the hand is the same as previously seen\n\
-int32 thumb\n\
-bool left    # if this hand is the left hand\n\
-geometry_msgs/Point arm\n\
-geometry_msgs/Transform palm\n\
+geometry_msgs/Vector3 arm_centroid\n\
+geometry_msgs/Vector3 arm_eigen_value\n\
+geometry_msgs/Vector3[] arm_eigen_vectors\n\
+\n\
+geometry_msgs/Vector3 hand_centroid\n\
+geometry_msgs/Vector3 hand_eigen_value\n\
+geometry_msgs/Vector3[] hand_eigen_vectors\n\
 geometry_msgs/Point[] fingers\n\
-sensor_msgs/PointCloud2 handcloud\n\
+\n\
 #Possibilities for state variable:\n\
 # open - open palm, usually five fingers\n\
 # grip - fingers curled forward\n\
 # paddle -  fingers together and straight\n\
 # fist   \n\
 string state\n\
-\n\
-================================================================================\n\
-MSG: geometry_msgs/Point\n\
-# This contains the position of a point in free space\n\
-float64 x\n\
-float64 y\n\
-float64 z\n\
-\n\
-================================================================================\n\
-MSG: geometry_msgs/Transform\n\
-# This represents the transform between two coordinate frames in free space.\n\
-\n\
-Vector3 translation\n\
-Quaternion rotation\n\
 \n\
 ================================================================================\n\
 MSG: geometry_msgs/Vector3\n\
@@ -154,61 +140,11 @@ float64 x\n\
 float64 y\n\
 float64 z\n\
 ================================================================================\n\
-MSG: geometry_msgs/Quaternion\n\
-# This represents an orientation in free space in quaternion form.\n\
-\n\
+MSG: geometry_msgs/Point\n\
+# This contains the position of a point in free space\n\
 float64 x\n\
 float64 y\n\
 float64 z\n\
-float64 w\n\
-\n\
-================================================================================\n\
-MSG: sensor_msgs/PointCloud2\n\
-# This message holds a collection of N-dimensional points, which may\n\
-# contain additional information such as normals, intensity, etc. The\n\
-# point data is stored as a binary blob, its layout described by the\n\
-# contents of the \"fields\" array.\n\
-\n\
-# The point cloud data may be organized 2d (image-like) or 1d\n\
-# (unordered). Point clouds organized as 2d images may be produced by\n\
-# camera depth sensors such as stereo or time-of-flight.\n\
-\n\
-# Time of sensor data acquisition, and the coordinate frame ID (for 3d\n\
-# points).\n\
-Header header\n\
-\n\
-# 2D structure of the point cloud. If the cloud is unordered, height is\n\
-# 1 and width is the length of the point cloud.\n\
-uint32 height\n\
-uint32 width\n\
-\n\
-# Describes the channels and their layout in the binary data blob.\n\
-PointField[] fields\n\
-\n\
-bool    is_bigendian # Is this data bigendian?\n\
-uint32  point_step   # Length of a point in bytes\n\
-uint32  row_step     # Length of a row in bytes\n\
-uint8[] data         # Actual point data, size is (row_step*height)\n\
-\n\
-bool is_dense        # True if there are no invalid points\n\
-\n\
-================================================================================\n\
-MSG: sensor_msgs/PointField\n\
-# This message holds the description of one point entry in the\n\
-# PointCloud2 message format.\n\
-uint8 INT8    = 1\n\
-uint8 UINT8   = 2\n\
-uint8 INT16   = 3\n\
-uint8 UINT16  = 4\n\
-uint8 INT32   = 5\n\
-uint8 UINT32  = 6\n\
-uint8 FLOAT32 = 7\n\
-uint8 FLOAT64 = 8\n\
-\n\
-string name      # Name of field\n\
-uint32 offset    # Offset from start of point struct\n\
-uint8  datatype  # Datatype enumeration, see above\n\
-uint32 count     # How many elements in the field\n\
 \n\
 ";
   }

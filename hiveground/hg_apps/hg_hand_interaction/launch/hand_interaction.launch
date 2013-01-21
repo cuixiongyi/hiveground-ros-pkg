@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="hg_hand_interaction" type="hand_interaction" name="hand_interaction" output="screen">
+    <remap from="~hands_in" to="/object_tracking/hands" />     
+    <rosparam>                  
+      filter_frames: 3
+    </rosparam>
+  </node>
+</launch>  
+  

@@ -40,7 +40,7 @@
 
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <hg_object_tracking/Hands.h>
+
 
 using namespace hg_object_tracking;
 using namespace visualization_msgs;
@@ -83,16 +83,19 @@ bool ObjectTracking::initialize()
   nh_private_.getParam("area_z_max", d);
   ui.doubleSpinBoxAreaZMax->setValue(d);
 
+
   nh_private_.getParam("arm_min_cluster_size", i);
   ui.spinBoxArmMinSize->setValue(i);
-
   nh_private_.getParam("plam_max_cluster_size", i);
   ui.spinBoxPlamMaxSize->setValue(i);
+  nh_private_.getParam("arm_eigen_value_ratio", d);
+  ui.doubleSpinArmEigenRatio->setValue(d);
 
   cloud_publisher_ = nh_private_.advertise<sensor_msgs::PointCloud2>("cloud_output", 1);
   cloud_subscriber_ = nh_private_.subscribe("cloud_in", 1, &ObjectTracking::cloudCallback, this);
-  marker_publisher_ = nh_.advertise<Marker>("tracked_object", 128);
-  marker_array_publisher_ = nh_.advertise<MarkerArray>("tracked_object_array", 128);
+  marker_publisher_ = nh_private_.advertise<Marker>("tracked_object", 128);
+  marker_array_publisher_ = nh_private_.advertise<MarkerArray>("tracked_object_array", 128);
+  hands_publisher_ = nh_private_.advertise<Hands>("hands", 128);
 
   return true;
 }
@@ -114,7 +117,15 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
   objectSegmentation(cloud_objects, clustered_clouds);
 
   //Detect hand
-  detectHands(clustered_clouds);
+  hg_object_tracking::Hands hands_message;
+  detectHands(clustered_clouds, hands_message);
+
+  if((hands_publisher_.getNumSubscribers() != 0) && (hands_message.hands.size() != 0))
+  {
+    hands_message.header.stamp = message->header.stamp;
+    hands_message.header.frame_id = message->header.frame_id;
+    hands_publisher_.publish(hands_message);
+  }
 
   if(cloud_publisher_.getNumSubscribers() != 0)
   {
@@ -218,12 +229,11 @@ void ObjectTracking::objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr i
   }
 }
 
-void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds)
+void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds,
+                                     hg_object_tracking::Hands& hands)
 {
+  hands.hands.clear();
   pcl::PCA<pcl::PointXYZRGB> pca;
-
-  Hands hands_msg;
-  Hand hand_msg;
   for(int i = 0; i < (int)clustered_clouds.size(); i++)
   {
     if((int)clustered_clouds[i]->size() < arm_min_cluster_size_) continue;
@@ -234,15 +244,19 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
     if((mean.coeff(1) < area_y_min_) || (mean.coeff(1) > area_y_max_)) continue;
     if((mean.coeff(2) < area_z_min_) || (mean.coeff(2) > area_z_max_)) continue;
 
-    ROS_DEBUG_STREAM_THROTTLE(1.0, "value:" << pca.getEigenValues());
-    ROS_DEBUG_STREAM_THROTTLE(1.0, "vector:" << pca.getEigenVectors());
-    ROS_DEBUG_STREAM_THROTTLE(1.0, "mean:" << pca.getMean());
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "arm value:" << pca.getEigenValues());
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "arm vector:" << pca.getEigenVectors());
+    ROS_DEBUG_STREAM_THROTTLE(1.0, "arm mean:" << pca.getMean());
+
+    //check eigen value for elongate object
+    Eigen::Vector3f eigen_value = pca.getEigenValues();
+    if(eigen_value.coeff(0) < (arm_eigen_ratio_*eigen_value.coeff(1))) continue;
+
 
     if(ui.checkBoxShowClusterMarker->isChecked())
       pushHandMarker(pca);
     if(ui.checkBoxShowEigenVector->isChecked())
       pushEigenMarker(pca);
-
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(clustered_clouds[i]);
@@ -266,18 +280,89 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
 
     if ( kdtree.nearestKSearch (search_point, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
     {
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
       ROS_DEBUG_THROTTLE(1.0, "found %lu", pointIdxNKNSearch.size ());
       for (size_t j = 0; j < pointIdxNKNSearch.size (); ++j)
       {
+        hand_cloud->points.push_back(clustered_clouds[i]->points[ pointIdxNKNSearch[j] ]);
         clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].r = 255;
         clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].g = 0;
         clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].b = 0;
       }
+      hand_cloud->width = hand_cloud->points.size();
+      hand_cloud->height = 1;
+      hand_cloud->is_dense = true;
+      hg_object_tracking::Hand hand;
+
+      hand.arm_centroid.x = mean.coeff(0);
+      hand.arm_centroid.y = mean.coeff(1);
+      hand.arm_centroid.z = mean.coeff(2);
+      hand.arm_eigen_value.x = eigen_value(0);
+      hand.arm_eigen_value.y = eigen_value(1);
+      hand.arm_eigen_value.z = eigen_value(2);
+      Eigen::Matrix3f ev = pca.getEigenVectors();
+      geometry_msgs::Vector3 v;
+      v.x = ev.coeff(0, 0);
+      v.y = ev.coeff(1, 0);
+      v.z = ev.coeff(2, 0);
+      hand.arm_eigen_vectors.push_back(v);
+      v.x = ev.coeff(0, 1);
+      v.y = ev.coeff(1, 1);
+      v.z = ev.coeff(2, 1);
+      hand.arm_eigen_vectors.push_back(v);
+      v.x = ev.coeff(0, 2);
+      v.y = ev.coeff(1, 2);
+      v.z = ev.coeff(2, 2);
+      hand.arm_eigen_vectors.push_back(v);
+
+      detectFingers(hand_cloud, hand);
+      hands.hands.push_back(hand);
     }
   }
 }
 
-void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
+void ObjectTracking::detectFingers(pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_cloud,
+                                        hg_object_tracking::Hand& hand)
+{
+  pcl::PCA<pcl::PointXYZRGB> pca;
+  pca.setInputCloud(hand_cloud);
+  Eigen::Vector4f mean = pca.getMean();
+  Eigen::Vector3f eigen_value = pca.getEigenValues();
+
+  ROS_DEBUG_STREAM_THROTTLE(1.0, "hand value:" << pca.getEigenValues());
+  ROS_DEBUG_STREAM_THROTTLE(1.0, "hand vector:" << pca.getEigenVectors());
+  ROS_DEBUG_STREAM_THROTTLE(1.0, "hand mean:" << pca.getMean());
+
+  if(ui.checkBoxShowClusterMarker->isChecked())
+    pushHandMarker(pca, 0.05);
+  if(ui.checkBoxShowEigenVector->isChecked())
+    pushEigenMarker(pca, 1.0);
+
+  hand.hand_centroid.x = mean.coeff(0);
+  hand.hand_centroid.y = mean.coeff(1);
+  hand.hand_centroid.z = mean.coeff(2);
+  hand.hand_eigen_value.x = eigen_value(0);
+  hand.hand_eigen_value.y = eigen_value(1);
+  hand.hand_eigen_value.z = eigen_value(2);
+
+  Eigen::Matrix3f ev = pca.getEigenVectors();
+  geometry_msgs::Vector3 v;
+  v.x = ev.coeff(0, 0);
+  v.y = ev.coeff(1, 0);
+  v.z = ev.coeff(2, 0);
+  hand.arm_eigen_vectors.push_back(v);
+  v.x = ev.coeff(0, 1);
+  v.y = ev.coeff(1, 1);
+  v.z = ev.coeff(2, 1);
+  hand.arm_eigen_vectors.push_back(v);
+  v.x = ev.coeff(0, 2);
+  v.y = ev.coeff(1, 2);
+  v.z = ev.coeff(2, 2);
+  hand.arm_eigen_vectors.push_back(v);
+
+}
+
+void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale)
 {
   Marker marker;
   marker.type = Marker::SPHERE;
@@ -285,9 +370,9 @@ void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
   marker.header.frame_id = "base_link";
   marker.ns = "detected_hands";
   marker.id = marker_id_++;
-  marker.scale.x = 0.1;
-  marker.scale.y = 0.1;
-  marker.scale.z = 0.1;
+  marker.scale.x = scale;
+  marker.scale.y = scale;
+  marker.scale.z = scale;
   marker.color.r = 1.0;
   marker.color.g = 0.5;
   marker.color.b = 0.5;
@@ -302,7 +387,7 @@ void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
   marker_array_.markers.push_back(marker);
 }
 
-void ObjectTracking::pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
+void ObjectTracking::pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale)
 {
   Marker marker;
   marker.lifetime = ros::Duration(0.1);
@@ -325,7 +410,7 @@ void ObjectTracking::pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca)
   qz.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_z);
 
   marker.id = marker_id_++;
-  marker.scale.z = pca.getEigenValues().coeff(0) * 0.1;
+  marker.scale.z = pca.getEigenValues().coeff(0) * scale;
   marker.pose.orientation.x = qx.x();
   marker.pose.orientation.y = qx.y();
   marker.pose.orientation.z = qx.z();
@@ -453,6 +538,12 @@ void ObjectTracking::on_spinBoxPlamMaxSize_valueChanged(int d)
 {
   QMutexLocker lock(&mutex_cloud_);
   plam_max_cluster_size_ = d;
+}
+
+void ObjectTracking::on_doubleSpinArmEigenRatio_valueChanged(double d)
+{
+  QMutexLocker lock(&mutex_cloud_);
+  arm_eigen_ratio_ = d;
 }
 
 ObjectTracking* g_object_tracking = NULL;
