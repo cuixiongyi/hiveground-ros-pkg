@@ -68,8 +68,6 @@ bool HandInteraction::initialize()
   gesture_detectors_.push_back(new SweepHandGestureDetector(nh_private_));
 
 
-
-
   //UI for each detector if any
   for(size_t i = 0; i < gesture_detectors_.size(); i++)
   {
@@ -107,15 +105,19 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
     {
       gesture_detectors_[i]->drawHistory(marker_array, message->header.frame_id);
     }
-  }
 
-  if(ui.checkBoxShowHistory->isChecked())
-  {
-    if(marker_array_publisher_.getNumSubscribers() != 0)
+    if(ui.checkBoxShowResults->isChecked())
     {
-      marker_array_publisher_.publish(marker_array);
+      gesture_detectors_[i]->drawResult(marker_array, message->header.frame_id);
     }
   }
+
+
+  if((marker_array_publisher_.getNumSubscribers() != 0) && (marker_array.markers.size() != 0))
+  {
+    marker_array_publisher_.publish(marker_array);
+  }
+
 
 }
 

@@ -31,18 +31,50 @@
  * Author: Mahisorn Wongphati
  */
 
+#ifndef GESTURE_HAND_SWEEP_H_
+#define GESTURE_HAND_SWEEP_H_
+
 #include <hg_hand_interaction/gesture.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/common/pca.h>
 
 
-using namespace visualization_msgs;
-using namespace hg_hand_interaction;
-
-GestureDetector::GestureDetector(ros::NodeHandle& nh_private)
-    : nh_private_(nh_private)
+namespace hg_hand_interaction
 {
+
+class SweepHandGestureDetector : public HandGestureDetector
+{
+  Q_OBJECT
+public:
+  SweepHandGestureDetector(ros::NodeHandle& nh_private);
+  virtual ~SweepHandGestureDetector() { }
+
+  bool initialize();
+  void drawHistory(visualization_msgs::MarkerArray& marker_array,
+                     const std::string& frame_id = "base_link");
+  void drawResult(visualization_msgs::MarkerArray& marker_array,
+                    const std::string& frame_id = "base_link");
+  void addHandMessage(const hg_object_tracking::HandsConstPtr message);
+  bool lookForGesture();
+
+  void addUI(QToolBox* tool_box);
+
+protected Q_SLOTS:
+  void onWindowTimeValueChanged(double d);
+  void onGapTimeValueChanged(double d);
+
+  bool detectOneHandGesture();
+  bool detectTwoHandGesture();
+
+protected:
+  int last_hand_count_;
+  pcl::PCA<pcl::PointXYZ> pca_[2];
+  bool pca_updated_[2];
+};
 
 }
 
 
 
-
+#endif /* GESTURE_HAND_SWEEP_H_ */
