@@ -46,6 +46,8 @@ namespace hg_hand_interaction
 class SweepHandGestureDetector : public HandGestureDetector
 {
   Q_OBJECT
+  static const double DIRECTION_EPSILON = (1-0.866025404);
+
 public:
   SweepHandGestureDetector(ros::NodeHandle& nh_private);
   virtual ~SweepHandGestureDetector() { }
@@ -63,14 +65,24 @@ public:
 protected Q_SLOTS:
   void onWindowTimeValueChanged(double d);
   void onGapTimeValueChanged(double d);
+  void onFilterWindowSizeChanged(int d);
 
-  bool detectOneHandGesture();
+  Gesture detectOneHandGesture(int id);
   bool detectTwoHandGesture();
+  tf::Vector3 getHandMovingDirection(int id);
+  tf::Vector3 getFilteredDirection(int id, const tf::Vector3& latest_vector);
 
 protected:
   int last_hand_count_;
   pcl::PCA<pcl::PointXYZ> pca_[2];
-  bool pca_updated_[2];
+  bool direction_updated_[2];
+  tf::Vector3 hand_moving_direction_[2];
+  std::vector<std::list<tf::Vector3> > hand_moving_direction_filters_;
+  int filter_windows_size_;
+  tf::Vector3 three_axes[3];
+
+
+  QSpinBox* spinbox_filter_windows_size_;
 };
 
 }

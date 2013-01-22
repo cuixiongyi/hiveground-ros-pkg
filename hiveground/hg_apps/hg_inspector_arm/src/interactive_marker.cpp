@@ -85,56 +85,65 @@ bool InspectorArm::initializeInteractiveMarkerServer()
 std::string InspectorArm::getMarkerName()
 {
     std::stringstream ss;
-    ss << "marker_" << name_count_++;
+    ss << "marker_" << std::setfill('0') << std::setw(5) << name_count_++;
     return ss.str();
 }
 
 
-void InspectorArm::addMarker(const std::string& name, geometry_msgs::Pose pose, double arrow_length)
+void InspectorArm::addMarker(const std::string& name,
+                                 geometry_msgs::Pose pose,
+                                 bool selectable,
+                                 double arrow_length)
 {
   InteractiveMarker int_marker;
   int_marker.name = name;
+  int_marker.description = name;
   int_marker.header.frame_id = world_frame_;
   int_marker.scale = arrow_length * 0.5;
   int_marker.pose = pose;
 
-  makeArrowControl(int_marker, arrow_length);
+  if(selectable)
+    makeSelectableArrowControl(int_marker, arrow_length);
+  else
+    makeArrowControl(int_marker, arrow_length);
 
-  // create a non-interactive control which contains the arrow
   InteractiveMarkerControl control;
+  if(!selectable)
+  {
+    // create a non-interactive control which contains the arrow
+    control.orientation.w = 1;
+    control.orientation.x = 1;
+    control.orientation.y = 0;
+    control.orientation.z = 0;
+    control.name = "rotate_x";
+    control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+    control.name = "move_x";
+    control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+    int_marker.controls.push_back(control);
 
-  control.orientation.w = 1;
-  control.orientation.x = 1;
-  control.orientation.y = 0;
-  control.orientation.z = 0;
-  control.name = "rotate_x";
-  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
-  control.name = "move_x";
-  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
-  int_marker.controls.push_back(control);
+    control.orientation.w = 1;
+    control.orientation.x = 0;
+    control.orientation.y = 1;
+    control.orientation.z = 0;
+    control.name = "rotate_z";
+    control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+    control.name = "move_z";
+    control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+    int_marker.controls.push_back(control);
 
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 1;
-  control.orientation.z = 0;
-  control.name = "rotate_z";
-  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
-  control.name = "move_z";
-  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
-  int_marker.controls.push_back(control);
-
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 0;
-  control.orientation.z = 1;
-  control.name = "rotate_y";
-  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
-  control.name = "move_y";
-  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
-  int_marker.controls.push_back(control);
+    control.orientation.w = 1;
+    control.orientation.x = 0;
+    control.orientation.y = 0;
+    control.orientation.z = 1;
+    control.name = "rotate_y";
+    control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+    control.name = "move_y";
+    control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+    int_marker.controls.push_back(control);
+  }
 
   marker_server_.insert(int_marker);
 
@@ -157,6 +166,7 @@ void InspectorArm::addMarkerAtEndEffector()
   InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
   item->setName(name.c_str());
   markers_[item->name().toStdString()] = item;
+  selectOnlyOneMarker(name);
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
   markers_touched_ = true;
 }
@@ -180,6 +190,12 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
 {
   switch (feedback->event_type)
   {
+    case InteractiveMarkerFeedback::BUTTON_CLICK:
+      {
+        selectOnlyOneMarker(feedback->marker_name);
+        Q_EMIT followPointSignal();
+      }
+      break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
@@ -232,6 +248,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           item->setName(name.c_str());
           item->setJointState(markers_[feedback->marker_name]->jointState());
           markers_[item->name().toStdString()] = item;
+          selectOnlyOneMarker(name);
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
         }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
@@ -391,11 +408,56 @@ InteractiveMarkerControl& InspectorArm::makeArrowControl( InteractiveMarker &msg
   control.orientation_mode = InteractiveMarkerControl::VIEW_FACING;
   control.interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
   control.independent_marker_orientation = true;
-  control.markers.push_back( makeBox(msg));
+  control.markers.push_back(makeBox(msg));
   control.markers.push_back(makeArrow(msg, arrow_length));
   msg.controls.push_back( control );
 
   return msg.controls.back();
+}
+
+InteractiveMarkerControl& InspectorArm::makeSelectableArrowControl(visualization_msgs::InteractiveMarker &msg,
+                                                                        double arrow_length)
+{
+  InteractiveMarkerControl control;
+  control.always_visible = true;
+  control.interaction_mode = InteractiveMarkerControl::BUTTON;
+  control.markers.push_back(makeBox(msg));
+  control.markers.push_back(makeArrow(msg, arrow_length));
+  msg.controls.push_back( control );
+  return msg.controls.back();
+}
+
+void InspectorArm::selectMarker(const std::string& name)
+{
+  if (!marker_server_.erase(name))
+  {
+    ROS_ERROR_STREAM("Cannot erase " << name);
+    return;
+  }
+  selected_marker_ = name;
+  addMarker(name, markers_[name]->pose(), false);
+}
+
+void InspectorArm::deselectMarker(const std::string& name)
+{
+  if (!marker_server_.erase(name))
+  {
+    ROS_ERROR_STREAM("Cannot erase " << name);
+    return;
+  }
+  addMarker(name, markers_[name]->pose());
+}
+
+void InspectorArm::selectOnlyOneMarker(const std::string& name)
+{
+  selectMarker(name);
+  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  while (it != markers_.end())
+  {
+    if (it->first != name)
+      deselectMarker(it->first);
+    it++;
+  }
 }
 
 void InspectorArm::makeMenu()
