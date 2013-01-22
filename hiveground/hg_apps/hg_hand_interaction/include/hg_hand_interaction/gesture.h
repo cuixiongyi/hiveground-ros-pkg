@@ -35,14 +35,14 @@
 #define GESTURE_H_
 
 #include <ros/ros.h>
+#include <qobject.h>
 #include <tf/tf.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <hg_object_tracking/Hands.h>
 #include <QToolBox>
-#include <QLabel>
-#include <QDoubleSpinBox>
-#include <QGridLayout>
 #include <QMutex>
+#include <QDoubleSpinBox>
+
 
 namespace hg_hand_interaction
 {
@@ -81,7 +81,10 @@ public:
 
   virtual void drawHistory(visualization_msgs::MarkerArray& marker_array,
                               const std::string& frame_id = "base_link") = 0;
+  virtual void drawResult(visualization_msgs::MarkerArray& marker_array,
+                             const std::string& frame_id = "base_link") = 0;
   virtual bool lookForGesture() = 0;
+
   virtual void addUI(QToolBox* tool_box) = 0;
 
 protected:
@@ -108,29 +111,6 @@ public:
   virtual void addHandMessage(const hg_object_tracking::HandsConstPtr message) = 0;
 
 protected:
-
-};
-
-class SweepHandGestureDetector : public HandGestureDetector
-{
-  Q_OBJECT
-public:
-  SweepHandGestureDetector(ros::NodeHandle& nh_private);
-  virtual ~SweepHandGestureDetector() { }
-
-  bool initialize();
-  void drawHistory(visualization_msgs::MarkerArray& marker_array,
-                     const std::string& frame_id = "base_link");
-  void addHandMessage(const hg_object_tracking::HandsConstPtr message);
-  bool lookForGesture();
-  void addUI(QToolBox* tool_box);
-
-protected Q_SLOTS:
-  void onWindowTimeValueChanged(double d);
-  void onGapTimeValueChanged(double d);
-
-protected:
-  int last_hand_count_;
 
 };
 
