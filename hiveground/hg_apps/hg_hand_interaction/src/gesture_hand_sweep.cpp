@@ -43,80 +43,64 @@ SweepHandGestureDetector::SweepHandGestureDetector(ros::NodeHandle& nh_private)
  : HandGestureDetector(nh_private),
    last_hand_count_(0)
 {
-  pca_updated_[0] = false;
-  pca_updated_[1] = false;
+  direction_updated_[0] = false;
+  direction_updated_[1] = false;
+  three_axes[0] = tf::Vector3(1, 0, 0); //X
+  three_axes[1] = tf::Vector3(0, 1, 0); //Y
+  three_axes[2] = tf::Vector3(0, 0, 1); //Z
+  hand_moving_direction_filters_.resize(2);
 }
 
 bool SweepHandGestureDetector::initialize()
 {
   double d;
+  int i;
   nh_private_.getParam("sweep_hand_gesture_windows", d);
   spinbox_window_->setValue(d);
 
   nh_private_.getParam("sweep_hand_gesture_gap", d);
   spinbox_gap_->setValue(d);
+
+  nh_private_.getParam("filter_window_size", i);
+  spinbox_filter_windows_size_->setValue(i);
+
   return true;
 }
 
 void SweepHandGestureDetector::drawHistory(MarkerArray& marker_array, const std::string& frame_id)
 {
   Marker markers[2];
-  markers[0].type = Marker::LINE_STRIP;
-  markers[0].lifetime = ros::Duration(0.1);
-  markers[0].header.frame_id = frame_id;
-  markers[0].ns = "SweepHandGestureDetector";
-  markers[0].id = 0;
-  markers[0].scale.x = 0.01;
-  markers[1].type = Marker::LINE_STRIP;
-  markers[1].lifetime = ros::Duration(0.1);
-  markers[1].header.frame_id = frame_id;
-  markers[1].ns = "SweepHandGestureDetector";
-  markers[1].id = 1;
-  markers[1].scale.x = 0.01;
-  std::list<PositionsStamped>::iterator it;
-  geometry_msgs::Point point;
-  for(it = gesture_entries_.begin(); it != gesture_entries_.end(); it++)
-  {
-    point.x = it->second[0].getOrigin().x();
-    point.y = it->second[0].getOrigin().y();
-    point.z = it->second[0].getOrigin().z();
-    markers[0].points.push_back(point);
 
-    if(last_hand_count_ == 2)
+  for(int i = 0; i < last_hand_count_; i++)
+  {
+    markers[i].type = Marker::LINE_STRIP;
+    markers[i].lifetime = ros::Duration(0.1);
+    markers[i].header.frame_id = frame_id;
+    markers[i].ns = "SweepHandGestureDetector";
+    markers[i].id = i;
+    markers[i].scale.x = 0.01;
+    std::list<PositionsStamped>::iterator it;
+    geometry_msgs::Point point;
+    for (it = gesture_entries_.begin(); it != gesture_entries_.end(); it++)
     {
-      point.x = it->second[1].getOrigin().x();
-      point.y = it->second[1].getOrigin().y();
-      point.z = it->second[1].getOrigin().z();
-      markers[1].points.push_back(point);
+      point.x = it->second[i].getOrigin().x();
+      point.y = it->second[i].getOrigin().y();
+      point.z = it->second[i].getOrigin().z();
+      markers[i].points.push_back(point);
     }
-  }
 
-  markers[0].pose.position.x = 0;
-  markers[0].pose.position.y = 0;
-  markers[0].pose.position.z = 0;
-  markers[0].pose.orientation.x = 0;
-  markers[0].pose.orientation.y = 0;
-  markers[0].pose.orientation.z = 0;
-  markers[0].pose.orientation.w = 1;
-  markers[0].color.r = 1.0;
-  markers[0].color.g = 0.0;
-  markers[0].color.b = 1.0;
-  markers[0].color.a = 1.0;
-  marker_array.markers.push_back(markers[0]);
-  if(last_hand_count_ == 2)
-  {
-    markers[1].pose.position.x = 0;
-    markers[1].pose.position.y = 0;
-    markers[1].pose.position.z = 0;
-    markers[1].pose.orientation.x = 0;
-    markers[1].pose.orientation.y = 0;
-    markers[1].pose.orientation.z = 0;
-    markers[1].pose.orientation.w = 1;
-    markers[1].color.r = 0.0;
-    markers[1].color.g = 1.0;
-    markers[1].color.b = 0.0;
-    markers[1].color.a = 1.0;
-    marker_array.markers.push_back(markers[1]);
+    markers[i].pose.position.x = 0;
+    markers[i].pose.position.y = 0;
+    markers[i].pose.position.z = 0;
+    markers[i].pose.orientation.x = 0;
+    markers[i].pose.orientation.y = 0;
+    markers[i].pose.orientation.z = 0;
+    markers[i].pose.orientation.w = 1;
+    markers[i].color.r = (i == 0 ? 1.0 : 0.0);
+    markers[i].color.g = (i == 0 ? 0.0 : 1.0);
+    markers[i].color.b = 0.0;
+    markers[i].color.a = 1.0;
+    marker_array.markers.push_back(markers[i]);
   }
 }
 
@@ -125,60 +109,40 @@ void SweepHandGestureDetector::drawResult(visualization_msgs::MarkerArray& marke
 {
   int marker_id = 0;
   Marker marker;
-  marker.lifetime = ros::Duration(1.0);
+  marker.lifetime = ros::Duration(0.1);
   marker.header.frame_id = frame_id;
   marker.ns = "SweepHandGestureDetector_result";
   marker.type = Marker::ARROW;
   marker.scale.x = 0.1;
   marker.scale.y = 0.1;
-  if(pca_updated_[0])
+
+  for (int i = 0; i < last_hand_count_; i++)
   {
-    marker.pose.position.x = pca_[0].getMean().coeff(0);
-    marker.pose.position.y = pca_[0].getMean().coeff(1);
-    marker.pose.position.z = pca_[0].getMean().coeff(2);
+    if (direction_updated_[i] && (hand_moving_direction_[i].length2() != 0))
+    {
+      marker.pose.position.x = gesture_entries_.front().second[i].getOrigin().x();
+      marker.pose.position.y = gesture_entries_.front().second[i].getOrigin().y();
+      marker.pose.position.z = gesture_entries_.front().second[i].getOrigin().z();
 
-    Eigen::Quaternionf q_main;
-    Eigen::Matrix3f ev = pca_[0].getEigenVectors();
-    Eigen::Vector3f axis_main(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
-    q_main.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_main);
+      Eigen::Quaternionf q_main;
+      Eigen::Vector3f axis_main(hand_moving_direction_[i].x(),
+                                hand_moving_direction_[i].y(),
+                                hand_moving_direction_[i].z());
+      q_main.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_main.normalized());
 
-    marker.id = marker_id++;
-    marker.scale.z = 0.3;
-    marker.pose.orientation.x = q_main.x();
-    marker.pose.orientation.y = q_main.y();
-    marker.pose.orientation.z = q_main.z();
-    marker.pose.orientation.w = q_main.w();
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-    marker.color.a = 1.0;
-    marker_array.markers.push_back(marker);
-    pca_updated_[0] = false;
-  }
-
-  if(pca_updated_[1])
-  {
-    marker.pose.position.x = pca_[1].getMean().coeff(0);
-    marker.pose.position.y = pca_[1].getMean().coeff(1);
-    marker.pose.position.z = pca_[1].getMean().coeff(2);
-
-    Eigen::Quaternionf q_main;
-    Eigen::Matrix3f ev = pca_[1].getEigenVectors();
-    Eigen::Vector3f axis_main(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
-    q_main.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), axis_main);
-
-    marker.id = marker_id++;
-    marker.scale.z = 0.3;
-    marker.pose.orientation.x = q_main.x();
-    marker.pose.orientation.y = q_main.y();
-    marker.pose.orientation.z = q_main.z();
-    marker.pose.orientation.w = q_main.w();
-    marker.color.r = 0.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0.0;
-    marker.color.a = 1.0;
-    marker_array.markers.push_back(marker);
-    pca_updated_[1] = false;
+      marker.id = marker_id++;
+      marker.scale.z = 0.3;
+      marker.pose.orientation.x = q_main.x();
+      marker.pose.orientation.y = q_main.y();
+      marker.pose.orientation.z = q_main.z();
+      marker.pose.orientation.w = q_main.w();
+      marker.color.r = (i == 0 ? 1.0 : 0.0);
+      marker.color.g = (i == 0 ? 0.0 : 1.0);
+      marker.color.b = 0.0;
+      marker.color.a = 1.0;
+      marker_array.markers.push_back(marker);
+      direction_updated_[i] = false;
+    }
   }
 }
 
@@ -201,7 +165,7 @@ void SweepHandGestureDetector::addHandMessage(const hg_object_tracking::HandsCon
   if(last_hand_count_ != num_hand)
   {
     ROS_DEBUG("Hand count changed from %d to %d", last_hand_count_, num_hand);
-    gesture_entries_.clear();
+    onFilterWindowSizeChanged(spinbox_filter_windows_size_->value());
     last_hand_count_ = num_hand;
   }
 
@@ -262,99 +226,204 @@ bool SweepHandGestureDetector::lookForGesture()
     return false;
   }
 
-  if((ros::Time::now() - last_detected_time_) < gesture_gap_)
+  Gesture detected_gesture[2];
+  for(int i = 0; i < last_hand_count_; i++)
   {
-    ROS_DEBUG("Last gesture is not yet expired");
-    return false;
+    detected_gesture[i] = detectOneHandGesture(i);
   }
+
 
 
   if(last_hand_count_ == 1)
-    return detectOneHandGesture();
+  {
+
+  }
   else
-    return detectTwoHandGesture();
+  {
+
+  }
+  return true;
 }
 
-bool SweepHandGestureDetector::detectOneHandGesture()
+Gesture SweepHandGestureDetector::detectOneHandGesture(int id)
 {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr motion_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-  std::list<PositionsStamped>::iterator it;
-  pcl::PointXYZ point;
-  for(it = gesture_entries_.begin(); it != gesture_entries_.end(); it++)
+  Gesture detected_gesture = NOT_DETECTED;
+  hand_moving_direction_[id] = getFilteredDirection(id, getHandMovingDirection(id));
+  if(hand_moving_direction_[id].length2() == 0)
   {
-    motion_cloud->points.push_back(pcl::PointXYZ(it->second[0].getOrigin().x(),
-                                                 it->second[0].getOrigin().y(),
-                                                 it->second[0].getOrigin().z()));
+    direction_updated_[id] = false;
+    detected_gesture = NOT_DETECTED;
   }
-  motion_cloud->width = motion_cloud->points.size();
-  motion_cloud->height = 1;
-  motion_cloud->is_dense = true;
+  else
+  {
+    direction_updated_[id] = true;
+    double dot_products[3];
+    double min_error = 1e6;
+    int min_error_index = -1;
+    for(int i = 0; i < 3; i++)
+    {
+      dot_products[i] = hand_moving_direction_[id].dot(three_axes[i]);
 
-
-  pca_[0].setInputCloud(motion_cloud);
-  ROS_DEBUG_STREAM(pca_[0].getEigenValues());
-  ROS_DEBUG_STREAM(pca_[0].getEigenVectors());
-  pca_updated_[0] = true;
-  return true;
+      if((1 - fabs(dot_products[i])) < min_error)
+      {
+        min_error = 1 - fabs(dot_products[i]);
+        min_error_index = i;
+      }
+    }
+    ROS_INFO("hand %d %d %f", id, min_error_index, min_error);
+    if(min_error > DIRECTION_EPSILON)
+    {
+      detected_gesture = NOT_DETECTED;
+      ROS_INFO("Too much error");
+    }
+    else
+    {
+      switch(min_error_index)
+      {
+        case 0:
+          if(dot_products[min_error_index] > 0)
+          {
+            detected_gesture = SWEEP_BACKWARD_ONE_HAND;
+            ROS_INFO("SWEEP_BACKWARD_ONE_HAND");
+          }
+          else
+          {
+            detected_gesture = SWEEP_FORWARD_ONE_HAND;
+            ROS_INFO("SWEEP_FORWARD_ONE_HAND");
+          }
+          break;
+        case 1:
+          if (dot_products[min_error_index] > 0)
+          {
+            detected_gesture = SWEEP_RIGHT_ONE_HAND;
+            ROS_INFO("SWEEP_RIGHT_ONE_HAND");
+          }
+          else
+          {
+            detected_gesture = SWEEP_LEFT_ONE_HAND;
+            ROS_INFO("SWEEP_LEFT_ONE_HAND");
+          }
+          break;
+        case 2:
+          if (dot_products[min_error_index] > 0)
+          {
+            detected_gesture = SWEEP_UP_ONE_HAND;
+            ROS_INFO("SWEEP_UP_ONE_HAND");
+          }
+          else
+          {
+            detected_gesture = SWEEP_DOWN_ONE_HAND;
+            ROS_INFO("SWEEP_DOWN_ONE_HAND");
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  return detected_gesture;
 }
 
 
 bool SweepHandGestureDetector::detectTwoHandGesture()
 {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr motion_cloud0(new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr motion_cloud1(new pcl::PointCloud<pcl::PointXYZ>);
-
-  std::list<PositionsStamped>::iterator it;
-  pcl::PointXYZ point;
-  for(it = gesture_entries_.begin(); it != gesture_entries_.end(); it++)
-  {
-    motion_cloud0->points.push_back(pcl::PointXYZ(it->second[0].getOrigin().x(),
-                                                  it->second[0].getOrigin().y(),
-                                                  it->second[0].getOrigin().z()));
-    motion_cloud1->points.push_back(pcl::PointXYZ(it->second[1].getOrigin().x(),
-                                                  it->second[1].getOrigin().y(),
-                                                  it->second[1].getOrigin().z()));
-  }
-  motion_cloud0->width = motion_cloud0->points.size();
-  motion_cloud0->height = 1;
-  motion_cloud0->is_dense = true;
-  motion_cloud1->width = motion_cloud1->points.size();
-  motion_cloud1->height = 1;
-  motion_cloud1->is_dense = true;
-
-
-  pca_[0].setInputCloud(motion_cloud0);
-  ROS_DEBUG_STREAM(pca_[0].getEigenValues());
-  ROS_DEBUG_STREAM(pca_[0].getEigenVectors());
-  pca_updated_[0] = true;
-  pca_[1].setInputCloud(motion_cloud1);
-  ROS_DEBUG_STREAM(pca_[1].getEigenValues());
-  ROS_DEBUG_STREAM(pca_[1].getEigenVectors());
-  pca_updated_[1] = true;
+  hand_moving_direction_[0] = getFilteredDirection(0, getHandMovingDirection(0));
+  direction_updated_[0] = true;
+  hand_moving_direction_[1] = getFilteredDirection(1, getHandMovingDirection(1));
+  direction_updated_[1] = true;
   return true;
 }
 
+tf::Vector3 SweepHandGestureDetector::getHandMovingDirection(int id)
+{
+  if(gesture_entries_.size() < 3)
+  {
+    ROS_DEBUG_THROTTLE(1.0, "entries count is too short");
+    return tf::Vector3(0,0,0);
+  }
+
+  tf::Vector3 dir_path = gesture_entries_.front().second[id].getOrigin() - gesture_entries_.back().second[id].getOrigin();
+  if(dir_path.length() < 0.02)
+  {
+    ROS_DEBUG_THROTTLE(1.0, "distance is too short for hand %d", id);
+    return tf::Vector3(0,0,0);
+  }
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr motion_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  std::list<PositionsStamped>::iterator it;
+  pcl::PointXYZ point;
+  for (it = gesture_entries_.begin(); it != gesture_entries_.end(); it++)
+  {
+    motion_cloud->points.push_back(
+        pcl::PointXYZ(it->second[id].getOrigin().x(), it->second[id].getOrigin().y(), it->second[id].getOrigin().z()));
+  }
+  motion_cloud->width = motion_cloud->points.size();
+  motion_cloud->height = 1;
+  motion_cloud->is_dense = true;
+
+  pca_[id].setInputCloud(motion_cloud);
+  ROS_DEBUG_STREAM(pca_[id].getEigenValues());
+  ROS_DEBUG_STREAM(pca_[id].getEigenVectors());
+
+
+  tf::Vector3 dir_eigen(pca_[id].getEigenVectors().coeff(0, 0), pca_[id].getEigenVectors().coeff(1, 0),
+                        pca_[id].getEigenVectors().coeff(2, 0));
+  dir_path.normalize();
+  dir_eigen.normalize();
+  double dot_value = dir_path.dot(dir_eigen);
+  if (dot_value < 0)
+    dir_eigen = -dir_eigen;
+  return dir_eigen;
+}
+
+tf::Vector3 SweepHandGestureDetector::getFilteredDirection(int id, const tf::Vector3& latest_vector)
+{
+  if(latest_vector.length2() == 0)
+  {
+    hand_moving_direction_filters_[id].clear();
+    return latest_vector;
+  }
+  hand_moving_direction_filters_[id].push_back(latest_vector);
+  if((int)hand_moving_direction_filters_[id].size() > filter_windows_size_)
+    hand_moving_direction_filters_[id].pop_front();
+  std::list<tf::Vector3>::iterator it = hand_moving_direction_filters_[id].begin();
+  tf::Vector3 tmp(0,0,0);
+  while(it != hand_moving_direction_filters_[id].end())
+  {
+    tmp += *it;
+    it++;
+  }
+
+  return (tmp * (1.0/hand_moving_direction_filters_[id].size())).normalized();
+}
 
 void SweepHandGestureDetector::addUI(QToolBox* tool_box)
 {
   QLabel* label1 = new QLabel("Window");
-  QLabel* label2 = new QLabel("Gap");
   spinbox_window_ = new QDoubleSpinBox;
-  spinbox_gap_ = new QDoubleSpinBox;
   spinbox_window_->setMinimum(0.01);
   spinbox_window_->setMaximum(10.0);
   spinbox_window_->setSingleStep(0.01);
+
+  spinbox_gap_ = new QDoubleSpinBox;
+  QLabel* label2 = new QLabel("Gap");
   spinbox_gap_->setMinimum(0.01);
   spinbox_gap_->setMaximum(10.0);
   spinbox_gap_->setSingleStep(0.01);
 
+  QLabel* label3 = new QLabel("Filter");
+  spinbox_filter_windows_size_ = new QSpinBox;
+  spinbox_filter_windows_size_->setMinimum(1);
+  spinbox_filter_windows_size_->setMaximum(50);
+  spinbox_filter_windows_size_->setSingleStep(1);
 
   QGridLayout* grid_layout = new QGridLayout;
   grid_layout->addWidget(label1, 0, 0);
   grid_layout->addWidget(spinbox_window_, 0, 1);
   grid_layout->addWidget(label2, 1, 0);
   grid_layout->addWidget(spinbox_gap_, 1, 1);
+  grid_layout->addWidget(label3, 2, 0);
+  grid_layout->addWidget(spinbox_filter_windows_size_, 2, 1);
 
   QWidget *item_widget = new QWidget;
   item_widget->setLayout(grid_layout);
@@ -364,6 +433,7 @@ void SweepHandGestureDetector::addUI(QToolBox* tool_box)
 
   connect(spinbox_window_, SIGNAL(valueChanged(double)), this, SLOT(onWindowTimeValueChanged(double)));
   connect(spinbox_gap_, SIGNAL(valueChanged(double)), this, SLOT(onGapTimeValueChanged(double)));
+  connect(spinbox_filter_windows_size_, SIGNAL(valueChanged(int)), this, SLOT(onFilterWindowSizeChanged(int)));
 }
 
 void SweepHandGestureDetector::onWindowTimeValueChanged(double d)
@@ -378,5 +448,14 @@ void SweepHandGestureDetector::onGapTimeValueChanged(double d)
   QMutexLocker lock(&mutex_);
   gesture_gap_.fromSec(d);
   gesture_entries_.clear();
+}
+
+void SweepHandGestureDetector::onFilterWindowSizeChanged(int d)
+{
+  QMutexLocker lock(&mutex_);
+  filter_windows_size_  = d;
+  gesture_entries_.clear();
+  hand_moving_direction_filters_[0].clear();
+  hand_moving_direction_filters_[1].clear();
 }
 

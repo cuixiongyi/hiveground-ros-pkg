@@ -74,6 +74,7 @@ protected:
   bool initialize(const std::string& param_server_prefix);
   void addMarker(const std::string& name,
                    geometry_msgs::Pose pose = geometry_msgs::Pose(),
+                   bool selectable = true,
                    double arrow_length = 0.1);
   std::string getMarkerName();
   void addMarkerAtEndEffector();
@@ -93,10 +94,17 @@ protected:
   visualization_msgs::Marker makeBox(visualization_msgs::InteractiveMarker &msg);
   visualization_msgs::Marker makeArrow(visualization_msgs::InteractiveMarker &msg, double arrow_length);
   visualization_msgs::InteractiveMarkerControl& makeArrowControl(visualization_msgs::InteractiveMarker &msg,
-                                                                 double arrow_length);
+                                                                   double arrow_length);
+  visualization_msgs::InteractiveMarkerControl& makeSelectableArrowControl(visualization_msgs::InteractiveMarker &msg,
+                                                                               double arrow_length);
+  void selectMarker(const std::string& name);
+  void deselectMarker(const std::string& name);
+  void selectOnlyOneMarker(const std::string& name);
+
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
                                                                      MenuEntryHandleMap& map, std::string name);
+
   void saveMarker();
   void loadMarker();
 
@@ -182,6 +190,7 @@ private:
   kinematics_msgs::GetKinematicSolverInfo::Response ik_solver_info_;
   int name_count_;
   std::map<std::string, InspectionPointItem*> markers_;
+  std::string selected_marker_;
   interactive_markers::MenuHandler::FeedbackCallback marker_callback_ptr_;
   MenuEntryMap menu_entry_maps_;
   MenuHandlerMap menu_handler_map_;
