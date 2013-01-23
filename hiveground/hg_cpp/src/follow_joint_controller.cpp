@@ -144,18 +144,28 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     positions_diff[i] = start_point.positions[i] - trajectory.points[0].positions[i];
     velocities_diff[i] = start_point.velocities[i] - trajectory.points[0].velocities[i];
     ROS_DEBUG("Joint %d diff: [p]:%f [v]:%f", i, positions_diff[i], velocities_diff[i]);
-    if(positions_diff[i] != 0)
+    if(positions_diff[i] != 0 || velocities_diff[i] != 0)
+    {
       different_start_position = true;
+    }
   }
 
-
-
-  if(different_start_position)
+  if(is_preempted_)
   {
-    //add current position to the trajectory
-    ROS_DEBUG("Trajectory did not start from current state");
-    trajectory.points.insert(trajectory.points.begin(), start_point);
+    preempted_point_.time_from_start.fromSec(0);
+    trajectory.points.insert(trajectory.points.begin(), preempted_point_);
+    is_preempted_ = false;
   }
+  else
+  {
+    if(different_start_position)
+    {
+      //add current position to the trajectory
+      ROS_DEBUG("Trajectory did not start from current state");
+      trajectory.points.insert(trajectory.points.begin(), start_point);
+    }
+  }
+
 
   std::vector<arm_navigation_msgs::JointLimits> limits;
   arm_navigation_msgs::JointLimits limit;
@@ -167,25 +177,18 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     limit.has_velocity_limits = 1;
     limit.max_velocity = joints_[i]->joint_info_->limits->velocity;
     limit.has_acceleration_limits = 1;
-    limit.max_acceleration = 1.0;
+    limit.max_acceleration = 4.0;
     limits.push_back(limit);
   }
 
   spline_smoother::SplineTrajectory spline_trajectory;
+  spline_smoother::CubicTrajectory trajectory_generator;
+  trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
 
-  if(trajectory.points.size() == 2)
-  {
-    spline_smoother::CubicParameterizedTrajectory trajectory_generator;
-    trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
-  }
-  else
-  {
-    spline_smoother::CubicTrajectory trajectory_generator;
-    trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
-  }
 
 
   ROS_DEBUG("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
+
 
   trajectory.points.clear();
   double time = 0;
@@ -217,6 +220,7 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     }
     time += spline_trajectory.segments[i].duration.toSec();
   }
+
   ROS_DEBUG("trajectory size %lu", trajectory.points.size());
 
 
@@ -235,10 +239,12 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     bool success = true;
     std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
     trajectory_msgs::JointTrajectoryPoint point;
+
     for (size_t i = 0; i < trajectory.points.size(); i++)
     {
-      point = trajectory.points[i];
       ros::Time end_time = trajectory_start_time + (point.time_from_start - skip_duration);
+
+      point = trajectory.points[i];
       it = joints_.begin();
       for (size_t k = 0; k < point.positions.size(); k++, it++)
       {
@@ -247,7 +253,7 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
 
       while ((ros::Time::now() < end_time) && (!action_server_->isPreemptRequested()))
       {
-        ros::Duration(0.001).sleep();
+        ros::Duration(0.0001).sleep();
       }
 
       if (action_server_->isPreemptRequested() || !ros::ok())
@@ -255,8 +261,11 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
         ROS_DEBUG_STREAM("Preempted!! @ point" << i << ":" << point);
         action_server_->setPreempted();
         success = false;
+        is_preempted_ = true;
+        preempted_point_ = point;
         break;
       }
+
     }
     is_active_ = false;
 
