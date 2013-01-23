@@ -381,6 +381,9 @@ void RC7MController::startSlaveMode(bool restart)
   long result = 0;
   BCAP_HRESULT hr;
 
+  hr = bcap_->ServiceStart();
+  ROS_ASSERT(!FAILED(hr));
+
   hr = bcap_->ControllerConnect("", "", "", "", &h_controller_);
   ROS_ASSERT(!FAILED(hr));
 
