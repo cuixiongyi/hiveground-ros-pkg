@@ -58,6 +58,7 @@ public:
    */
   Joint()
     : last_update_(ros::Time::now()),
+      last_position_(0),
       position_(0),
       velocity_(0),
       touched_(false),
@@ -151,7 +152,7 @@ public:
   hg::Controller* controller_;
   ros::Time last_update_;
 
-
+  double last_position_;
   double position_;
   double velocity_;
   bool touched_;

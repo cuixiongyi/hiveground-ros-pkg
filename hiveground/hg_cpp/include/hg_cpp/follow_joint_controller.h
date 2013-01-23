@@ -62,7 +62,10 @@ class FollowJointController : public hg::Controller
 {
 public:
   FollowJointController()
-    : hg::Controller(), apply_limits_(true)
+    : hg::Controller(),
+      apply_limits_(true),
+      is_preempted_(false)
+
   { }
   virtual ~FollowJointController()
   { }
@@ -105,6 +108,8 @@ protected:
   FollowJointTrajectoryActionServerPtr action_server_;
   control_msgs::FollowJointTrajectoryGoalConstPtr action_goal_;
   bool apply_limits_;
+  trajectory_msgs::JointTrajectoryPoint preempted_point_;
+  bool is_preempted_;
 };
 
 
