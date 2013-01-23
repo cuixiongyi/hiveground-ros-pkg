@@ -14,7 +14,6 @@
 
 #include "ros/assert.h"
 
-#include "std_msgs/Header.h"
 
 namespace hg_hand_interaction
 {
@@ -23,18 +22,33 @@ struct HandGesture_ {
   typedef HandGesture_<ContainerAllocator> Type;
 
   HandGesture_()
-  : header()
+  : type(0)
   {
   }
 
   HandGesture_(const ContainerAllocator& _alloc)
-  : header(_alloc)
+  : type(0)
   {
   }
 
-  typedef  ::std_msgs::Header_<ContainerAllocator>  _header_type;
-   ::std_msgs::Header_<ContainerAllocator>  header;
+  typedef int8_t _type_type;
+  int8_t type;
 
+  enum { NOT_DETECTED = 0 };
+  enum { SWEEP_UP_ONE_HAND = 1 };
+  enum { SWEEP_DOWN_ONE_HAND = 2 };
+  enum { SWEEP_LEFT_ONE_HAND = 3 };
+  enum { SWEEP_RIGHT_ONE_HAND = 4 };
+  enum { SWEEP_FORWARD_ONE_HAND = 5 };
+  enum { SWEEP_BACKWARD_ONE_HAND = 6 };
+  enum { SWEEP_UP_TWO_HAND = 7 };
+  enum { SWEEP_DOWN_TWO_HAND = 8 };
+  enum { SWEEP_LEFT_TWO_HAND = 9 };
+  enum { SWEEP_RIGHT_TWO_HAND = 10 };
+  enum { SWEEP_FORWARD_TWO_HAND = 11 };
+  enum { SWEEP_BACKWARD_TWO_HAND = 12 };
+  enum { SWEEP_OPEN_TWO_HAND = 13 };
+  enum { SWEEP_CLOSE_TWO_HAND = 14 };
 
   typedef boost::shared_ptr< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::hg_hand_interaction::HandGesture_<ContainerAllocator>  const> ConstPtr;
@@ -64,12 +78,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "d7be0bb39af8fb9129d5a76e6b63a290";
+    return "54924b3bfee069bfbfc09b1d80e2254d";
   }
 
   static const char* value(const  ::hg_hand_interaction::HandGesture_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xd7be0bb39af8fb91ULL;
-  static const uint64_t static_value2 = 0x29d5a76e6b63a290ULL;
+  static const uint64_t static_value1 = 0x54924b3bfee069bfULL;
+  static const uint64_t static_value2 = 0xbfc09b1d80e2254dULL;
 };
 
 template<class ContainerAllocator>
@@ -86,33 +100,31 @@ template<class ContainerAllocator>
 struct Definition< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "Header header\n\
-================================================================================\n\
-MSG: std_msgs/Header\n\
-# Standard metadata for higher-level stamped data types.\n\
-# This is generally used to communicate timestamped data \n\
-# in a particular coordinate frame.\n\
-# \n\
-# sequence ID: consecutively increasing ID \n\
-uint32 seq\n\
-#Two-integer timestamp that is expressed as:\n\
-# * stamp.secs: seconds (stamp_secs) since epoch\n\
-# * stamp.nsecs: nanoseconds since stamp_secs\n\
-# time-handling sugar is provided by the client library\n\
-time stamp\n\
-#Frame this data is associated with\n\
-# 0: no frame\n\
-# 1: global frame\n\
-string frame_id\n\
+    return "int8 type\n\
+#request constants\n\
+int8 NOT_DETECTED = 0\n\
+int8 SWEEP_UP_ONE_HAND = 1\n\
+int8 SWEEP_DOWN_ONE_HAND = 2\n\
+int8 SWEEP_LEFT_ONE_HAND = 3\n\
+int8 SWEEP_RIGHT_ONE_HAND = 4\n\
+int8 SWEEP_FORWARD_ONE_HAND = 5\n\
+int8 SWEEP_BACKWARD_ONE_HAND = 6\n\
 \n\
+int8 SWEEP_UP_TWO_HAND = 7\n\
+int8 SWEEP_DOWN_TWO_HAND = 8\n\
+int8 SWEEP_LEFT_TWO_HAND = 9\n\
+int8 SWEEP_RIGHT_TWO_HAND = 10\n\
+int8 SWEEP_FORWARD_TWO_HAND = 11\n\
+int8 SWEEP_BACKWARD_TWO_HAND = 12\n\
+int8 SWEEP_OPEN_TWO_HAND = 13\n\
+int8 SWEEP_CLOSE_TWO_HAND = 14\n\
 ";
   }
 
   static const char* value(const  ::hg_hand_interaction::HandGesture_<ContainerAllocator> &) { return value(); } 
 };
 
-template<class ContainerAllocator> struct HasHeader< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > : public TrueType {};
-template<class ContainerAllocator> struct HasHeader< const ::hg_hand_interaction::HandGesture_<ContainerAllocator> > : public TrueType {};
+template<class ContainerAllocator> struct IsFixedSize< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > : public TrueType {};
 } // namespace message_traits
 } // namespace ros
 
@@ -125,7 +137,7 @@ template<class ContainerAllocator> struct Serializer< ::hg_hand_interaction::Han
 {
   template<typename Stream, typename T> inline static void allInOne(Stream& stream, T m)
   {
-    stream.next(m.header);
+    stream.next(m.type);
   }
 
   ROS_DECLARE_ALLINONE_SERIALIZER;
@@ -143,9 +155,8 @@ struct Printer< ::hg_hand_interaction::HandGesture_<ContainerAllocator> >
 {
   template<typename Stream> static void stream(Stream& s, const std::string& indent, const  ::hg_hand_interaction::HandGesture_<ContainerAllocator> & v) 
   {
-    s << indent << "header: ";
-s << std::endl;
-    Printer< ::std_msgs::Header_<ContainerAllocator> >::stream(s, indent + "  ", v.header);
+    s << indent << "type: ";
+    Printer<int8_t>::stream(s, indent + "  ", v.type);
   }
 };
 

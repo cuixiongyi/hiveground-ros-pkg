@@ -47,6 +47,7 @@
 namespace hg_hand_interaction
 {
 
+/*
 enum Gesture
 {
   NOT_DETECTED = -1,
@@ -65,6 +66,7 @@ enum Gesture
   OPEN_TWO_HAND,
   CLOSE_TWO_HAND
 };
+*/
 
 class GestureDetector : public QObject
 {
@@ -83,7 +85,7 @@ public:
                               const std::string& frame_id = "base_link") = 0;
   virtual void drawResult(visualization_msgs::MarkerArray& marker_array,
                              const std::string& frame_id = "base_link") = 0;
-  virtual bool lookForGesture() = 0;
+  virtual int lookForGesture() = 0;
 
   virtual void addUI(QToolBox* tool_box) = 0;
 
@@ -93,7 +95,6 @@ protected:
   ros::Duration gesture_gap_;
   ros::Time last_detected_time_;
   std::list<PositionsStamped> gesture_entries_;
-  Gesture detected_gesture_;
   QMutex mutex_;
   QDoubleSpinBox* spinbox_window_;
   QDoubleSpinBox* spinbox_gap_;

@@ -226,13 +226,13 @@ void InspectorArm::followPointSlot()
   //ROS_INFO(__FUNCTION__);
   if(ui.checkBoxFollowPoint->isChecked())
   {
-    if(markers_.find(selected_marker_) != markers_.end())
+    if(markers_.find(selected_markers_.back()) != markers_.end())
     {
       control_msgs::FollowJointTrajectoryGoal goal;
       goal.trajectory.header.stamp = ros::Time::now();
       goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
       trajectory_msgs::JointTrajectoryPoint point;
-      point.positions = markers_[selected_marker_]->jointState().position;
+      point.positions = markers_[selected_markers_.back()]->jointState().position;
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
     }

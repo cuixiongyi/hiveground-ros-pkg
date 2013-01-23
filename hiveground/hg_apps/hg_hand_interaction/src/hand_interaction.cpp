@@ -79,7 +79,7 @@ bool HandInteraction::initialize()
 
 
   hands_subscriber_ = nh_private_.subscribe("hands_in", 1, &HandInteraction::handsCallBack, this);
-  hand_gesture_publisher_ = nh_private_.advertise<HandGesture>("hand_gesture", 128);
+  hand_gestures_publisher_ = nh_private_.advertise<HandGestures>("hand_gestures", 128);
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("gesture_history", 128);
   return true;
 }
@@ -89,16 +89,18 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
 {
   HandGestureDetector* hand_gesture_detector;
   MarkerArray marker_array;
+  HandGesture gesture;
+  HandGestures gestures;
+  gestures.header.stamp = message->header.stamp;
   for (size_t i = 0; i < gesture_detectors_.size(); i++)
   {
     hand_gesture_detector = dynamic_cast<HandGestureDetector*>(gesture_detectors_[i]);
     if(hand_gesture_detector)
     {
       hand_gesture_detector->addHandMessage(message);
-      if(hand_gesture_detector->lookForGesture())
-      {
-
-      }
+      gesture.type = hand_gesture_detector->lookForGesture();
+      if(gesture.type != HandGesture::NOT_DETECTED)
+        gestures.gestures.push_back(gesture);
     }
 
     if(ui.checkBoxShowHistory->isChecked())
@@ -112,13 +114,15 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
     }
   }
 
-
-  if((marker_array_publisher_.getNumSubscribers() != 0) && (marker_array.markers.size() != 0))
+  if((marker_array_publisher_.getNumSubscribers() != 0) && !marker_array.markers.empty())
   {
     marker_array_publisher_.publish(marker_array);
   }
 
-
+  if(hand_gestures_publisher_.getNumSubscribers() != 0 && !gestures.gestures.empty())
+  {
+    hand_gestures_publisher_.publish(gestures);
+  }
 }
 
 HandInteraction* g_hand_interaction = NULL;
