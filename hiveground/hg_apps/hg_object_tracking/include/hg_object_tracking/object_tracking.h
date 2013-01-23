@@ -61,6 +61,8 @@
 #include "ui_object_tracking.h"
 #include <hg_object_tracking/Hands.h>
 
+#define OBJECT_TRACKING_CLOUD_TYPE pcl::PointXYZ
+
 namespace hg_object_tracking
 {
 
@@ -86,19 +88,19 @@ protected:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& message);
 
 
-  void sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
-                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_planar,
-                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_objects);
-  void objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
-                             std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr >& out);
+  void sacSegmentation(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr in,
+                          pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr out_planar,
+                          pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr out_objects);
+  void objectSegmentation(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr in,
+                             std::vector<pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr >& out);
 
-  void detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds,
+  void detectHands(std::vector<pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr>& clustered_clouds,
                      hg_object_tracking::Hands& hands);
-  void detectFingers(pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_cloud,
+  void detectFingers(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr hand_cloud,
                        hg_object_tracking::Hand& hand);
 
-  void pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale = 0.1);
-  void pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale = 0.1);
+  void pushHandMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale = 0.1);
+  void pushEigenMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale = 0.1);
   void pushSimpleMarker(double x, double y, double z,
                            double r = 1.0, double g = 0.0, double b = 0.0);
 

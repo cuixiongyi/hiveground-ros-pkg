@@ -105,14 +105,14 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
   QMutexLocker lock(&mutex_cloud_);
   marker_array_.markers.clear();
   marker_id_ = 0;
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr cloud(new pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>);
   pcl::fromROSMsg(*message, *cloud);
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_planar(new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_objects(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr cloud_planar(new pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>);
+  pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr cloud_objects(new pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>);
   sacSegmentation(cloud, cloud_planar, cloud_objects);
 
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clustered_clouds;
+  std::vector<pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr> clustered_clouds;
   objectSegmentation(cloud_objects, clustered_clouds);
 
   //Detect hand
@@ -139,7 +139,7 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
     }
     else if(ui.radioButtonShowSegmentedCloud->isChecked())
     {
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr cloud(new pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>);
       for(int i = 0; i < (int)clustered_clouds.size(); i++)
       {
         *cloud += *clustered_clouds[i];
@@ -158,14 +158,14 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
   }
 }
 
-void ObjectTracking::sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
-                                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_planar,
-                                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_objects)
+void ObjectTracking::sacSegmentation(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr in,
+                                          pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr out_planar,
+                                          pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr out_objects)
 {
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
-  pcl::SACSegmentation<pcl::PointXYZRGB> sac_segmentator;
+  pcl::SACSegmentation<OBJECT_TRACKING_CLOUD_TYPE> sac_segmentator;
   sac_segmentator.setOptimizeCoefficients(true);
   sac_segmentator.setModelType(pcl::SACMODEL_PLANE);
   sac_segmentator.setMethodType(pcl::SAC_RANSAC);
@@ -184,7 +184,7 @@ void ObjectTracking::sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
     ROS_DEBUG("Indices size: %d", (int)inliers->indices.size ());
   }
 
-  pcl::ExtractIndices<pcl::PointXYZRGB> indices_extractor;
+  pcl::ExtractIndices<OBJECT_TRACKING_CLOUD_TYPE> indices_extractor;
   indices_extractor.setNegative(false);
   indices_extractor.setInputCloud(in);
   indices_extractor.setIndices(inliers);
@@ -194,15 +194,15 @@ void ObjectTracking::sacSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
   indices_extractor.filter(*out_objects);
 }
 
-void ObjectTracking::objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in,
-                                             std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& out)
+void ObjectTracking::objectSegmentation(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr in,
+                                             std::vector<pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr>& out)
 {
-  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+  pcl::search::KdTree<OBJECT_TRACKING_CLOUD_TYPE>::Ptr tree(new pcl::search::KdTree<OBJECT_TRACKING_CLOUD_TYPE>);
   tree->setInputCloud(in);
   std::vector<pcl::PointIndices> cluster_indices;
 
 
-  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec_extractor;
+  pcl::EuclideanClusterExtraction<OBJECT_TRACKING_CLOUD_TYPE> ec_extractor;
   ec_extractor.setClusterTolerance(ec_cluster_tolerance_);
   ec_extractor.setMinClusterSize(ec_min_cluster_size_);
   ec_extractor.setMaxClusterSize(ec_max_cluster_size_);
@@ -216,7 +216,7 @@ void ObjectTracking::objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr i
 
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
   {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr cloud_cluster(new pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>);
     for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); pit++)
     {
       cloud_cluster->points.push_back(in->points[*pit]);
@@ -228,11 +228,11 @@ void ObjectTracking::objectSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr i
   }
 }
 
-void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& clustered_clouds,
+void ObjectTracking::detectHands(std::vector<pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr>& clustered_clouds,
                                      hg_object_tracking::Hands& hands)
 {
   hands.hands.clear();
-  pcl::PCA<pcl::PointXYZRGB> pca;
+  pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE> pca;
   for(int i = 0; i < (int)clustered_clouds.size(); i++)
   {
     if((int)clustered_clouds[i]->size() < arm_min_cluster_size_) continue;
@@ -257,10 +257,10 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
     if(ui.checkBoxShowEigenVector->isChecked())
       pushEigenMarker(pca);
 
-    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    pcl::KdTreeFLANN<OBJECT_TRACKING_CLOUD_TYPE> kdtree;
     kdtree.setInputCloud(clustered_clouds[i]);
 
-    pcl::PointXYZRGB search_point;
+    OBJECT_TRACKING_CLOUD_TYPE search_point;
     Eigen::Matrix3f ev = pca.getEigenVectors();
     Eigen::Vector3f main_axis(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
     main_axis = ((-main_axis) * 0.3) + Eigen::Vector3f(mean.coeff(0), mean.coeff(1), mean.coeff(2));
@@ -279,14 +279,14 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
 
     if ( kdtree.nearestKSearch (search_point, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
     {
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr hand_cloud(new pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>);
       ROS_DEBUG_THROTTLE(1.0, "found %lu", pointIdxNKNSearch.size ());
       for (size_t j = 0; j < pointIdxNKNSearch.size (); ++j)
       {
         hand_cloud->points.push_back(clustered_clouds[i]->points[ pointIdxNKNSearch[j] ]);
-        clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].r = 255;
-        clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].g = 0;
-        clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].b = 0;
+        //clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].r = 255;
+        //clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].g = 0;
+        //clustered_clouds[i]->points[ pointIdxNKNSearch[j] ].b = 0;
       }
       hand_cloud->width = hand_cloud->points.size();
       hand_cloud->height = 1;
@@ -329,10 +329,10 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::
   }
 }
 
-void ObjectTracking::detectFingers(pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_cloud,
+void ObjectTracking::detectFingers(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr hand_cloud,
                                         hg_object_tracking::Hand& hand)
 {
-  pcl::PCA<pcl::PointXYZRGB> pca;
+  pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE> pca;
   pca.setInputCloud(hand_cloud);
   Eigen::Vector4f mean = pca.getMean();
   Eigen::Vector3f eigen_value = pca.getEigenValues();
@@ -374,7 +374,7 @@ void ObjectTracking::detectFingers(pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_c
 
 }
 
-void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale)
+void ObjectTracking::pushHandMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale)
 {
   Marker marker;
   marker.type = Marker::SPHERE;
@@ -399,7 +399,7 @@ void ObjectTracking::pushHandMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scal
   marker_array_.markers.push_back(marker);
 }
 
-void ObjectTracking::pushEigenMarker(pcl::PCA<pcl::PointXYZRGB>& pca, double scale)
+void ObjectTracking::pushEigenMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale)
 {
   Marker marker;
   marker.lifetime = ros::Duration(0.1);
