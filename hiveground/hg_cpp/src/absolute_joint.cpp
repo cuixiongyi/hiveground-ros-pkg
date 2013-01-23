@@ -205,18 +205,18 @@ double AbsoluteJoint::interpolateCubic(double dt)
 
 void AbsoluteJoint::setFeedbackData(double feedback)
 {
-  //save current position
-  double last_position = position_;
-
   //set new position from feedback data
   position_ = feedback;
 
   //compute joint velocity in unit/sec
   ros::Time t = ros::Time::now();
-  velocity_ = ((position_ - last_position) * 1.0e9) / (t - last_update_).toNSec();
-
-  //save last updated time
-  last_update_ = t;
+  if((t - last_update_).toSec() > 0.01)
+  {
+    velocity_ = (position_ - last_position_) / (t - last_update_).toSec();
+    //save last updated time
+    last_update_ = t;
+    last_position_ = position_;
+  }
 }
 
 double AbsoluteJoint::setPosition(double position)

@@ -248,9 +248,8 @@ void RC7MController::control()
         startTime = ros::Time(ros::WallTime::now().toSec());
         boost::unique_lock<boost::mutex> lock(control_mutex_);
         hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
-        if(FAILED(hr))
-          ROS_ERROR("slvMove error: 0%08x", hr);
         ROS_ASSERT(!FAILED(hr));
+
 
 
         ROS_DEBUG_THROTTLE(1.0, "a %f %f %f %f %f %f",
@@ -342,6 +341,10 @@ void RC7MController::shutdown()
 
     hr = bcap_->ControllerDisconnect(h_controller_);
     ROS_ASSERT(!FAILED(hr));
+
+    hr = bcap_->ServiceStop();
+    ROS_ASSERT(!FAILED(hr));
+
   }
 }
 

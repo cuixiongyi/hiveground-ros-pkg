@@ -10,7 +10,7 @@
   </xacro:macro>
   <xacro:property name="mesh_path" value="package://vp6242_description/robot" />
   <xacro:property name="mesh_scale" value="0.001 0.001 0.001" />
-  <xacro:property name="default_joint_velocity" value="1.0" />
+  <xacro:property name="default_joint_velocity" value="2.0" />
 
   <link name="base_link">
     <visual>
