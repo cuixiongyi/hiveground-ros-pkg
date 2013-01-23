@@ -251,16 +251,30 @@ void RC7MController::control()
         if(FAILED(hr))
           ROS_ERROR("slvMove error: 0%08x", hr);
         ROS_ASSERT(!FAILED(hr));
+
+
+        ROS_DEBUG_THROTTLE(1.0, "a %f %f %f %f %f %f",
+                          command_degree[0], command_degree[1], command_degree[2],
+                          command_degree[3], command_degree[4], command_degree[5]);
+        ROS_DEBUG_THROTTLE(1.0, "b %f %f %f %f %f %f",
+                          command_result[0], command_result[1], command_result[2],
+                          command_result[3], command_result[4], command_result[5]);
+      }
+      else
+      {
+        getJointFeedback(joint_angle);
       }
 
-      getJointFeedback(joint_angle);
       //update joint information
       int i = 0;
       double radian = 0;
       for (it = joints_.begin(); it != joints_.end(); it++)
       {
         //convert to radian
-        radian = (joint_angle[i] * M_PI) / 180.0;
+        if (motor_on_)
+          radian = (command_result[i] * M_PI) / 180.0;
+        else
+          radian = (joint_angle[i] * M_PI) / 180.0;
         if (!motor_on_)
         {
           //prevent the arm to abruptly move back to a position before turning off the motor
