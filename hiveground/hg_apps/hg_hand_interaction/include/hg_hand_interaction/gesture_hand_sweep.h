@@ -38,7 +38,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/pca.h>
-
+#include <hg_hand_interaction/HandGestures.h>
 
 namespace hg_hand_interaction
 {
@@ -58,7 +58,7 @@ public:
   void drawResult(visualization_msgs::MarkerArray& marker_array,
                     const std::string& frame_id = "base_link");
   void addHandMessage(const hg_object_tracking::HandsConstPtr message);
-  bool lookForGesture();
+  int lookForGesture();
 
   void addUI(QToolBox* tool_box);
 
@@ -67,7 +67,7 @@ protected Q_SLOTS:
   void onGapTimeValueChanged(double d);
   void onFilterWindowSizeChanged(int d);
 
-  Gesture detectOneHandGesture(int id);
+  int detectOneHandGesture(int id);
   bool detectTwoHandGesture();
   tf::Vector3 getHandMovingDirection(int id);
   tf::Vector3 getFilteredDirection(int id, const tf::Vector3& latest_vector);

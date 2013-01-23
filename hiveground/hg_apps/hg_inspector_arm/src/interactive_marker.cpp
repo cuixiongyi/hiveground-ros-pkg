@@ -34,6 +34,7 @@
 #include <hg_inspector_arm/inspector_arm.h>
 #include <hg_inspector_arm/inspection_point.h>
 #include <qfile.h>
+#include <algorithm>
 
 using namespace visualization_msgs;
 using namespace interactive_markers;
@@ -434,8 +435,8 @@ void InspectorArm::selectMarker(const std::string& name)
     ROS_ERROR_STREAM("Cannot erase " << name);
     return;
   }
-  selected_marker_ = name;
   addMarker(name, markers_[name]->pose(), false);
+  selected_markers_.push_back(name);
 }
 
 void InspectorArm::deselectMarker(const std::string& name)
@@ -446,18 +447,19 @@ void InspectorArm::deselectMarker(const std::string& name)
     return;
   }
   addMarker(name, markers_[name]->pose());
+  selected_markers_.remove(name);
 }
 
 void InspectorArm::selectOnlyOneMarker(const std::string& name)
 {
-  selectMarker(name);
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   while (it != markers_.end())
   {
-    if (it->first != name)
+    if (std::find(selected_markers_.begin(), selected_markers_.end(), it->first) != selected_markers_.end())
       deselectMarker(it->first);
     it++;
   }
+  selectMarker(name);
 }
 
 void InspectorArm::makeMenu()

@@ -3,5 +3,7 @@
   (:export
    "<HANDGESTURE>"
    "HANDGESTURE"
+   "<HANDGESTURES>"
+   "HANDGESTURES"
   ))
 
