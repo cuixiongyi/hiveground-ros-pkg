@@ -31,18 +31,62 @@
  * Author: Mahisorn Wongphati
  */
 
+#ifndef GESTURE_HAND_SWEEP_H_
+#define GESTURE_HAND_SWEEP_H_
+
 #include <hg_hand_interaction/gesture.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/common/pca.h>
 
 
-using namespace visualization_msgs;
-using namespace hg_hand_interaction;
-
-GestureDetector::GestureDetector(ros::NodeHandle& nh_private)
-    : nh_private_(nh_private)
+namespace hg_hand_interaction
 {
+
+class SweepHandGestureDetector : public HandGestureDetector
+{
+  Q_OBJECT
+  static const double DIRECTION_EPSILON = (1-0.866025404);
+
+public:
+  SweepHandGestureDetector(ros::NodeHandle& nh_private);
+  virtual ~SweepHandGestureDetector() { }
+
+  bool initialize();
+  void drawHistory(visualization_msgs::MarkerArray& marker_array,
+                     const std::string& frame_id = "base_link");
+  void drawResult(visualization_msgs::MarkerArray& marker_array,
+                    const std::string& frame_id = "base_link");
+  void addHandMessage(const hg_object_tracking::HandsConstPtr message);
+  bool lookForGesture();
+
+  void addUI(QToolBox* tool_box);
+
+protected Q_SLOTS:
+  void onWindowTimeValueChanged(double d);
+  void onGapTimeValueChanged(double d);
+  void onFilterWindowSizeChanged(int d);
+
+  Gesture detectOneHandGesture(int id);
+  bool detectTwoHandGesture();
+  tf::Vector3 getHandMovingDirection(int id);
+  tf::Vector3 getFilteredDirection(int id, const tf::Vector3& latest_vector);
+
+protected:
+  int last_hand_count_;
+  pcl::PCA<pcl::PointXYZ> pca_[2];
+  bool direction_updated_[2];
+  tf::Vector3 hand_moving_direction_[2];
+  std::vector<std::list<tf::Vector3> > hand_moving_direction_filters_;
+  int filter_windows_size_;
+  tf::Vector3 three_axes[3];
+
+
+  QSpinBox* spinbox_filter_windows_size_;
+};
 
 }
 
 
 
-
+#endif /* GESTURE_HAND_SWEEP_H_ */

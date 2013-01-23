@@ -27,6 +27,22 @@
      <string>Show history</string>
     </property>
     <property name="checked">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="checkBoxShowResults">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>130</y>
+      <width>111</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Show results</string>
+    </property>
+    <property name="checked">
      <bool>true</bool>
     </property>
    </widget>
@@ -64,7 +80,7 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>243</width>
+          <width>73</width>
           <height>479</height>
          </rect>
         </property>
