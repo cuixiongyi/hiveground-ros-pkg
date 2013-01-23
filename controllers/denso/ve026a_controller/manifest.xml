@@ -1,0 +1,21 @@
+<package>
+  <description brief="ve026a_controller">
+
+     ve026a_controller
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ve026a_controller</url>
+  <depend package="roscpp"/>
+  <depend package="hg_cpp"/>
+  <depend package="pluginlib"/>
+  <depend package="bcap"/>  
+  
+  <export>
+  	<hg_cpp plugin="${prefix}/ve026a_plugins.xml" />	
+  </export>
+</package>
+
+

@@ -1,0 +1,8 @@
+<launch>  
+  <node pkg="hg_interactive_marker" type="inspection_point_marker_server" name="inspection_point_marker_server" output="screen">
+    <param name="base_link" value="base_link" />    
+    <param name="world_frame" value="base_link" />    
+    <remap from="get_ik_solver_info" to="vp6242_manipulator_kinematics/get_ik_solver_info"/>
+    <remap from="get_ik" to="vp6242_manipulator_kinematics/get_ik"/>  	  	
+  </node>
+</launch>
