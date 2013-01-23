@@ -212,17 +212,21 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       }
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
-      if(checkIK(feedback))
       {
-        tf::Transform tf_old, tf_new;
-        tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
-        tf::poseMsgToTF(feedback->pose, tf_new);
-        if(tf_old == tf_new)
-          return;
-        markers_[feedback->marker_name]->setPose(feedback->pose);
-        Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
-        Q_EMIT followPointSignal();
-        markers_touched_ = true;
+        sensor_msgs::JointState joint_state;
+        if(checkIK(feedback->pose, joint_state))
+        {
+          tf::Transform tf_old, tf_new;
+          tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
+          tf::poseMsgToTF(feedback->pose, tf_new);
+          if(tf_old == tf_new)
+            return;
+          markers_[feedback->marker_name]->setPose(feedback->pose);
+          markers_[feedback->marker_name]->setJointState(joint_state);
+          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+          Q_EMIT followPointSignal();
+          markers_touched_ = true;
+        }
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
@@ -302,27 +306,30 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
   }
 }
 
-bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+bool InspectorArm::checkIK(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_values)
 {
-  ROS_DEBUG_STREAM("check IK: " << feedback->pose);
+  tf::Transform tf;
+  tf::poseMsgToTF(pose, tf);
+  return checkIK(tf, joint_values);
+}
 
+bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& joint_state)
+{
+  QMutexLocker lock(&mutex_joint_state_);
   kinematics_msgs::GetPositionIK::Request gpik_req;
   kinematics_msgs::GetPositionIK::Response gpik_res;
   gpik_req.timeout = ros::Duration(5.0);
   gpik_req.ik_request.ik_link_name = ik_solver_info_.kinematic_solver_info.link_names[0];
   gpik_req.ik_request.pose_stamped.header.frame_id = base_link_;
 
-  geometry_msgs::Pose transformed_pose;
-  if(world_frame_ != base_link_)
+  if (world_frame_ != base_link_)
   {
     tf::StampedTransform transform;
     try
     {
       listener_.lookupTransform(world_frame_, base_link_, ros::Time(0), transform);
-      tf::Transform tf;
-      tf::poseMsgToTF(feedback->pose, tf);
-      tf = transform * tf;
-      tf::poseTFToMsg(tf, transformed_pose);
+      tf::Transform tf = transform * pose;
+      tf::poseTFToMsg(tf, gpik_req.ik_request.pose_stamped.pose);
     }
     catch (const tf::TransformException& ex)
     {
@@ -331,43 +338,29 @@ bool InspectorArm::checkIK(const visualization_msgs::InteractiveMarkerFeedbackCo
   }
   else
   {
-    transformed_pose = feedback->pose;
+    tf::poseTFToMsg(pose, gpik_req.ik_request.pose_stamped.pose);
   }
 
-  gpik_req.ik_request.pose_stamped.pose = transformed_pose;
+  gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
 
-  gpik_req.ik_request.ik_seed_state.joint_state.position.resize(ik_solver_info_.kinematic_solver_info.joint_names.size());
-  gpik_req.ik_request.ik_seed_state.joint_state.name = ik_solver_info_.kinematic_solver_info.joint_names;
-
-  for(unsigned int i=0; i< ik_solver_info_.kinematic_solver_info.joint_names.size(); i++)
+  if (ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
   {
-    gpik_req.ik_request.ik_seed_state.joint_state.position[i] =
-        (ik_solver_info_.kinematic_solver_info.limits[i].min_position +
-            ik_solver_info_.kinematic_solver_info.limits[i].max_position) / 2.0;
-  }
-
-  if(ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
-  {
-    if(gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
+    if (gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
     {
-      markers_[feedback->marker_name]->setJointState(gpik_res.solution.joint_state);
-      for(unsigned int i=0; i < gpik_res.solution.joint_state.name.size(); i ++)
-        ROS_DEBUG("Joint: %s %f",gpik_res.solution.joint_state.name[i].c_str(),gpik_res.solution.joint_state.position[i]);
-
+      joint_state = gpik_res.solution.joint_state;
     }
     else
     {
-      ROS_ERROR("Inverse kinematics failed");
+      ROS_WARN_THROTTLE(1.0, "Inverse kinematics failed");
       return false;
     }
   }
   else
   {
-    ROS_ERROR("Inverse kinematics service call failed");
+    ROS_WARN_THROTTLE(1.0, "Inverse kinematics service call failed");
     return false;
   }
   return true;
-
 }
 
 Marker InspectorArm::makeBox( InteractiveMarker &msg )

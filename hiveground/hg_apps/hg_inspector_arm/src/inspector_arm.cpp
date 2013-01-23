@@ -37,18 +37,21 @@
 
 #include <ros/ros.h>
 
-
-#include <boost/thread.hpp>
+#include <pcl/common/pca.h>
+#include <Eigen/StdVector>
 
 
 #include <hg_inspector_arm/inspector_arm.h>
+
+using namespace visualization_msgs;
 
 
 InspectorArm::InspectorArm(QWidget *parent, Qt::WFlags flags)
   : QMainWindow(parent, flags),
     quit_thread_(false),
     nh_(), nh_private_("~"),
-    marker_server_("inspection_point_marker")
+    marker_server_("inspection_point_marker"),
+    arm_is_active_(false)
 {
   ui.setupUi(this);
 }
@@ -94,25 +97,69 @@ bool InspectorArm::initializeServiceClient()
 {
   robot_state_ = NULL;
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
+  hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
 
+
+  marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
 
 //  ros::service::waitForService("plan_cartesian_path");
 //  hg_cartesian_trajectory_client_ =
 //      nh_.serviceClient<hg_cartesian_trajectory::HgCartesianTrajectory>("plan_cartesian_path");
+
+  marker_array_publisher_timer_ = new QTimer();
+  marker_array_publisher_timer_->start(100);
+  connect(marker_array_publisher_timer_, SIGNAL(timeout()), this, SLOT(onMarkerArrayPublisherTimer()));
+
   return true;
 }
 
 void InspectorArm::jointStateCallback(const sensor_msgs::JointStateConstPtr& message)
 {
-  joint_state_mutex_.lock();
+  QMutexLocker lock(&mutex_joint_state_);
   latest_joint_state_ = *message;
-  joint_state_mutex_.unlock();
+
 }
 
 void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                                const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
   ROS_INFO("trajectory done");
+  arm_is_active_ = false;
+}
+
+void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message)
+{
+  if(message->hands.empty()) return;
+  tf::Transform hand_left;
+  tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
+  tf::StampedTransform end_effector;
+  listener_.lookupTransform(world_frame_,
+                              "link2",
+                              ros::Time(0), end_effector);
+  tf::Vector3 ee_to_hand = hand_left.getOrigin() - end_effector.getOrigin();
+  Eigen::Vector3f v(ee_to_hand.x(), ee_to_hand.y(), ee_to_hand.z());
+  Eigen::Quaternionf q;
+  q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), v.normalized());
+  tf::Transform new_ee_pose;
+
+
+  new_ee_pose.setOrigin((ee_to_hand.normalize() * -0.2) + hand_left.getOrigin());
+  new_ee_pose.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
+  sensor_msgs::JointState joint_state;
+  if(checkIK(new_ee_pose, joint_state))
+  {
+    if(ui.checkBoxFollowHand->isChecked())
+    {
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory.header.stamp = ros::Time::now();
+      goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+      trajectory_msgs::JointTrajectoryPoint point;
+      point.positions = joint_state.position;
+      goal.trajectory.points.push_back(point);
+      action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+      arm_is_active_ = true;
+    }
+  }
 }
 
 void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
@@ -125,7 +172,6 @@ void InspectorArm::on_pushButtonPlan_clicked()
   if(markers_.size() == 0)
     return;
 
-  //on_pushButtonPlan_clicked();
   control_msgs::FollowJointTrajectoryGoal goal;
   goal.trajectory.header.stamp = ros::Time::now();
   goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
@@ -140,36 +186,6 @@ void InspectorArm::on_pushButtonPlan_clicked()
   }
 
   action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
-
-#if 0
-  hg_cartesian_trajectory::HgCartesianTrajectoryRequest request;
-  hg_cartesian_trajectory::HgCartesianTrajectoryResponse respond;
-  request.header.frame_id = "/base_link";
-  request.header.stamp = ros::Time::now();
-  request.motion_plan_request.group_name = "manipulator";
-  joint_state_mutex_.lock();
-  request.motion_plan_request.start_state.joint_state = latest_joint_state_;
-  joint_state_mutex_.unlock();
-  request.poses.clear();
-  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
-  while(it != markers_.end())
-  {
-    request.poses.push_back(it->second->pose());
-    it++;
-  }
-
-  if(!hg_cartesian_trajectory_client_.call(request, respond))
-  {
-    ROS_ERROR("error when calling calling plan_cartesian_path: error code %d", respond.error_code.val);
-  }
-  else
-  {
-    control_msgs::FollowJointTrajectoryGoal goal;
-    goal.trajectory = respond.trajectory.joint_trajectory;
-    action_client_map_[request.motion_plan_request.group_name]->sendGoal(goal,
-                                                                         boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
-  }
-#endif
 }
 
 void InspectorArm::on_actionAddMarker_triggered()
@@ -236,6 +252,15 @@ void InspectorArm::followPointSlot()
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
     }
+  }
+}
+
+void InspectorArm::onMarkerArrayPublisherTimer()
+{
+  QMutexLocker lock(&mutex_marker_array_);
+  if(marker_array_publisher_.getNumSubscribers() != 0 && marker_array_.markers.size() != 0)
+  {
+    marker_array_publisher_.publish(marker_array_);
   }
 }
 

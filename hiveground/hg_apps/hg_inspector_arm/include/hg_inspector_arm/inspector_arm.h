@@ -36,6 +36,8 @@
 
 
 #include <qmainwindow.h>
+#include <qmutex.h>
+#include <qtimer.h>
 #include "ui_inspector_arm.h"
 
 #include <ros/ros.h>
@@ -46,11 +48,14 @@
 #include <tf/transform_listener.h>
 #include <tf/tf.h>
 #include <planning_models/kinematic_state.h>
+#include <visualization_msgs/MarkerArray.h>
 
 
 #include <hg_inspector_arm/inspection_point.h>
 #include <hg_cartesian_trajectory/planning_base.h>
 #include <hg_cartesian_trajectory/HgCartesianTrajectory.h>
+
+#include <hg_object_tracking/Hands.h>
 
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
@@ -89,10 +94,12 @@ protected:
 
   //Interactive marker
   void processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
-  bool checkIK(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+  bool checkIK(const tf::Transform& pose, sensor_msgs::JointState& joint_values);
+  bool checkIK(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_values);
 
   visualization_msgs::Marker makeBox(visualization_msgs::InteractiveMarker &msg);
   visualization_msgs::Marker makeArrow(visualization_msgs::InteractiveMarker &msg, double arrow_length);
+
   visualization_msgs::InteractiveMarkerControl& makeArrowControl(visualization_msgs::InteractiveMarker &msg,
                                                                    double arrow_length);
   visualization_msgs::InteractiveMarkerControl& makeSelectableArrowControl(visualization_msgs::InteractiveMarker &msg,
@@ -117,6 +124,7 @@ protected:
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
+  void handsCallBack(const hg_object_tracking::HandsConstPtr message);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
@@ -151,6 +159,9 @@ private Q_SLOTS:
 
   //Follow point
   void followPointSlot();
+
+  //Marker
+  void onMarkerArrayPublisherTimer();
 
 
 protected:
@@ -208,11 +219,24 @@ private:
   planning_models::KinematicState* robot_state_;
   ros::Subscriber joint_state_subscriber_;
   sensor_msgs::JointState latest_joint_state_;
-  boost::mutex joint_state_mutex_;
+  QMutex mutex_joint_state_;
 
   typedef boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> > FollowJointTrajectoryClientPtr;
   std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceClient hg_cartesian_trajectory_client_;
+  bool arm_is_active_;
+
+
+  //gesture
+  ros::Subscriber hands_subscriber_;
+
+
+  //Marker
+  QTimer* marker_array_publisher_timer_;
+  QMutex mutex_marker_array_;
+  ros::Publisher marker_array_publisher_;
+  visualization_msgs::MarkerArray marker_array_;
+
 };
 
 
