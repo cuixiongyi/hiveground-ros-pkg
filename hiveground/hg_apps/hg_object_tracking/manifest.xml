@@ -9,8 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/hg_object_tracking</url>
   <depend package="roscpp"/>
-  <depend package="rospy"/>
-  <depend package="hg_inspector_arm"/>
+  <depend package="rospy"/>  
   <depend package="tf"/>
   <depend package="pcl_ros"/>
   <depend package="opencv2"/>
