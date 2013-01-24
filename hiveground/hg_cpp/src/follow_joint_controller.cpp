@@ -152,6 +152,7 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     }
   }
 
+
   if(is_preempted_)
   {
     preempted_point_.time_from_start.fromSec(0);
