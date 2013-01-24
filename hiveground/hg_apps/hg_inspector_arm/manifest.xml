@@ -1,0 +1,24 @@
+<package>
+  <description brief="hg_inspector_arm">
+
+     hg_inspector_arm
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg_inspector_arm</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>  
+  <depend package="hg_cpp"/>
+  <depend package="interactive_markers"/>
+  <depend package="hg_cartesian_trajectory"/>
+  <depend package="hg_hand_interaction"/>
+  
+  <export>  
+  	<cpp cflags="-I${prefix}/include -I${prefix}/qtpropertybrowser/src" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>  	
+  </export>
+
+</package>
+
+

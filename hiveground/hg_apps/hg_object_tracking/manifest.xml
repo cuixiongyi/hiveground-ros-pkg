@@ -1,0 +1,25 @@
+<package>
+  <description brief="hg_object_tracking">
+
+     hg_object_tracking
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg_object_tracking</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>  
+  <depend package="tf"/>
+  <depend package="pcl_ros"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+  <depend package="sensor_msgs"/>
+  <depend package="message_filters"/>
+  <depend package="dynamic_reconfigure"/>
+  <depend package="image_transport"/>
+  <depend package="std_srvs"/>
+  <depend package="std_msgs"/>
+</package>
+
+
