@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='ASCII'?>
+<launch>
+  <include file="$(find vp6242_arm_navigation)/launch/vp6242_planning_environment.launch"/>
+  <node pkg="arm_kinematics_constraint_aware" type="arm_kinematics_constraint_aware" name="vp6242_manipulator_kinematics">
+    <param name="group" type="string" value="manipulator"/>
+    <param name="manipulator/root_name" type="string" value="base_link"/>
+    <param name="manipulator/tip_name" type="string" value="link5"/>
+    <param name="kinematics_solver" type="string" value="vp6242_manipulator_kinematics/IKFastKinematicsPlugin"/>
+    <!--param name="use_plugin_fk" type="bool" value="true" /-->
+    <!--param name="kinematics_solver" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin"/-->
+  </node>
+</launch>
