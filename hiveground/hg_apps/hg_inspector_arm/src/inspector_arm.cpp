@@ -48,8 +48,8 @@ using namespace visualization_msgs;
 
 InspectorArm::InspectorArm(QWidget *parent, Qt::WFlags flags)
   : QMainWindow(parent, flags),
+    PlanningBase(),
     quit_thread_(false),
-    nh_(), nh_private_("~"),
     marker_server_("inspection_point_marker"),
     arm_is_active_(false)
 {
@@ -117,7 +117,6 @@ void InspectorArm::jointStateCallback(const sensor_msgs::JointStateConstPtr& mes
 {
   QMutexLocker lock(&mutex_joint_state_);
   latest_joint_state_ = *message;
-
 }
 
 void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
@@ -132,18 +131,18 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
   if(message->hands.empty()) return;
   tf::Transform hand_left;
   tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
-  tf::StampedTransform end_effector;
+  tf::StampedTransform origin;
   listener_.lookupTransform(world_frame_,
                               "link2",
-                              ros::Time(0), end_effector);
-  tf::Vector3 ee_to_hand = hand_left.getOrigin() - end_effector.getOrigin();
-  Eigen::Vector3f v(ee_to_hand.x(), ee_to_hand.y(), ee_to_hand.z());
+                              ros::Time(0), origin);
+  tf::Vector3 origin_to_hand = hand_left.getOrigin() - origin.getOrigin();
+  Eigen::Vector3f v(origin_to_hand.x(), origin_to_hand.y(), origin_to_hand.z());
   Eigen::Quaternionf q;
   q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), v.normalized());
   tf::Transform new_ee_pose;
 
 
-  new_ee_pose.setOrigin((ee_to_hand.normalize() * -0.2) + hand_left.getOrigin());
+  new_ee_pose.setOrigin((origin_to_hand.normalize() * -0.2) + hand_left.getOrigin());
   new_ee_pose.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
   sensor_msgs::JointState joint_state;
   if(checkIK(new_ee_pose, joint_state))

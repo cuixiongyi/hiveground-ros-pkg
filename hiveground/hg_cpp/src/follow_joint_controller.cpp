@@ -35,7 +35,9 @@
 #include <hg_cpp/joint.h>
 #include <hg_cpp/controller_node.h>
 #include <spline_smoother/SplineTrajectory.h>
-#include <spline_smoother/cubic_parameterized_trajectory.h>
+//#include <spline_smoother/cubic_parameterized_trajectory.h>
+#include <hg_cpp/cubic_trajectory.h>
+
 
 using namespace hg;
 
@@ -182,7 +184,8 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
   }
 
   spline_smoother::SplineTrajectory spline_trajectory;
-  spline_smoother::CubicTrajectory trajectory_generator;
+  //spline_smoother::CubicParameterizedTrajectory trajectory_generator;
+  hg_cpp::CubicTrajectory trajectory_generator;
   trajectory_generator.parameterize(trajectory, limits, spline_trajectory);
 
 

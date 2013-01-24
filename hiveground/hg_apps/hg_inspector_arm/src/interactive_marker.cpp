@@ -166,6 +166,10 @@ void InspectorArm::addMarkerAtEndEffector()
   addMarker(name, pose);
   InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
   item->setName(name.c_str());
+  mutex_joint_state_.lock();
+  item->setJointState(latest_joint_state_);
+  mutex_joint_state_.unlock();
+
   markers_[item->name().toStdString()] = item;
   selectOnlyOneMarker(name);
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
@@ -214,7 +218,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
         sensor_msgs::JointState joint_state;
-        if(checkIK(feedback->pose, joint_state))
+        if(checkIKConstraintAware(feedback->pose, joint_state))
         {
           tf::Transform tf_old, tf_new;
           tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
@@ -306,19 +310,18 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
   }
 }
 
-bool InspectorArm::checkIK(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_values)
+bool InspectorArm::checkIK(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_state)
 {
   tf::Transform tf;
   tf::poseMsgToTF(pose, tf);
-  return checkIK(tf, joint_values);
+  return checkIK(tf, joint_state);
 }
 
 bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& joint_state)
 {
-  QMutexLocker lock(&mutex_joint_state_);
   kinematics_msgs::GetPositionIK::Request gpik_req;
   kinematics_msgs::GetPositionIK::Response gpik_res;
-  gpik_req.timeout = ros::Duration(5.0);
+  gpik_req.timeout = ros::Duration(0.2);
   gpik_req.ik_request.ik_link_name = ik_solver_info_.kinematic_solver_info.link_names[0];
   gpik_req.ik_request.pose_stamped.header.frame_id = base_link_;
 
@@ -341,13 +344,76 @@ bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& j
     tf::poseTFToMsg(pose, gpik_req.ik_request.pose_stamped.pose);
   }
 
+  QMutexLocker lock(&mutex_joint_state_);
   gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  gpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
 
   if (ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
   {
     if (gpik_res.error_code.val == gpik_res.error_code.SUCCESS)
     {
       joint_state = gpik_res.solution.joint_state;
+    }
+    else
+    {
+      ROS_WARN_THROTTLE(1.0, "Inverse kinematics failed");
+      return false;
+    }
+  }
+  else
+  {
+    ROS_WARN_THROTTLE(1.0, "Inverse kinematics service call failed");
+    return false;
+  }
+  return true;
+}
+
+bool InspectorArm::checkIKConstraintAware(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_state)
+{
+  tf::Transform tf;
+  tf::poseMsgToTF(pose, tf);
+  return checkIKConstraintAware(tf, joint_state);
+}
+
+bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs::JointState& joint_state)
+{
+  kinematics_msgs::PositionIKRequest ik_request;
+  ik_request.ik_link_name = ik_solver_info_.kinematic_solver_info.link_names[0];
+  ik_request.pose_stamped.header.frame_id =   base_link_;
+  ik_request.pose_stamped.header.stamp = ros::Time::now();
+  if (world_frame_ != base_link_)
+    {
+      tf::StampedTransform transform;
+      try
+      {
+        listener_.lookupTransform(world_frame_, base_link_, ros::Time(0), transform);
+        tf::Transform tf = transform * pose;
+        tf::poseTFToMsg(tf, ik_request.pose_stamped.pose);
+      }
+      catch (const tf::TransformException& ex)
+      {
+        ROS_ERROR("%s", ex.what());
+      }
+    }
+    else
+    {
+      tf::poseTFToMsg(pose, ik_request.pose_stamped.pose);
+    }
+
+  QMutexLocker lock(&mutex_joint_state_);
+  ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  ik_request.robot_state = ik_request.ik_seed_state;
+
+  kinematics_msgs::GetConstraintAwarePositionIK::Request ik_req;
+  kinematics_msgs::GetConstraintAwarePositionIK::Response ik_res;
+  ik_req.ik_request = ik_request;
+  ik_req.timeout = ros::Duration(0.2);
+
+  if (ik_client_map_["manipulator"].call(ik_req, ik_res))
+  {
+    if (ik_res.error_code.val == ik_res.error_code.SUCCESS)
+    {
+      joint_state = ik_res.solution.joint_state;
     }
     else
     {

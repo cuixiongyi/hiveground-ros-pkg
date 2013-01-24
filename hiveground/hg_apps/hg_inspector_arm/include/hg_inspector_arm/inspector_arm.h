@@ -94,8 +94,10 @@ protected:
 
   //Interactive marker
   void processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
-  bool checkIK(const tf::Transform& pose, sensor_msgs::JointState& joint_values);
-  bool checkIK(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_values);
+  bool checkIK(const tf::Transform& pose, sensor_msgs::JointState& joint_state);
+  bool checkIK(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_state);
+  bool checkIKConstraintAware(const tf::Transform& pose, sensor_msgs::JointState& joint_state);
+  bool checkIKConstraintAware(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_state);
 
   visualization_msgs::Marker makeBox(visualization_msgs::InteractiveMarker &msg);
   visualization_msgs::Marker makeArrow(visualization_msgs::InteractiveMarker &msg, double arrow_length);
@@ -172,7 +174,6 @@ public:
 
 private:
   Ui::InspectorArm ui;
-  ros::NodeHandle nh_, nh_private_;
 
   //property editor
   QtTreePropertyBrowser *property_editor_;
