@@ -347,7 +347,7 @@ bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& j
   mutex_joint_state_.lock();
   gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
   mutex_joint_state_.unlock();
-  gpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
+  fgpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
 
   if (ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
   {
