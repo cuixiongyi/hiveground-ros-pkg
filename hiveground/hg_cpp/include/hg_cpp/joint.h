@@ -100,11 +100,6 @@ public:
   virtual double interpolate(double dt) = 0;
 
   /**
-   * Interpolate joint position after dt with cubic spline.
-   */
-  virtual double interpolateCubic(double dt) = 0;
-
-  /**
    * Set feedback data from sensor (encoder, camera, ...).
    */
   virtual void setFeedbackData(double feedback) = 0;
@@ -113,11 +108,6 @@ public:
    * Set joint position.
    */
   virtual double setPosition(double position) = 0;
-
-  /**
-   * Set joint position with final time.
-   */
-  virtual double setPosition(double position, double final_time) = 0;
 
   /**
    * Set relative joint position.
@@ -136,15 +126,6 @@ public:
     return message;
   }
 
-  static void solveCubicSpline(const double &q0,
-                                   const double &q1,
-                                   const double &v0,
-                                   const double &v1,
-                                   const double &dt,
-                                   std::vector<double> &coefficients);
-
-
-
   hg::ControllerNode* node_;
   std::string name_;
   boost::recursive_mutex mutex_;
@@ -158,9 +139,7 @@ public:
   bool touched_;
   double desired_position_;
   double last_commanded_position_;
-  double final_time_;
-  double current_time_;
-  std::vector<double> coefficients_;
+
 
   boost::shared_ptr<const urdf::Joint> joint_info_;
 };
