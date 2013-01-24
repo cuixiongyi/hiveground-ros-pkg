@@ -119,8 +119,6 @@ void RC7MController::startup()
   }
 
 
-
-
   //create control thread
   control_thread_ = boost::thread(&RC7MController::control, this);
 
@@ -177,6 +175,7 @@ void RC7MController::startup()
   {
     errno = retcode;
     ROS_ERROR("pthread_setaffinity_np");
+    shutdown();
     exit(EXIT_FAILURE);
   }
 
@@ -224,7 +223,6 @@ void RC7MController::control()
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
-
       command[i] = (*it)->interpolate(1.0 / rate_);
       command_degree[i] = (command[i] * 180.0) / M_PI;
       i++;
@@ -244,13 +242,10 @@ void RC7MController::control()
           dt_sum = 0.0;
         }
 
-
         startTime = ros::Time(ros::WallTime::now().toSec());
         boost::unique_lock<boost::mutex> lock(control_mutex_);
         hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
         ROS_ASSERT(!FAILED(hr));
-
-
 
         ROS_DEBUG_THROTTLE(1.0, "a %f %f %f %f %f %f",
                           command_degree[0], command_degree[1], command_degree[2],

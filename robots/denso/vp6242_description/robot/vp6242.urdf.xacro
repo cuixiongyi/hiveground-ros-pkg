@@ -11,10 +11,9 @@
   <xacro:property name="mesh_path" value="package://vp6242_description/robot" />
   <xacro:property name="mesh_scale" value="0.001 0.001 0.001" />
   <xacro:property name="default_joint_velocity" value="1.0" />
+  <xacro:property name="default_joint_effort" value="1.0" /> <!-- As acceleration limit -->
   <xacro:property name="pi" value="3.1415926535897931" />
-  <xacro:property name="pi2" value="pi / 2.0" />
-  <xacro:property name="j6_limit" value="360" />
-  
+  <xacro:property name="pi2" value="pi / 2.0" />  
 
   <link name="base_link">
     <visual>
@@ -54,7 +53,7 @@
 
   <joint name="J1" type="revolute">
     <axis xyz="0 0 1"/>
-    <limit effort="1000.0" lower="${-(160.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
+    <limit effort="${default_joint_effort}" lower="${-(160.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.155"/>
     <parent link="base_link"/>
     <child link="link0"/>
@@ -78,7 +77,7 @@
 
   <joint name="J2" type="revolute">
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="${-(120.0/180.0) * pi}" upper="${(120.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
+    <limit effort="${default_joint_effort}" lower="${-(120.0/180.0) * pi}" upper="${(120.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.125"/>
     <parent link="link0"/>
     <child link="link1"/>
@@ -102,7 +101,7 @@
  	
  <joint name="J3" type="revolute">
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="${(19.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
+    <limit effort="${default_joint_effort}" lower="${(19.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
     <parent link="link1"/>
     <child link="link2"/>
@@ -126,7 +125,7 @@
   
   <joint name="J4" type="revolute">
     <axis xyz="1 0 0"/>
-    <limit effort="1000.0" lower="${-(160.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
+    <limit effort="${default_joint_effort}" lower="${-(160.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
     <origin rpy="0 -1.570796 0" xyz="-0.075 0.0 0.0"/>
     <parent link="link2"/>
     <child link="link3"/>
@@ -150,7 +149,7 @@
  	
   <joint name="J5" type="revolute">
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="${-(120.0/180.0) * pi}" upper="${(120.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
+    <limit effort="${default_joint_effort}" lower="${-(120.0/180.0) * pi}" upper="${(120.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
     <origin rpy="0 0 0" xyz="0.210 0.0 0.0"/>
     <parent link="link3"/>
     <child link="link4"/>
@@ -170,7 +169,7 @@
  	
   <joint name="J6" type="revolute">
     <axis xyz="1 0 0"/>
-    <limit effort="1000.0" lower="${-(j6_limit/180.0) * pi}" upper="${(j6_limit/180.0) * pi}" velocity="${default_joint_velocity}"/>
+    <limit effort="${default_joint_effort}" lower="${-(360/180.0) * pi}" upper="${(360/180.0) * pi}" velocity="${default_joint_velocity}"/>
     <origin rpy="0 0 0" xyz="0.07 0.0 0.0"/>
     <parent link="link4"/>
     <child link="link5"/>
