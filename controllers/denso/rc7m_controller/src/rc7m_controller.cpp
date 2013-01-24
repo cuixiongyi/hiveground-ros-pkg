@@ -151,14 +151,18 @@ void RC7MController::startup()
   {
     errno = retcode;
     ROS_ERROR("pthread_setschedparam");
-    exit(EXIT_FAILURE);
+    shutdown();
+    return;
   }
+
+  ros::Duration(1.0).sleep();
 
   if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
   {
     errno = retcode;
     ROS_ERROR("pthread_getschedparam");
-    exit(EXIT_FAILURE);
+    shutdown();
+    return;
   }
 
   ROS_INFO_STREAM("Control thread changed: policy= " <<
@@ -166,19 +170,6 @@ void RC7MController::startup()
              (policy == SCHED_RR) ? "SCHED_RR" :
              (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") <<
              ", priority=" << param.sched_priority);
-
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(0, &cpuset);
-  retcode = pthread_setaffinity_np(thread_id, sizeof(cpu_set_t), &cpuset);
-  if(retcode != 0)
-  {
-    errno = retcode;
-    ROS_ERROR("pthread_setaffinity_np");
-    shutdown();
-    exit(EXIT_FAILURE);
-  }
-
 
 #endif
 
