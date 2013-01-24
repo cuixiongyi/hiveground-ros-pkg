@@ -218,7 +218,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
         sensor_msgs::JointState joint_state;
-        if(checkIKConstraintAware(feedback->pose, joint_state))
+        if(checkIK(feedback->pose, joint_state))
         {
           tf::Transform tf_old, tf_new;
           tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
@@ -344,8 +344,9 @@ bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& j
     tf::poseTFToMsg(pose, gpik_req.ik_request.pose_stamped.pose);
   }
 
-  QMutexLocker lock(&mutex_joint_state_);
+  mutex_joint_state_.lock();
   gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  mutex_joint_state_.unlock();
   gpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
 
   if (ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
@@ -400,9 +401,10 @@ bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs
       tf::poseTFToMsg(pose, ik_request.pose_stamped.pose);
     }
 
-  QMutexLocker lock(&mutex_joint_state_);
+  mutex_joint_state_.lock();
   ik_request.ik_seed_state.joint_state = latest_joint_state_;
-  ik_request.robot_state = ik_request.ik_seed_state;
+  mutex_joint_state_.unlock();
+  //ik_request.robot_state = ik_request.ik_seed_state;
 
   kinematics_msgs::GetConstraintAwarePositionIK::Request ik_req;
   kinematics_msgs::GetConstraintAwarePositionIK::Response ik_res;
