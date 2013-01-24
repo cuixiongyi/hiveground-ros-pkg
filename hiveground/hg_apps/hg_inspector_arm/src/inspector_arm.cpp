@@ -133,7 +133,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
   tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
   tf::StampedTransform origin;
   listener_.lookupTransform(world_frame_,
-                              "link2",
+                              "link4",
                               ros::Time(0), origin);
   tf::Vector3 origin_to_hand = hand_left.getOrigin() - origin.getOrigin();
   Eigen::Vector3f v(origin_to_hand.x(), origin_to_hand.y(), origin_to_hand.z());
