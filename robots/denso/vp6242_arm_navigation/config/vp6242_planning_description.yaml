@@ -32,10 +32,6 @@ default_collision_operations:
     object2: link5
     operation: disable  # Adjacent in collision
   -
-    object1: link3
-    object2: link5
-    operation: disable  # Occasionally in collision
-  -
     object1: base_link
     object2: link1
     operation: disable  # Never in collision
@@ -57,5 +53,9 @@ default_collision_operations:
     operation: disable  # Never in collision
   -
     object1: link2
+    object2: link5
+    operation: disable  # Never in collision
+  -
+    object1: link3
     object2: link5
     operation: disable  # Never in collision
