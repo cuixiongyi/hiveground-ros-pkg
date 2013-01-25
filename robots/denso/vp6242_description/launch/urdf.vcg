@@ -1,7 +1,7 @@
 Background\ ColorB=0.466667
 Background\ ColorG=0
 Background\ ColorR=0.0941176
-Camera\ Config=0.669798 2.27764 1.92422 0 0 0
+Camera\ Config=0.324798 1.27264 1.92422 0 0 0
 Camera\ Type=rviz::OrbitViewController
 Fixed\ Frame=/base_link
 Grid.Alpha=0.5
@@ -86,7 +86,7 @@ link3.Enabled=1
 link4.Enabled=1
 link5.Enabled=1
 [Window]
-Height=1176
-Width=1920
-X=1919
+Height=1212
+Width=1936
+X=1912
 Y=24

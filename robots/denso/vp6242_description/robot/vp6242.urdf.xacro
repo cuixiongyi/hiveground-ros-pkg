@@ -112,21 +112,21 @@
     <geometry>
       <mesh filename="${mesh_path}/l3.stl" scale="${mesh_scale}"/>
     </geometry>
-    <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
+    <origin rpy="0 1.570796 1.570796" xyz="0 0 0.085"/>
 		<material name="link"/>
     </visual>
     <collision>
 	  	<geometry>
         <mesh filename="${mesh_path}/l3_collision.stl" scale="${mesh_scale}"/>
 	  	</geometry>
-      <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
+      <origin rpy="0 1.570796 1.570796" xyz="0 0 0.085"/>
     </collision>    
   </link>
 
   <joint name="J4" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="${default_joint_effort}" lower="${-(160.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
-    <origin rpy="0 0 0" xyz="-0.075 0.0 0.085"/>
+    <origin rpy="0 0 0" xyz="-0.075 0.0 0.0"/>
     <parent link="link2"/>
     <child link="link3"/>
   </joint>
@@ -150,7 +150,7 @@
   <joint name="J5" type="revolute">
     <axis xyz="0 1 0"/>
     <limit effort="${default_joint_effort}" lower="${-(120.0/180.0) * pi}" upper="${(120.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.135"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
     <parent link="link3"/>
     <child link="link4"/>
   </joint>
