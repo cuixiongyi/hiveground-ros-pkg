@@ -112,21 +112,21 @@
     <geometry>
       <mesh filename="${mesh_path}/l3.stl" scale="${mesh_scale}"/>
     </geometry>
-    <origin rpy="-1.570796 3.141592 0" xyz="0.085 0 0.0"/>
+    <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
 		<material name="link"/>
     </visual>
     <collision>
 	  	<geometry>
         <mesh filename="${mesh_path}/l3_collision.stl" scale="${mesh_scale}"/>
 	  	</geometry>
-      <origin rpy="-1.570796 3.141592 0" xyz="0.085 0 0"/>
+      <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
     </collision>    
   </link>
-  
+
   <joint name="J4" type="revolute">
-    <axis xyz="1 0 0"/>
+    <axis xyz="0 0 1"/>
     <limit effort="${default_joint_effort}" lower="${-(160.0/180.0) * pi}" upper="${(160.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
-    <origin rpy="0 -1.570796 0" xyz="-0.075 0.0 0.0"/>
+    <origin rpy="0 0 0" xyz="-0.075 0.0 0.085"/>
     <parent link="link2"/>
     <child link="link3"/>
   </joint>
@@ -136,21 +136,21 @@
       <geometry>
   			<mesh filename="${mesh_path}/l4.stl" scale="${mesh_scale}"/>
       </geometry>
-    <xacro:mesh_origin/>
+    <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
 	  <material name="link"/>
     </visual>
     <collision>
 	  	<geometry>
         <mesh filename="${mesh_path}/l4_collision.stl" scale="${mesh_scale}"/>
 	  	</geometry>
-      <xacro:mesh_origin/>
+      <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
     </collision>    
   </link>
  	
   <joint name="J5" type="revolute">
     <axis xyz="0 1 0"/>
     <limit effort="${default_joint_effort}" lower="${-(120.0/180.0) * pi}" upper="${(120.0/180.0) * pi}" velocity="${default_joint_velocity}"/>
-    <origin rpy="0 0 0" xyz="0.210 0.0 0.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.135"/>
     <parent link="link3"/>
     <child link="link4"/>
   </joint>
@@ -158,9 +158,9 @@
   <link name="link5">
   <visual>
     <geometry>
-      <cylinder length="0.010" radius="0.021"/>
+      <cylinder length="0.01" radius="0.0205"/>
     </geometry>
-    <origin rpy="0 1.570796 0" xyz="-0.004 0.0 0.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
     <material name="plate">
       <color rgba="0.1 0.1 0.1 0.8"/>
     </material>
@@ -168,12 +168,11 @@
   </link>
  	
   <joint name="J6" type="revolute">
-    <axis xyz="1 0 0"/>
+    <axis xyz="0 0 1"/>
     <limit effort="${default_joint_effort}" lower="${-(360/180.0) * pi}" upper="${(360/180.0) * pi}" velocity="${default_joint_velocity}"/>
-    <origin rpy="0 0 0" xyz="0.07 0.0 0.0"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.07"/>
     <parent link="link4"/>
     <child link="link5"/>
   </joint>
-
 
 </robot>
