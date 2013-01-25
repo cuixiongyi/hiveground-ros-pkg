@@ -53,7 +53,8 @@
  */
 
 /*
- * Added closest solution check to the getPositionIK() function
+ * Fixed logical errors in searchPositionIK() #3 and
+ * added the closest solution check to the function
  * Mahisorn Wongphati, Keio University
  * Data 2013-01-25
  */
@@ -64,6 +65,7 @@
 #include <urdf/model.h>
 #include <tf_conversions/tf_kdl.h>
 #include <angles/angles.h>
+#include <arm_kinematics_constraint_aware/kdl_arm_kinematics_plugin.h>
 
 // Need a floating point tolerance when checking joint limits, in case the joint starts at limit
 const double LIMIT_TOLERANCE = .0000001;
@@ -167,10 +169,8 @@ public:
       const std::vector<double> &ik_seed_state,
       const double &timeout,
       std::vector<double> &solution,
-      const boost::function<
-          void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &desired_pose_callback,
-      const boost::function<
-          void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &solution_callback,
+      const boost::function<void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &desired_pose_callback,
+      const boost::function<void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &solution_callback,
       int &error_code);
 
   /**
@@ -548,14 +548,14 @@ bool IKFastKinematicsPlugin::getPositionFK(const std::vector<std::string> &link_
   return valid;
 }
 
-bool IKFastKinematicsPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_seed_state,
-                                           std::vector<double> &solution, int &error_code)
+bool IKFastKinematicsPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose,
+                                                 const std::vector<double> &ik_seed_state,
+                                                 std::vector<double> &solution, int &error_code)
 {
   std::vector<double> vfree(free_params_.size());
   for (std::size_t i = 0; i < free_params_.size(); ++i)
   {
     int p = free_params_[i];
-    // ROS_ERROR("%u is %f",p,ik_seed_state[p]);
     vfree[i] = ik_seed_state[p];
   }
 
@@ -563,9 +563,6 @@ bool IKFastKinematicsPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose, c
   tf::PoseMsgToKDL(ik_pose, frame);
   int numsol = solve(frame, vfree);
   ROS_DEBUG("Got %d solution", numsol);
-
-  std::vector<double> tmp_solution;
-  std::vector<std::vector<double> > solutions;
 
   if (numsol)
   {
@@ -584,8 +581,7 @@ bool IKFastKinematicsPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose, c
                 || (sol[i] > (joint_max_vector_[i] + LIMIT_TOLERANCE))))
         {
           // One element of solution is not within limits
-          ROS_DEBUG(
-              "       Joint %d exceed limit %6.3f %6.3f %6.3f", i, joint_min_vector_[i], sol[i], joint_max_vector_[i]);
+          ROS_DEBUG("       Joint %d exceed limit %6.3f %6.3f %6.3f", i, joint_min_vector_[i], sol[i], joint_max_vector_[i]);
           obeys_limits = false;
           break;
         }
@@ -594,17 +590,10 @@ bool IKFastKinematicsPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose, c
       if (obeys_limits)
       {
         // All elements of solution obey limits
-        getSolution(s, tmp_solution);
-        solutions.push_back(tmp_solution);
+        getSolution(s, solution);
+        error_code = kinematics::SUCCESS;
+        return true;
       }
-    }
-
-    if (solutions.size() != 0)
-    {
-      ROS_DEBUG("Found %lu valid solution(s)", solutions.size());
-      solution = solutions[getClosestSolutionIndex(ik_seed_state, solutions)];
-      error_code = kinematics::SUCCESS;
-      return true;
     }
   }
   else
@@ -822,133 +811,87 @@ bool IKFastKinematicsPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose
 
 // searchPositionIK #3
 // this is used by planning scene warehouse
-bool IKFastKinematicsPlugin::searchPositionIK(
-    const geometry_msgs::Pose &ik_pose,
-    const std::vector<double> &ik_seed_state,
-    const double &timeout,
-    std::vector<double> &solution,
-    const boost::function<
-        void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &desired_pose_callback,
-    const boost::function<
-        void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &solution_callback,
-    int &error_code)
+bool IKFastKinematicsPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
+                                                    const std::vector<double> &ik_seed_state,
+                                                    const double &timeout,
+                                                    std::vector<double> &solution,
+                                                    const boost::function<void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &desired_pose_callback,
+                                                    const boost::function<void(const geometry_msgs::Pose &ik_pose, const std::vector<double> &ik_solution, int &error_code)> &solution_callback,
+                                                    int &error_code)
 {
-  // If manipulator has no free links
-  if (free_params_.size() == 0)
+  std::vector<double> vfree(free_params_.size());
+  for (std::size_t i = 0; i < free_params_.size(); ++i)
   {
-    // Find first IK solution, within joint limits
-    if (!getPositionIK(ik_pose, ik_seed_state, solution, error_code))
-    {
-      ROS_DEBUG_STREAM("No solution whatsoever");
-      error_code = kinematics::NO_IK_SOLUTION;
-      return false;
-    }
-    // check for collisions
-    solution_callback(ik_pose, solution, error_code);
-    if (error_code == kinematics::SUCCESS)
-    {
-      ROS_DEBUG_STREAM("Solution passes");
-      return true;
-    }
-    else
-    {
-      ROS_DEBUG_STREAM("Solution has error code " << error_code);
-      return false;
-    }
-  }
-
-  if (!desired_pose_callback.empty())
-    desired_pose_callback(ik_pose, ik_seed_state, error_code);
-  if (error_code < 0)
-  {
-    ROS_ERROR("Could not find inverse kinematics for desired end-effector pose since the pose may be in collision");
-    return false;
+    int p = free_params_[i];
+    // ROS_ERROR("%u is %f",p,ik_seed_state[p]);
+    vfree[i] = ik_seed_state[p];
   }
 
   KDL::Frame frame;
   tf::PoseMsgToKDL(ik_pose, frame);
+  int numsol = solve(frame, vfree);
+  ROS_DEBUG("Got %d solution", numsol);
 
-  std::vector<double> vfree(free_params_.size());
+  std::vector<double> tmp_solution;
+  std::vector<std::vector<double> > solutions;
 
-  ros::Time maxTime = ros::Time::now() + ros::Duration(timeout);
-  int counter = 0;
-
-  double initial_guess = ik_seed_state[free_params_[0]];
-  vfree[0] = initial_guess;
-
-  int num_positive_increments = (joint_max_vector_[free_params_[0]] - initial_guess) / search_discretization_;
-  int num_negative_increments = (initial_guess - joint_min_vector_[free_params_[0]]) / search_discretization_;
-
-  ROS_DEBUG_STREAM(
-      "Free param is " << free_params_[0] << " initial guess is " << initial_guess << " " << num_positive_increments << " " << num_negative_increments);
-
-  unsigned int solvecount = 0;
-  unsigned int countsol = 0;
-
-  ros::WallTime start = ros::WallTime::now();
-
-  std::vector<double> sol;
-  while (1)
+  if (numsol)
   {
-    int numsol = solve(frame, vfree);
-
-    if (solvecount == 0)
+    for (int s = 0; s < numsol; ++s)
     {
-      if (numsol == 0)
+      std::vector<double> sol;
+      getSolution(s, sol);
+      ROS_DEBUG("Sol %d: %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", s, sol[0], sol[1], sol[2], sol[3], sol[4], sol[5]);
+
+      bool obeys_limits = true;
+      for (unsigned int i = 0; i < sol.size(); i++)
       {
-        ROS_DEBUG_STREAM("Bad solve time is " << ros::WallTime::now()-start);
+        // Add tolerance to limit check
+        if (joint_has_limits_vector_[i]
+            && ((sol[i] < (joint_min_vector_[i] - LIMIT_TOLERANCE))
+                || (sol[i] > (joint_max_vector_[i] + LIMIT_TOLERANCE))))
+        {
+          // One element of solution is not within limits
+          ROS_DEBUG("       Joint %d exceed limit %6.3f %6.3f %6.3f", i, joint_min_vector_[i], sol[i], joint_max_vector_[i]);
+          obeys_limits = false;
+          break;
+        }
       }
-      else
+
+      if (obeys_limits)
       {
-        ROS_DEBUG_STREAM("Good solve time is " << ros::WallTime::now()-start);
+        // All elements of solution obey limits
+        getSolution(s, tmp_solution);
+        solutions.push_back(tmp_solution);
       }
     }
-    solvecount++;
-    if (numsol > 0)
+
+    if (solutions.size() != 0)
     {
-      if (solution_callback.empty())
+      std::vector<std::vector<double> > constraint_aware_solutions;
+      for(size_t i=0; i < solutions.size(); i++)
       {
-        getClosestSolution(ik_seed_state, solution);
+        solution_callback(ik_pose, solutions[i], error_code);
+        if (error_code == kinematics::SUCCESS)
+        {
+          constraint_aware_solutions.push_back(solutions[i]);
+        }
+      }
+
+      if(constraint_aware_solutions.size() != 0)
+      {
+        ROS_DEBUG("Found %lu valid constraint aware solution(s)", constraint_aware_solutions.size());
+        solution = constraint_aware_solutions[getClosestSolutionIndex(ik_seed_state, constraint_aware_solutions)];
         error_code = kinematics::SUCCESS;
         return true;
       }
-
-      for (int s = 0; s < numsol; ++s)
-      {
-        getSolution(s, sol);
-        countsol++;
-        bool obeys_limits = true;
-        for (unsigned int i = 0; i < sol.size(); i++)
-        {
-          if (joint_has_limits_vector_[i] && (sol[i] < joint_min_vector_[i] || sol[i] > joint_max_vector_[i]))
-          {
-            obeys_limits = false;
-            break;
-          }
-        }
-        if (obeys_limits)
-        {
-          solution_callback(ik_pose, sol, error_code);
-          if (error_code == kinematics::SUCCESS)
-          {
-            solution = sol;
-            ROS_DEBUG_STREAM(
-                "Took " << (ros::WallTime::now() - start) << " to return true " << countsol << " " << solvecount);
-            return true;
-          }
-        }
-      }
     }
-    if (!getCount(counter, num_positive_increments, num_negative_increments))
-    {
-      error_code = kinematics::NO_IK_SOLUTION;
-      ROS_DEBUG_STREAM(
-          "Took " << (ros::WallTime::now() - start) << " to return false " << countsol << " " << solvecount);
-      return false;
-    }
-    vfree[0] = initial_guess + search_discretization_ * counter;
-    ROS_DEBUG_STREAM(counter << " " << vfree[0]);
   }
+  else
+  {
+    ROS_DEBUG("No IK solution \n");
+  }
+
   error_code = kinematics::NO_IK_SOLUTION;
   return false;
 }
