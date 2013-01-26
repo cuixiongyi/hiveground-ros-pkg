@@ -218,7 +218,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
         sensor_msgs::JointState joint_state;
-        if(checkIK(feedback->pose, joint_state))
+        if(checkIKConstraintAware(feedback->pose, joint_state))
         {
           tf::Transform tf_old, tf_new;
           tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
@@ -347,7 +347,7 @@ bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& j
   mutex_joint_state_.lock();
   gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
   mutex_joint_state_.unlock();
-  fgpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
+  gpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
 
   if (ik_none_collision_client_map_["manipulator"].call(gpik_req, gpik_res))
   {
@@ -404,7 +404,7 @@ bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs
   mutex_joint_state_.lock();
   ik_request.ik_seed_state.joint_state = latest_joint_state_;
   mutex_joint_state_.unlock();
-  //ik_request.robot_state = ik_request.ik_seed_state;
+  ik_request.robot_state = ik_request.ik_seed_state;
 
   kinematics_msgs::GetConstraintAwarePositionIK::Request ik_req;
   kinematics_msgs::GetConstraintAwarePositionIK::Response ik_res;
@@ -443,7 +443,6 @@ Marker InspectorArm::makeBox( InteractiveMarker &msg )
   marker.color.g = 0.5;
   marker.color.b = 0.5;
   marker.color.a = 0.8;
-
   return marker;
 }
 
@@ -459,7 +458,10 @@ Marker InspectorArm::makeArrow( InteractiveMarker &msg, double arrow_length)
   marker.color.g = 0.0;
   marker.color.b = 0.0;
   marker.color.a = 1.0;
-
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0.5;
+  marker.pose.orientation.z = 0;
+  marker.pose.orientation.w = 1;
   return marker;
 }
 
@@ -471,7 +473,7 @@ InteractiveMarkerControl& InspectorArm::makeArrowControl( InteractiveMarker &msg
   control.interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
   control.independent_marker_orientation = true;
   control.markers.push_back(makeBox(msg));
-  control.markers.push_back(makeArrow(msg, arrow_length));
+  //control.markers.push_back(makeArrow(msg, arrow_length));
   msg.controls.push_back( control );
 
   return msg.controls.back();
@@ -484,7 +486,7 @@ InteractiveMarkerControl& InspectorArm::makeSelectableArrowControl(visualization
   control.always_visible = true;
   control.interaction_mode = InteractiveMarkerControl::BUTTON;
   control.markers.push_back(makeBox(msg));
-  control.markers.push_back(makeArrow(msg, arrow_length));
+  //control.markers.push_back(makeArrow(msg, arrow_length));
   msg.controls.push_back( control );
   return msg.controls.back();
 }
@@ -576,7 +578,7 @@ void InspectorArm::makeMenu()
   labelMarker.type = Marker::TEXT_VIEW_FACING;
   labelMarker.text = "Inspection Marker Command...";
   labelMarker.color.r = 1.0;
-  labelMarker.color.g = 1.0;
+labelMarker.color.g = 1.0;
   labelMarker.color.b = 1.0;
   labelMarker.color.a = 1.0;
   labelMarker.scale.x = 0.5;
