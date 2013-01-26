@@ -122,57 +122,53 @@ void RC7MController::startup()
   //create control thread
   control_thread_ = boost::thread(&RC7MController::control, this);
 
-  //set priority
+  if (!node_->is_simulated_)
+  {
+    //set priority
 #ifdef WIN32
 
 #else
-  int retcode;
-  int policy;
-  pthread_t thread_id = (pthread_t)control_thread_.native_handle();
-  struct sched_param param;
+    int retcode;
+    int policy;
+    pthread_t thread_id = (pthread_t)control_thread_.native_handle();
+    struct sched_param param;
 
-  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
-  {
-    errno = retcode;
-    perror("pthread_getschedparam");
-    exit(EXIT_FAILURE);
-  }
+    if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+    {
+      errno = retcode;
+      perror("pthread_getschedparam");
+      exit(EXIT_FAILURE);
+    }
 
-  ROS_INFO_STREAM("Control thread inherited: policy= " <<
-          ((policy == SCHED_FIFO) ? "SCHED_FIFO" :
-           (policy == SCHED_RR) ? "SCHED_RR" :
-           (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") <<
-           ", priority=" << param.sched_priority);
+    ROS_INFO_STREAM(
+        "Control thread inherited: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
 
-  policy = SCHED_FIFO;
-  param.sched_priority = 4;
+    policy = SCHED_FIFO;
+    param.sched_priority = 4;
 
-  if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
-  {
-    errno = retcode;
-    ROS_ERROR("pthread_setschedparam");
-    shutdown();
-    return;
-  }
+    if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
+    {
+      errno = retcode;
+      ROS_ERROR("pthread_setschedparam");
+      shutdown();
+      return;
+    }
 
-  ros::Duration(1.0).sleep();
+    ros::Duration(1.0).sleep();
 
-  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
-  {
-    errno = retcode;
-    ROS_ERROR("pthread_getschedparam");
-    shutdown();
-    return;
-  }
+    if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+    {
+      errno = retcode;
+      ROS_ERROR("pthread_getschedparam");
+      shutdown();
+      return;
+    }
 
-  ROS_INFO_STREAM("Control thread changed: policy= " <<
-            ((policy == SCHED_FIFO) ? "SCHED_FIFO" :
-             (policy == SCHED_RR) ? "SCHED_RR" :
-             (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") <<
-             ", priority=" << param.sched_priority);
+    ROS_INFO_STREAM(
+        "Control thread changed: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
 
 #endif
-
+  }
 
   is_running_ = true;
 
