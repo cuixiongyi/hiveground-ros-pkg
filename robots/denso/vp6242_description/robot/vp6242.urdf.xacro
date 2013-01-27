@@ -11,7 +11,7 @@
   <xacro:property name="mesh_path" value="package://vp6242_description/robot" />
   <xacro:property name="mesh_scale" value="0.001 0.001 0.001" />
   <xacro:property name="default_joint_velocity" value="1.0" />
-  <xacro:property name="default_joint_effort" value="1.0" /> <!-- As acceleration limit -->
+  <xacro:property name="default_joint_effort" value="4.0" /> <!-- As acceleration limit -->
   <xacro:property name="pi" value="3.1415926535897931" />
   <xacro:property name="pi2" value="pi / 2.0" />  
 
