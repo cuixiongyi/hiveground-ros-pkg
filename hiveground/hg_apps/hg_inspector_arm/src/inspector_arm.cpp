@@ -133,7 +133,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
   tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
   tf::StampedTransform origin;
   listener_.lookupTransform(world_frame_,
-                              "link4",
+                              "link2",
                               ros::Time(0), origin);
   tf::Vector3 origin_to_hand = hand_left.getOrigin() - origin.getOrigin();
   Eigen::Vector3f v(origin_to_hand.x(), origin_to_hand.y(), origin_to_hand.z());
@@ -142,7 +142,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
   tf::Transform new_ee_pose;
 
 
-  new_ee_pose.setOrigin((origin_to_hand.normalize() * -0.2) + hand_left.getOrigin());
+  new_ee_pose.setOrigin((origin_to_hand.normalize() * -0.3) + hand_left.getOrigin());
   new_ee_pose.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
   sensor_msgs::JointState joint_state;
   if(checkIK(new_ee_pose, joint_state))
