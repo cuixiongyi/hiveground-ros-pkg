@@ -80,7 +80,7 @@ protected:
   void addMarker(const std::string& name,
                    geometry_msgs::Pose pose = geometry_msgs::Pose(),
                    bool selectable = true,
-                   double arrow_length = 0.1);
+                   double arrow_length = 0.05);
   std::string getMarkerName();
   void addMarkerAtEndEffector();
   void clearMarker();

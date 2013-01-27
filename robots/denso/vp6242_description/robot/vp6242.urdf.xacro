@@ -160,7 +160,7 @@
     <geometry>
       <cylinder length="0.01" radius="0.0205"/>
     </geometry>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+    <origin rpy="0 -1.570796 0" xyz="0.0 0.0 0.0"/>
     <material name="plate">
       <color rgba="0.1 0.1 0.1 0.8"/>
     </material>
@@ -168,9 +168,9 @@
   </link>
  	
   <joint name="J6" type="revolute">
-    <axis xyz="0 0 1"/>
+    <axis xyz="1 0 0"/>
     <limit effort="${default_joint_effort}" lower="${-(360/180.0) * pi}" upper="${(360/180.0) * pi}" velocity="${default_joint_velocity}"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.07"/>
+    <origin rpy="0 -1.570796 0" xyz="0.0 0.0 0.07"/>
     <parent link="link4"/>
     <child link="link5"/>
   </joint>
