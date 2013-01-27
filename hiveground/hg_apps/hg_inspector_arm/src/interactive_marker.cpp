@@ -100,7 +100,7 @@ void InspectorArm::addMarker(const std::string& name,
   int_marker.name = name;
   int_marker.description = name;
   int_marker.header.frame_id = world_frame_;
-  int_marker.scale = arrow_length * 0.5;
+  int_marker.scale = arrow_length;
   int_marker.pose = pose;
 
   if(selectable)
@@ -459,7 +459,7 @@ Marker InspectorArm::makeArrow( InteractiveMarker &msg, double arrow_length)
   marker.color.b = 0.0;
   marker.color.a = 1.0;
   marker.pose.orientation.x = 0;
-  marker.pose.orientation.y = 0.5;
+  marker.pose.orientation.y = 0;
   marker.pose.orientation.z = 0;
   marker.pose.orientation.w = 1;
   return marker;
@@ -473,7 +473,7 @@ InteractiveMarkerControl& InspectorArm::makeArrowControl( InteractiveMarker &msg
   control.interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
   control.independent_marker_orientation = true;
   control.markers.push_back(makeBox(msg));
-  //control.markers.push_back(makeArrow(msg, arrow_length));
+  control.markers.push_back(makeArrow(msg, arrow_length));
   msg.controls.push_back( control );
 
   return msg.controls.back();
@@ -486,7 +486,7 @@ InteractiveMarkerControl& InspectorArm::makeSelectableArrowControl(visualization
   control.always_visible = true;
   control.interaction_mode = InteractiveMarkerControl::BUTTON;
   control.markers.push_back(makeBox(msg));
-  //control.markers.push_back(makeArrow(msg, arrow_length));
+  control.markers.push_back(makeArrow(msg, arrow_length));
   msg.controls.push_back( control );
   return msg.controls.back();
 }
