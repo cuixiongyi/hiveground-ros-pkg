@@ -83,114 +83,6 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   return true;
 }
 
-std::string InspectorArm::getMarkerName()
-{
-    std::stringstream ss;
-    ss << "marker_" << std::setfill('0') << std::setw(5) << name_count_++;
-    return ss.str();
-}
-
-
-void InspectorArm::addMarker(const std::string& name,
-                                 geometry_msgs::Pose pose,
-                                 bool selectable,
-                                 double arrow_length)
-{
-  InteractiveMarker int_marker;
-  int_marker.name = name;
-  int_marker.description = name;
-  int_marker.header.frame_id = world_frame_;
-  int_marker.scale = arrow_length;
-  int_marker.pose = pose;
-
-  if(selectable)
-    makeSelectableArrowControl(int_marker, arrow_length);
-  else
-    makeArrowControl(int_marker, arrow_length);
-
-  InteractiveMarkerControl control;
-  if(!selectable)
-  {
-    // create a non-interactive control which contains the arrow
-    control.orientation.w = 1;
-    control.orientation.x = 1;
-    control.orientation.y = 0;
-    control.orientation.z = 0;
-    control.name = "rotate_x";
-    control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_x";
-    control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-
-    control.orientation.w = 1;
-    control.orientation.x = 0;
-    control.orientation.y = 1;
-    control.orientation.z = 0;
-    control.name = "rotate_z";
-    control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_z";
-    control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-
-    control.orientation.w = 1;
-    control.orientation.x = 0;
-    control.orientation.y = 0;
-    control.orientation.z = 1;
-    control.name = "rotate_y";
-    control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_y";
-    control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-  }
-
-  marker_server_.insert(int_marker);
-
-  control.interaction_mode = InteractiveMarkerControl::MENU;
-  int_marker.controls.push_back(control);
-  menu_handler_map_["Inspection Point"].apply(marker_server_, int_marker.name);
-
-  marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
-  marker_server_.applyChanges();
-}
-
-void InspectorArm::addMarkerAtEndEffector()
-{
-  tf::StampedTransform transform;
-  listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
-  geometry_msgs::Pose pose;
-  tf::poseTFToMsg(transform, pose);
-  std::string name = getMarkerName();
-  addMarker(name, pose);
-  InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
-  item->setName(name.c_str());
-  mutex_joint_state_.lock();
-  item->setJointState(latest_joint_state_);
-  mutex_joint_state_.unlock();
-
-  markers_[item->name().toStdString()] = item;
-  selectOnlyOneMarker(name);
-  Q_EMIT inspectionPointClickedSignal(markers_[name]);
-  markers_touched_ = true;
-}
-
-void InspectorArm::clearMarker()
-{
-  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
-  while (it != markers_.end())
-  {
-    delete it->second;
-    marker_server_.erase(it->first);
-    it++;
-  }
-  markers_.clear();
-  marker_server_.applyChanges();
-  Q_EMIT inspectionPointClickedSignal(0);
-  markers_touched_ = true;
-}
-
 void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
   switch (feedback->event_type)
@@ -234,6 +126,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
+
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
         if(feedback->menu_entry_id == menu_entry_add_)
@@ -260,27 +153,52 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           selectOnlyOneMarker(name);
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
         }
+        else if(feedback->menu_entry_id == menu_entry_point_x_plus_)
+        {
+          setMarkerOrientation(feedback->marker_name, 0, 0, 0);
+        }
+        else if(feedback->menu_entry_id == menu_entry_point_x_minus_)
+        {
+          setMarkerOrientation(feedback->marker_name, 0, -M_PI, 0);
+        }
+        else if(feedback->menu_entry_id == menu_entry_point_y_plus_)
+        {
+          setMarkerOrientation(feedback->marker_name, 0, 0, M_PI_2);
+        }
+        else if(feedback->menu_entry_id == menu_entry_point_y_minus_)
+        {
+          setMarkerOrientation(feedback->marker_name, 0, 0, -M_PI_2);
+        }
+        else if(feedback->menu_entry_id == menu_entry_point_z_plus_)
+        {
+          setMarkerOrientation(feedback->marker_name, 0, -M_PI_2, 0);
+        }
+        else if(feedback->menu_entry_id == menu_entry_point_z_minus_)
+        {
+          setMarkerOrientation(feedback->marker_name, 0, M_PI_2, 0);
+        }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
         {
           ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
-          geometry_msgs::Pose pose = feedback->pose;
-          pose.position = geometry_msgs::Point();
+
+          tf::StampedTransform ee_pose;
+          listener_.lookupTransform(world_frame_,
+                                      ik_solver_info_.kinematic_solver_info.link_names[0],
+                                      ros::Time(0), ee_pose);
+          geometry_msgs::Pose pose;
+          tf::poseTFToMsg(ee_pose, pose);
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose);
+          mutex_joint_state_.lock();
+          markers_[feedback->marker_name]->setJointState(latest_joint_state_);
+          mutex_joint_state_.unlock();
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
           markers_touched_ = true;
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
-          ROS_DEBUG("reset orientation");
-          geometry_msgs::Pose pose = feedback->pose;
-          pose.orientation = geometry_msgs::Quaternion();
-          marker_server_.setPose(feedback->marker_name, pose, feedback->header);
-          marker_server_.applyChanges();
-          markers_[feedback->marker_name]->setPose(pose);
-          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
-          markers_touched_ = true;
+          setMarkerOrientation(feedback->marker_name, 0, 0, 0);
         }
         else if(feedback->menu_entry_id == menu_entry_remove_)
         {
@@ -431,65 +349,200 @@ bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs
   return true;
 }
 
-Marker InspectorArm::makeBox( InteractiveMarker &msg )
+std::string InspectorArm::getMarkerName()
+{
+    std::stringstream ss;
+    ss << "marker_" << std::setfill('0') << std::setw(5) << name_count_++;
+    return ss.str();
+}
+
+
+void InspectorArm::addMarker(const std::string& name,
+                                 geometry_msgs::Pose pose,
+                                 bool selectable,
+                                 double arrow_length)
+{
+  InteractiveMarker int_marker;
+  int_marker.name = name;
+  int_marker.description = name;
+  int_marker.header.frame_id = world_frame_;
+  int_marker.scale = arrow_length;
+  int_marker.pose = pose;
+
+  std::vector<Marker> markers;
+  markers.push_back(makeBox(0.5 * arrow_length, 0.5, 0.5, 0.5));
+  markers.push_back(makeArrow(arrow_length));
+
+  if(selectable)
+  {
+    makeSelectableControl(int_marker, markers);
+  }
+  else
+  {
+    makeFreeMoveControl(int_marker, markers);
+    make6DOFControl(int_marker, markers);
+  }
+
+
+
+  marker_server_.insert(int_marker);
+  InteractiveMarkerControl control;
+  control.interaction_mode = InteractiveMarkerControl::MENU;
+  int_marker.controls.push_back(control);
+  menu_handler_map_["Inspection Point"].apply(marker_server_, int_marker.name);
+
+  marker_server_.setCallback(int_marker.name, marker_callback_ptr_);
+  marker_server_.applyChanges();
+}
+
+void InspectorArm::addMarkerAtEndEffector()
+{
+  tf::StampedTransform transform;
+  listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
+  geometry_msgs::Pose pose;
+  tf::poseTFToMsg(transform, pose);
+  std::string name = getMarkerName();
+  addMarker(name, pose);
+  InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
+  item->setName(name.c_str());
+  mutex_joint_state_.lock();
+  item->setJointState(latest_joint_state_);
+  mutex_joint_state_.unlock();
+
+  markers_[item->name().toStdString()] = item;
+  selectOnlyOneMarker(name);
+  Q_EMIT inspectionPointClickedSignal(markers_[name]);
+  markers_touched_ = true;
+}
+
+void InspectorArm::clearMarker()
+{
+  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  while (it != markers_.end())
+  {
+    delete it->second;
+    marker_server_.erase(it->first);
+    it++;
+  }
+  markers_.clear();
+  marker_server_.applyChanges();
+  Q_EMIT inspectionPointClickedSignal(0);
+  markers_touched_ = true;
+}
+
+Marker InspectorArm::makeBox(double size, double r, double g, double b, double a)
 {
   Marker marker;
-
   marker.type = Marker::CUBE;
-  marker.scale.x = msg.scale * 0.45;
-  marker.scale.y = msg.scale * 0.45;
-  marker.scale.z = msg.scale * 0.45;
-  marker.color.r = 0.5;
-  marker.color.g = 0.5;
-  marker.color.b = 0.5;
-  marker.color.a = 0.8;
+  marker.scale.x = size;
+  marker.scale.y = size;
+  marker.scale.z = size;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+  marker.color.a = a;
   return marker;
 }
 
-Marker InspectorArm::makeArrow( InteractiveMarker &msg, double arrow_length)
+Marker InspectorArm::makeArrow(double size, double r, double g, double b, double a)
+{
+  Marker marker;
+  marker.type = Marker::ARROW;
+  marker.scale.x = 0.1;
+  marker.scale.y = 0.1;
+  marker.scale.z = size;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+  marker.color.a = a;
+  return marker;
+}
+
+Marker InspectorArm::makeSphere(double size, double r, double g, double b, double a)
 {
   Marker marker;
 
   marker.type = Marker::ARROW;
-  marker.scale.x = 0.1;
-  marker.scale.y = 0.1;
-  marker.scale.z = arrow_length;
-  marker.color.r = 1.0;
-  marker.color.g = 0.0;
-  marker.color.b = 0.0;
+  marker.scale.x = size;
+  marker.scale.y = size;
+  marker.scale.z = size;
+  marker.color.r = 0.5;
+  marker.color.g = 0.5;
+  marker.color.b = 0.5;
   marker.color.a = 1.0;
-  marker.pose.orientation.x = 0;
-  marker.pose.orientation.y = 0;
-  marker.pose.orientation.z = 0;
-  marker.pose.orientation.w = 1;
   return marker;
 }
 
-InteractiveMarkerControl& InspectorArm::makeArrowControl( InteractiveMarker &msg, double arrow_length)
+InteractiveMarkerControl& InspectorArm::makeFreeMoveControl(visualization_msgs::InteractiveMarker &msg,
+                                                 std::vector<visualization_msgs::Marker>& markers)
 {
   InteractiveMarkerControl control;
   control.always_visible = true;
   control.orientation_mode = InteractiveMarkerControl::VIEW_FACING;
   control.interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
   control.independent_marker_orientation = true;
-  control.markers.push_back(makeBox(msg));
-  control.markers.push_back(makeArrow(msg, arrow_length));
-  msg.controls.push_back( control );
-
+  for(size_t i = 0; i < markers.size(); i++)
+  {
+    control.markers.push_back(markers[i]);
+  }
+  msg.controls.push_back(control);
   return msg.controls.back();
 }
 
-InteractiveMarkerControl& InspectorArm::makeSelectableArrowControl(visualization_msgs::InteractiveMarker &msg,
-                                                                        double arrow_length)
+InteractiveMarkerControl& InspectorArm::make6DOFControl(visualization_msgs::InteractiveMarker &msg,
+                                                            std::vector<visualization_msgs::Marker>& markers)
+{
+  InteractiveMarkerControl control;
+  // create a non-interactive control which contains the arrow
+  control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  control.name = "rotate_x";
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  msg.controls.push_back(control);
+  control.name = "move_x";
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  msg.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.name = "rotate_z";
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  msg.controls.push_back(control);
+  control.name = "move_z";
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  msg.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  control.name = "rotate_y";
+  control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
+  msg.controls.push_back(control);
+  control.name = "move_y";
+  control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
+  msg.controls.push_back(control);
+  return msg.controls.back();
+}
+
+InteractiveMarkerControl& InspectorArm::makeSelectableControl(visualization_msgs::InteractiveMarker &msg,
+                                                                   std::vector<visualization_msgs::Marker>& markers)
 {
   InteractiveMarkerControl control;
   control.always_visible = true;
   control.interaction_mode = InteractiveMarkerControl::BUTTON;
-  control.markers.push_back(makeBox(msg));
-  control.markers.push_back(makeArrow(msg, arrow_length));
-  msg.controls.push_back( control );
+  for(size_t i = 0; i < markers.size(); i++)
+  {
+    control.markers.push_back(markers[i]);
+  }
+  msg.controls.push_back(control);
   return msg.controls.back();
 }
+
 
 void InspectorArm::selectMarker(const std::string& name)
 {
@@ -525,6 +578,28 @@ void InspectorArm::selectOnlyOneMarker(const std::string& name)
   selectMarker(name);
 }
 
+bool InspectorArm::setMarkerOrientation(const std::string& name, double roll, double pitch, double yaw)
+{
+  ROS_DEBUG("reset orientation");
+  geometry_msgs::Pose pose = markers_[name]->pose();
+  tf::Quaternion q;
+  q.setRPY(roll, pitch, yaw);
+  tf::quaternionTFToMsg(q, pose.orientation);
+  sensor_msgs::JointState joint_state;
+  if (checkIKConstraintAware(pose, joint_state))
+  {
+    markers_[name]->setPose(pose);
+    markers_[name]->setJointState(joint_state);
+    marker_server_.setPose(name, pose);
+    marker_server_.applyChanges();
+    Q_EMIT inspectionPointMovedSignal(markers_[name]);
+    Q_EMIT followPointSignal();
+    markers_touched_ = true;
+    return true;
+  }
+  return false;
+}
+
 void InspectorArm::makeMenu()
 {
   menu_entry_maps_["Top Level"] = MenuEntryHandleMap();
@@ -544,6 +619,34 @@ void InspectorArm::makeMenu()
       menu_handler_map_["Inspection Point"],
       menu_entry_maps_["Inspection Point"],
       "Add Here");
+
+  menu_entry_point_x_plus_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Point +X");
+  menu_entry_point_x_minus_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Point -X");
+
+  menu_entry_point_y_plus_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Point +Y");
+  menu_entry_point_y_minus_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Point -Y");
+
+  menu_entry_point_z_plus_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Point +Z");
+  menu_entry_point_z_minus_ = registerMenuEntry(
+      menu_handler_map_["Inspection Point"],
+      menu_entry_maps_["Inspection Point"],
+      "Point -Z");
+
 
   menu_entry_reset_position_ = registerMenuEntry(
       menu_handler_map_["Inspection Point"],
@@ -578,7 +681,7 @@ void InspectorArm::makeMenu()
   labelMarker.type = Marker::TEXT_VIEW_FACING;
   labelMarker.text = "Inspection Marker Command...";
   labelMarker.color.r = 1.0;
-labelMarker.color.g = 1.0;
+  labelMarker.color.g = 1.0;
   labelMarker.color.b = 1.0;
   labelMarker.color.a = 1.0;
   labelMarker.scale.x = 0.5;

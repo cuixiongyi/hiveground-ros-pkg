@@ -77,16 +77,6 @@ public:
 
 protected:
   bool initialize(const std::string& param_server_prefix);
-  void addMarker(const std::string& name,
-                   geometry_msgs::Pose pose = geometry_msgs::Pose(),
-                   bool selectable = true,
-                   double arrow_length = 0.05);
-  std::string getMarkerName();
-  void addMarkerAtEndEffector();
-  void clearMarker();
-
-
-
   bool initializeInteractiveMarkerServer();
   bool initializePropertyEditor();
   bool initializeServiceClient();
@@ -99,16 +89,29 @@ protected:
   bool checkIKConstraintAware(const tf::Transform& pose, sensor_msgs::JointState& joint_state);
   bool checkIKConstraintAware(const geometry_msgs::Pose& pose, sensor_msgs::JointState& joint_state);
 
-  visualization_msgs::Marker makeBox(visualization_msgs::InteractiveMarker &msg);
-  visualization_msgs::Marker makeArrow(visualization_msgs::InteractiveMarker &msg, double arrow_length);
-
-  visualization_msgs::InteractiveMarkerControl& makeArrowControl(visualization_msgs::InteractiveMarker &msg,
-                                                                   double arrow_length);
-  visualization_msgs::InteractiveMarkerControl& makeSelectableArrowControl(visualization_msgs::InteractiveMarker &msg,
-                                                                               double arrow_length);
+  void addMarker(const std::string& name,
+                   geometry_msgs::Pose pose = geometry_msgs::Pose(),
+                   bool selectable = true,
+                   double arrow_length = 0.05);
+  std::string getMarkerName();
+  void addMarkerAtEndEffector();
+  void clearMarker();
+  visualization_msgs::Marker makeBox(double size = 0.1,
+                                      double r = 1.0, double g = 0.0, double b = 0.0, double a = 1.0);
+  visualization_msgs::Marker makeArrow(double size = 0.1,
+                                        double r = 1.0, double g = 0.0, double b = 0.0, double a = 1.0);
+  visualization_msgs::Marker makeSphere(double size = 0.1,
+                                         double r = 1.0, double g = 0.0, double b = 0.0, double a = 1.0);
+  visualization_msgs::InteractiveMarkerControl& makeFreeMoveControl(visualization_msgs::InteractiveMarker &msg,
+                                                                       std::vector<visualization_msgs::Marker>& markers);
+  visualization_msgs::InteractiveMarkerControl& make6DOFControl(visualization_msgs::InteractiveMarker &msg,
+                                                                  std::vector<visualization_msgs::Marker>& markers);
+  visualization_msgs::InteractiveMarkerControl& makeSelectableControl(visualization_msgs::InteractiveMarker &msg,
+                                                                         std::vector<visualization_msgs::Marker>& markers);
   void selectMarker(const std::string& name);
   void deselectMarker(const std::string& name);
   void selectOnlyOneMarker(const std::string& name);
+  bool setMarkerOrientation(const std::string& name, double roll, double pitch, double yaw);
 
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
@@ -127,6 +130,10 @@ protected:
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
   void handsCallBack(const hg_object_tracking::HandsConstPtr message);
+
+
+  //utility functions
+  void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
@@ -210,6 +217,12 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_entry_top_clear_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_add_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_add_here_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_point_x_plus_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_point_x_minus_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_point_y_plus_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_point_y_minus_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_point_z_plus_;
+  interactive_markers::MenuHandler::EntryHandle menu_entry_point_z_minus_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_position_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_reset_orientation_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;

@@ -32,6 +32,8 @@
  */
 
 #include <hg_inspector_arm/inspector_arm.h>
+#include <angles/angles.h>
+
 
 bool InspectorArm::initializePropertyEditor()
 {
@@ -144,22 +146,22 @@ void InspectorArm::inspectionPointClicked(InspectionPointItem* item)
   property = double_manager_->addProperty(tr("Roll"));
   double_manager_->setDecimals(property, 2);
   double_manager_->setSingleStep(property, 0.01);
-  double_manager_->setRange(property, -M_PI, M_PI);
-  double_manager_->setValue(property, item->roll());
+  double_manager_->setRange(property, -180.0, 180.0);
+  double_manager_->setValue(property, angles::to_degrees(item->roll()));
   addProperty(property, QLatin1String("pose_roll"));
 
   property = double_manager_->addProperty(tr("Pitch"));
   double_manager_->setDecimals(property, 2);
   double_manager_->setSingleStep(property, 0.01);
-  double_manager_->setRange(property, -M_PI, M_PI);
-  double_manager_->setValue(property, item->pitch());
+  double_manager_->setRange(property, -180.0, 180.0);
+  double_manager_->setValue(property, angles::to_degrees(item->pitch()));
   addProperty(property, QLatin1String("pose_pitch"));
 
   property = double_manager_->addProperty(tr("Yaw"));
   double_manager_->setDecimals(property, 2);
   double_manager_->setSingleStep(property, 0.01);
-  double_manager_->setRange(property, -M_PI, M_PI);
-  double_manager_->setValue(property, item->yaw());
+  double_manager_->setRange(property, -180.0, 180.0);
+  double_manager_->setValue(property, angles::to_degrees(item->yaw()));
   addProperty(property, QLatin1String("pose_yaw"));
 }
 
@@ -183,9 +185,9 @@ void InspectorArm::inspectionPointMoved(InspectionPointItem* item)
   double_manager_->setValue(id_to_property_[QLatin1String("pose_x")], item->x());
   double_manager_->setValue(id_to_property_[QLatin1String("pose_y")], item->y());
   double_manager_->setValue(id_to_property_[QLatin1String("pose_z")], item->z());
-  double_manager_->setValue(id_to_property_[QLatin1String("pose_roll")], item->roll());
-  double_manager_->setValue(id_to_property_[QLatin1String("pose_pitch")], item->pitch());
-  double_manager_->setValue(id_to_property_[QLatin1String("pose_yaw")], item->yaw());
+  double_manager_->setValue(id_to_property_[QLatin1String("pose_roll")], angles::to_degrees(item->roll()));
+  double_manager_->setValue(id_to_property_[QLatin1String("pose_pitch")], angles::to_degrees(item->pitch()));
+  double_manager_->setValue(id_to_property_[QLatin1String("pose_yaw")], angles::to_degrees(item->yaw()));
 
 
 }
@@ -213,15 +215,15 @@ void InspectorArm::valueChanged(QtProperty *property, double value)
   }
   else if (id == QLatin1String("pose_roll"))
   {
-    current_item_->setRoll(value);
+    current_item_->setRoll(angles::from_degrees(value));
   }
   else if (id == QLatin1String("pose_pitch"))
   {
-    current_item_->setPitch(value);
+    current_item_->setPitch(angles::from_degrees(value));
   }
   else if (id == QLatin1String("pose_yaw"))
   {
-    current_item_->setYaw(value);
+    current_item_->setYaw(angles::from_degrees(value));
   }
 }
 
