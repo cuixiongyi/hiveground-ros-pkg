@@ -129,25 +129,16 @@ void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState
 void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message)
 {
   if(message->hands.empty()) return;
-  tf::Transform hand_left;
-  tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
-  tf::StampedTransform origin;
-  listener_.lookupTransform(world_frame_,
-                              "link2",
-                              ros::Time(0), origin);
-  tf::Vector3 origin_to_hand = hand_left.getOrigin() - origin.getOrigin();
-  Eigen::Vector3f v(origin_to_hand.x(), origin_to_hand.y(), origin_to_hand.z());
-  Eigen::Quaternionf q;
-  q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), v.normalized());
-  tf::Transform new_ee_pose;
 
-
-  new_ee_pose.setOrigin((origin_to_hand.normalize() * -0.3) + hand_left.getOrigin());
-  new_ee_pose.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
-  sensor_msgs::JointState joint_state;
-  if(checkIK(new_ee_pose, joint_state))
+  if(ui.checkBoxFollowHand->isChecked())
   {
-    if(ui.checkBoxFollowHand->isChecked())
+    tf::Transform hand_left;
+    tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
+    tf::Transform origin(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0, 0.490));
+    tf::Transform new_ee_pose;
+    lookAt(hand_left.getOrigin(), origin, ui.doubleSpinBoxLookAtDistance->value() , new_ee_pose);
+    sensor_msgs::JointState joint_state;
+    if (checkIK(new_ee_pose, joint_state))
     {
       control_msgs::FollowJointTrajectoryGoal goal;
       goal.trajectory.header.stamp = ros::Time::now();
@@ -159,6 +150,19 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
       arm_is_active_ = true;
     }
   }
+}
+
+void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result)
+{
+  tf::Vector3 from_to_at = at - from.getOrigin();
+  Eigen::Vector3f v(from_to_at.x(), from_to_at.y(), from_to_at.z());
+  Eigen::Quaternionf q;
+  q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), v.normalized());
+  result.setOrigin((from_to_at.normalize() * -distance) + at);
+  result.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
+  //ROS_INFO("(%6.3f, %6.3f, %6.3f) (%6.3f, %6.3f, %6.3f, %6.3f)",
+           //result.getOrigin().x(), result.getOrigin().y(),result. getOrigin().z(),
+           //result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
 }
 
 void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
@@ -247,7 +251,27 @@ void InspectorArm::followPointSlot()
       goal.trajectory.header.stamp = ros::Time::now();
       goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
       trajectory_msgs::JointTrajectoryPoint point;
-      point.positions = markers_[selected_markers_.back()]->jointState().position;
+      if(ui.checkBoxLookAt->isEnabled() && ui.checkBoxLookAt->isChecked())
+      {
+        tf::Transform origin(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0, 0.490));
+        tf::Transform new_ee_pose;
+        tf::Vector3 at;
+        tf::pointMsgToTF(markers_[selected_markers_.back()]->pose().position, at);
+        lookAt(at, origin, ui.doubleSpinBoxLookAtDistance->value(), new_ee_pose);
+        sensor_msgs::JointState joint_state;
+        if (checkIK(new_ee_pose, joint_state))
+        {
+          point.positions = joint_state.position;
+        }
+        else
+        {
+          return;
+        }
+      }
+      else
+      {
+        point.positions = markers_[selected_markers_.back()]->jointState().position;
+      }
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
     }

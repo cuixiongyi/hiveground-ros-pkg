@@ -1,5 +1,5 @@
 <launch>
-  <include file="$(find hg_demo)/launch/vp6242/camera_setup.launch"/>      
+  <!--include file="$(find hg_demo)/launch/vp6242/camera_setup.launch"/-->      
   <include file="$(find hg_demo)/launch/vp6242/kinect_center.launch"/>
   <include file="$(find hg_demo)/launch/vp6242/vp6242_self_filter.launch"/>        
   <include file="$(find vp6242_arm_navigation)/launch/planning_scene_warehouse_viewer_vp6242_real.launch"/>
