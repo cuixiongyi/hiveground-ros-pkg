@@ -115,43 +115,12 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     }
   }
 
-
   int num_traj = trajectory.points.size();
   ROS_DEBUG("Got trajectory with %d points", num_traj);
   ros::Time trajectory_start_time = trajectory.header.stamp;
   ROS_DEBUG_STREAM("Time to start: " << trajectory_start_time);
   double time_before_start = (trajectory.header.stamp - ros::Time::now()).toSec();
   ROS_DEBUG_STREAM("Time before start: " << time_before_start);
-
-  //check velocity at each point
-  for (int i = 0; i < num_traj; i++)
-  {
-    if (trajectory.points[i].velocities.empty())
-      trajectory.points[i].velocities.resize(num_joints, 0);
-  }
-
-  //check current position with start point position
-  trajectory_msgs::JointTrajectoryPoint start_point;
-  std::vector<double> positions_diff;
-  std::vector<double> velocities_diff;
-  start_point.positions.resize(num_joints, 0);
-  start_point.velocities.resize(num_joints, 0);
-  positions_diff.resize(num_joints, 0);
-  velocities_diff.resize(num_joints, 0);
-  bool different_start_position = false;
-  for(int i = 0; i < num_joints; i++)
-  {
-    start_point.positions[i] = joints_[i]->position_;
-    start_point.velocities[i] = joints_[i]->velocity_;
-    positions_diff[i] = start_point.positions[i] - trajectory.points[0].positions[i];
-    velocities_diff[i] = start_point.velocities[i] - trajectory.points[0].velocities[i];
-    ROS_DEBUG("Joint %d diff: [p]:%f [v]:%f", i, positions_diff[i], velocities_diff[i]);
-    if(positions_diff[i] != 0 || velocities_diff[i] != 0)
-    {
-      different_start_position = true;
-    }
-  }
-
 
   if(is_preempted_)
   {
@@ -161,14 +130,29 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
   }
   else
   {
-    if(different_start_position)
+    //check current position with start point position
+    trajectory_msgs::JointTrajectoryPoint start_point;
+    start_point.positions.resize(num_joints, 0);
+    double position_diff = 0.0;
+    bool different_start_position = false;
+    for (int i = 0; i < num_joints; i++)
+    {
+      start_point.positions[i] = joints_[i]->position_;
+      position_diff = start_point.positions[i] - trajectory.points[0].positions[i];
+      ROS_DEBUG("Joint %d diff: [p]:%f", i, position_diff);
+      if (position_diff != 0)
+      {
+        different_start_position = true;
+      }
+    }
+
+    if (different_start_position)
     {
       //add current position to the trajectory
       ROS_DEBUG("Trajectory did not start from current state");
       trajectory.points.insert(trajectory.points.begin(), start_point);
     }
   }
-
 
   std::vector<arm_navigation_msgs::JointLimits> limits;
   arm_navigation_msgs::JointLimits limit;
@@ -183,6 +167,68 @@ void FollowJointController::followJointGoalActionCallback(const control_msgs::Fo
     limit.max_acceleration = joints_[i]->joint_info_->limits->effort;
     limits.push_back(limit);
   }
+
+  num_traj = trajectory.points.size();
+  //check velocity at each point
+  if(trajectory.points[0].velocities.size() == 0) trajectory.points[0].velocities.resize(num_joints, 0);
+  if(trajectory.points[num_traj-1].velocities.size() == 0) trajectory.points[num_traj-1].velocities.resize(num_joints, 0);
+  double ds0, ds1, t0, t1, slope0, slope1, velocity;
+  int sign0, sign1;
+  for (int i = 1; i < num_traj-1; i++)
+  {
+    if (trajectory.points[i].velocities.empty())
+    {
+      trajectory.points[i].velocities.resize(num_joints, 0);
+      //add velocity heuristically
+      ROS_INFO("==========");
+      for(int j = 0; j < num_joints; j++)
+      {
+        ds0 = trajectory.points[i].positions[j] - trajectory.points[i-1].positions[j];
+        ds1 = trajectory.points[i+1].positions[j] - trajectory.points[i].positions[j];
+        sign0 = (ds0 > 0) ? 1 : ((ds0 < 0) ? -1 : 0);
+        sign1 = (ds1 > 0) ? 1 : ((ds1 < 0) ? -1 : 0);
+        ROS_INFO("ds %6.3f %6.3f", ds0, ds1);
+        if(sign0 != sign1)
+        {
+          ROS_INFO("slope sign changes, set velocity to 0.0");
+          continue;
+        }
+
+        if(ds0 == 0 || ds1 == 0)
+        {
+          ROS_INFO("not move, set velocity to 0.0");
+          continue;
+        }
+
+        t0 = sqrt(fabs((2.0 * ds0) / pow(limits[j].max_acceleration,2)));
+        t1 = sqrt(fabs((2.0 * ds1) / pow(limits[j].max_acceleration,2)));
+        slope0 = ds0 / t0;
+        slope1 = ds1 / t1;
+        ROS_INFO("slope %6.3f %6.3f %6.3f %6.3f", t0, t1, slope0, slope1);
+        velocity = (slope0 + slope1) * 0.5;
+        if(fabs(velocity) <= limits[j].max_velocity)
+        {
+          trajectory.points[i].velocities[j] = (slope0 + slope1) * 0.5;
+        }
+        else
+        {
+          trajectory.points[i].velocities[j] = limits[j].max_velocity * ((velocity > 0) ? 1 : ((velocity < 0) ? -1 : 0));
+        }
+
+
+        ROS_INFO("slope sign continues, set velocity to %f", trajectory.points[i].velocities[j]);
+
+      }
+      ROS_INFO("==========");
+
+    }
+  }
+
+
+
+
+
+
 
   spline_smoother::SplineTrajectory spline_trajectory;
   //spline_smoother::CubicParameterizedTrajectory trajectory_generator;

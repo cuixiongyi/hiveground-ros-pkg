@@ -42,6 +42,7 @@
 
 
 #include <hg_inspector_arm/inspector_arm.h>
+#include <spline_smoother/cubic_trajectory.h>
 
 using namespace visualization_msgs;
 
@@ -165,6 +166,68 @@ void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, doub
            //result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
 }
 
+bool InspectorArm::getLinerTrajectory(const tf::Transform& from, const tf::Transform& to,
+                                           double dt, trajectory_msgs::JointTrajectory& trajectory)
+{
+  spline_smoother::SplineTrajectory spline_trajectory;
+  spline_smoother::CubicTrajectory trajectory_generator;
+  trajectory_msgs::JointTrajectory local_trajectory;
+  arm_navigation_msgs::JointLimits limit;
+  std::vector<arm_navigation_msgs::JointLimits> limits;
+  tf::Vector3 dir = (to.getOrigin() - from.getOrigin());
+  double distance = dir.length();
+  limit.has_position_limits = 0;
+  limit.has_velocity_limits = 1;
+  limit.has_acceleration_limits = 1;
+  limit.max_velocity = 1.0;
+  limit.max_acceleration = 4.0;
+  limits.push_back(limit);
+  trajectory_msgs::JointTrajectoryPoint point;
+  local_trajectory.joint_names.resize(1);
+  point.velocities.resize(1, 0.0);
+  point.positions.resize(1, 0.0);
+  local_trajectory.points.push_back(point);
+  point.positions[0] = distance;
+  local_trajectory.points.push_back(point);
+
+
+  trajectory_generator.parameterize(local_trajectory, limits, spline_trajectory);
+  double t = spline_trajectory.segments[0].duration.toSec();
+  int joint = spline_trajectory.segments[0].joints.size();
+  //ROS_INFO("trajectory size %lu spline size:%lu", trajectory.points.size(), spline_trajectory.segments.size());
+  int steps = t / dt;
+  ROS_INFO("Time: %f steps: %d %d", t, steps, joint);
+  trajectory.points.clear();
+  tf::Transform tf;
+  dir.normalize();
+  double a0 = spline_trajectory.segments[0].joints[0].coefficients[0];
+  double a1 = spline_trajectory.segments[0].joints[0].coefficients[1];
+  double a2 = spline_trajectory.segments[0].joints[0].coefficients[2];
+  double a3 = spline_trajectory.segments[0].joints[0].coefficients[3];
+  double step_size;
+  sensor_msgs::JointState joint_state;
+  geometry_msgs::Pose pose;
+  point.velocities.clear();
+  for(int i = 0; i < steps; i++)
+  {
+    t = i * dt;
+    step_size = a0 + (a1 * t) + (a2 * t * t) + (a3 * t * t * t);
+    tf.setRotation(tf::slerp(from.getRotation(), to.getRotation(), t));
+    tf.setOrigin(from.getOrigin() + dir*step_size);
+    if(!checkIKConstraintAware(tf, joint_state))
+    {
+      ROS_INFO("Fail! at step %d", i);
+      tf::poseTFToMsg(tf, pose);
+      ROS_INFO_STREAM(pose);
+      return false;
+    }
+    point.positions = joint_state.position;
+    point.time_from_start = ros::Duration(t);
+    trajectory.points.push_back(point);
+  }
+  return true;
+}
+
 void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
 {
 
@@ -181,6 +244,7 @@ void InspectorArm::on_pushButtonPlan_clicked()
 
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   trajectory_msgs::JointTrajectoryPoint point;
+  point.velocities.resize(ik_solver_info_.kinematic_solver_info.joint_names.size(), 0);
   while (it != markers_.end())
   {
     point.positions = it->second->jointState().position;
@@ -270,7 +334,25 @@ void InspectorArm::followPointSlot()
       }
       else
       {
+        tf::Transform to;
+        tf::StampedTransform from;
+        listener_.lookupTransform(world_frame_,
+                                    ik_solver_info_.kinematic_solver_info.link_names[0],
+                                    ros::Time(0), from);
+        tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), to);
+        getLinerTrajectory(from, to, 0.01, goal.trajectory);
         point.positions = markers_[selected_markers_.back()]->jointState().position;
+        goal.trajectory.points.push_back(point);
+        action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+        return;
+
+
+
+
+
+
+
+        //point.positions = markers_[selected_markers_.back()]->jointState().position;
       }
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));

@@ -134,6 +134,8 @@ protected:
 
   //utility functions
   void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
+  bool getLinerTrajectory(const tf::Transform& from, const tf::Transform& to,
+                             double dt, trajectory_msgs::JointTrajectory& trajectory);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
