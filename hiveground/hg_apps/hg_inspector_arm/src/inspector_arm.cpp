@@ -244,7 +244,7 @@ void InspectorArm::on_pushButtonPlan_clicked()
 
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   trajectory_msgs::JointTrajectoryPoint point;
-  point.velocities.resize(ik_solver_info_.kinematic_solver_info.joint_names.size(), 0);
+  //point.velocities.resize(ik_solver_info_.kinematic_solver_info.joint_names.size(), 0);
   while (it != markers_.end())
   {
     point.positions = it->second->jointState().position;
@@ -334,6 +334,7 @@ void InspectorArm::followPointSlot()
       }
       else
       {
+        /*
         tf::Transform to;
         tf::StampedTransform from;
         listener_.lookupTransform(world_frame_,
@@ -345,14 +346,14 @@ void InspectorArm::followPointSlot()
         goal.trajectory.points.push_back(point);
         action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
         return;
+        */
 
 
 
 
 
 
-
-        //point.positions = markers_[selected_markers_.back()]->jointState().position;
+        point.positions = markers_[selected_markers_.back()]->jointState().position;
       }
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
