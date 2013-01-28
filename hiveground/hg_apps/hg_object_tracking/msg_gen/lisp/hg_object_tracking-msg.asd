@@ -6,8 +6,8 @@
                :std_msgs-msg
 )
   :components ((:file "_package")
-    (:file "Hand" :depends-on ("_package_Hand"))
-    (:file "_package_Hand" :depends-on ("_package"))
     (:file "Hands" :depends-on ("_package_Hands"))
     (:file "_package_Hands" :depends-on ("_package"))
+    (:file "Hand" :depends-on ("_package_Hand"))
+    (:file "_package_Hand" :depends-on ("_package"))
   ))
