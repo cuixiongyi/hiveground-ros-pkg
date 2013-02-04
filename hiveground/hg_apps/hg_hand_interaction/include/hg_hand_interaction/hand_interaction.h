@@ -77,6 +77,7 @@ public:
   bool quit_threads_;
 
   ros::Subscriber hands_subscriber_;
+  ros::Publisher hand_filtered_publisher_;
   ros::Publisher hand_gestures_publisher_;
   ros::Publisher marker_array_publisher_;
 

@@ -135,11 +135,13 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
   {
     tf::Transform hand_left;
     tf::transformMsgToTF(message->hands[0].hand_centroid, hand_left);
-    tf::Transform origin(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0, 0.490));
+    tf::StampedTransform from;
+    listener_.lookupTransform(world_frame_, "link2", ros::Time(0), from);
+    tf::Transform origin(tf::Quaternion(0, 0, 0, 1), from.getOrigin());
     tf::Transform new_ee_pose;
     lookAt(hand_left.getOrigin(), origin, ui.doubleSpinBoxLookAtDistance->value() , new_ee_pose);
     sensor_msgs::JointState joint_state;
-    if (checkIK(new_ee_pose, joint_state))
+    if (checkIKConstraintAware(new_ee_pose, joint_state))
     {
       control_msgs::FollowJointTrajectoryGoal goal;
       goal.trajectory.header.stamp = ros::Time::now();
@@ -274,8 +276,8 @@ void InspectorArm::on_actionLoadMarker_triggered()
     int ret = QMessageBox::warning(this, tr("Inspector Arm"),
                                     tr("The marker has been modified.\n"
                                        "Do you want to save your changes?"),
-                                    QMessageBox::Save | QMessageBox::Cancel,
-                                    QMessageBox::Save);
+                                    QMessageBox::Save | QMessageBox::Cancel, QMessageBox::Save);
+
     if(ret == QMessageBox::Save)
       on_actionSaveMarker_triggered();
   }
@@ -317,13 +319,16 @@ void InspectorArm::followPointSlot()
       trajectory_msgs::JointTrajectoryPoint point;
       if(ui.checkBoxLookAt->isEnabled() && ui.checkBoxLookAt->isChecked())
       {
-        tf::Transform origin(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0, 0.490));
+        tf::StampedTransform from;
+        listener_.lookupTransform(world_frame_, "link2", ros::Time(0), from);
+        tf::Transform origin(tf::Quaternion(0, 0, 0, 1), from.getOrigin());
         tf::Transform new_ee_pose;
         tf::Vector3 at;
-        tf::pointMsgToTF(markers_[selected_markers_.back()]->pose().position, at);
+        tf::pointMsgToTF(feedback_pose_.position, at);
         lookAt(at, origin, ui.doubleSpinBoxLookAtDistance->value(), new_ee_pose);
         sensor_msgs::JointState joint_state;
-        if (checkIK(new_ee_pose, joint_state))
+
+        if (checkIKConstraintAware(new_ee_pose, joint_state))
         {
           point.positions = joint_state.position;
         }
@@ -331,6 +336,7 @@ void InspectorArm::followPointSlot()
         {
           return;
         }
+
       }
       else
       {

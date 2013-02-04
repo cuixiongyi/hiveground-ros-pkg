@@ -110,6 +110,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
         sensor_msgs::JointState joint_state;
+        feedback_pose_ = feedback->pose;
         if(checkIKConstraintAware(feedback->pose, joint_state))
         {
           tf::Transform tf_old, tf_new;
@@ -120,9 +121,9 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           markers_[feedback->marker_name]->setPose(feedback->pose);
           markers_[feedback->marker_name]->setJointState(joint_state);
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
-          Q_EMIT followPointSignal();
           markers_touched_ = true;
         }
+        Q_EMIT followPointSignal();
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
