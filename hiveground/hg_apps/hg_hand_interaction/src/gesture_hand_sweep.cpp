@@ -147,7 +147,8 @@ void SweepHandGestureDetector::drawResult(visualization_msgs::MarkerArray& marke
 }
 
 void SweepHandGestureDetector::addHandMessage(const hg_object_tracking::HandsConstPtr message)
-{
+{HandGesture gesture;
+
   if(message->hands.empty())
   {
     ROS_WARN_THROTTLE(1.0, "%s got an empty Hands message.", __FUNCTION__);
@@ -158,6 +159,7 @@ void SweepHandGestureDetector::addHandMessage(const hg_object_tracking::HandsCon
   {
     ROS_WARN_THROTTLE(1.0, "%s got more than two hands in Hands message."
                            " The first two hands will be used", __FUNCTION__);
+    return;
   }
 
   int num_hand = message->hands.size();
@@ -302,10 +304,10 @@ int SweepHandGestureDetector::detectOneHandGesture(int id)
         min_error_index = i;
       }
     }
-    ROS_INFO("hand %d %d %f", id, min_error_index, min_error);
+    //ROS_INFO("hand %d %d %f", id, min_error_index, min_error);
     if(min_error > DIRECTION_EPSILON)
     {
-      ROS_INFO("Too much error");
+      //ROS_INFO("Too much error");
     }
     else
     {
@@ -314,36 +316,36 @@ int SweepHandGestureDetector::detectOneHandGesture(int id)
         case 0:
           if(dot_products[min_error_index] > 0)
           {
-            ROS_INFO("SWEEP_BACKWARD_ONE_HAND");
+            ROS_INFO("[%d]: SWEEP_BACKWARD_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_BACKWARD_ONE_HAND;
           }
           else
           {
-            ROS_INFO("SWEEP_FORWARD_ONE_HAND");
+            ROS_INFO("[%d]: SWEEP_FORWARD_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_FORWARD_ONE_HAND;
           }
           break;
         case 1:
           if (dot_products[min_error_index] > 0)
           {
-            ROS_INFO("SWEEP_RIGHT_ONE_HAND");
+            ROS_INFO("[%d]: SWEEP_RIGHT_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_RIGHT_ONE_HAND;
           }
           else
           {
-            ROS_INFO("SWEEP_LEFT_ONE_HAND");
+            ROS_INFO("[%d]: SWEEP_LEFT_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_LEFT_ONE_HAND;
           }
           break;
         case 2:
           if (dot_products[min_error_index] > 0)
           {
-            ROS_INFO("SWEEP_UP_ONE_HAND");
+            ROS_INFO("[%d]: SWEEP_UP_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_UP_ONE_HAND;
           }
           else
           {
-            ROS_INFO("SWEEP_DOWN_ONE_HAND");
+            ROS_INFO("[%d]: SWEEP_DOWN_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_DOWN_ONE_HAND;
           }
           break;

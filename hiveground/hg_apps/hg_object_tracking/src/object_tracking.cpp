@@ -119,7 +119,7 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
   hg_object_tracking::Hands hands_message;
   detectHands(clustered_clouds, hands_message);
 
-  if((hands_publisher_.getNumSubscribers() != 0) && (hands_message.hands.size() != 0))
+  if((hands_publisher_.getNumSubscribers() != 0))
   {
     hands_message.header.stamp = message->header.stamp;
     hands_message.header.frame_id = message->header.frame_id;

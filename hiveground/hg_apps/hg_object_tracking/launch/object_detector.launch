@@ -13,7 +13,7 @@
       area_y_max: 0.6
       area_z_min: 0.1
       area_z_max: 1.0
-      arm_min_cluster_size: 150
+      arm_min_cluster_size: 50
       plam_max_cluster_size: 250
       arm_eigen_value_ratio: 4
     </rosparam>

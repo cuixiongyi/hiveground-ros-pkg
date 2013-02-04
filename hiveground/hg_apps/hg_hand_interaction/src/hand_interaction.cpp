@@ -41,6 +41,117 @@
 using namespace hg_hand_interaction;
 using namespace visualization_msgs;
 
+KalmanTraker3d::KalmanTraker3d()
+  : predict_count_(0), update_count_(0),
+    current_state_(START)
+{
+
+}
+
+KalmanTraker3d::~KalmanTraker3d()
+{
+
+}
+
+void KalmanTraker3d::initialize(double dt,
+                                    const cv::Point3f& point,
+                                    double process_noise,
+                                    double measurement_noise,
+                                    double error_cov)
+{
+  filter_ = cv::KalmanFilter(6, 3, 0);
+  filter_.statePost.at<float>(0) = point.x;
+  filter_.statePost.at<float>(1) = point.y;
+  filter_.statePost.at<float>(2) = point.z;
+  filter_.statePost.at<float>(3) = 0.0;
+  filter_.statePost.at<float>(4) = 0.0;
+  filter_.statePost.at<float>(5) = 0.0;
+  filter_.transitionMatrix = (cv::Mat_<float>(6, 6) <<
+      1, 0, 0, dt, 0, 0,
+      0, 1, 0, 0, dt, 0,
+      0, 0, 1, 0, 0, dt,
+      0, 0, 0, 1, 0, 0,
+      0, 0, 0, 0, 1, 0,
+      0, 0, 0, 0, 0, 1);
+  cv::setIdentity(filter_.measurementMatrix);
+  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(process_noise));
+  cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(measurement_noise));
+  cv::setIdentity(filter_.errorCovPost, cv::Scalar::all(error_cov));
+  predict_count_ = 0;
+  update_count_ = 0;
+  current_state_ = START;
+}
+
+void KalmanTraker3d::predict(cv::Mat& result)
+{
+  result = filter_.predict();
+  predict_count_++;
+}
+
+void KalmanTraker3d::update(const cv::Point3f& measurement, cv::Mat& result)
+{
+  cv::Mat_<float> z(3,1);
+  z.setTo(cv::Scalar(0));
+  z(0) = measurement.x;
+  z(1) = measurement.y;
+  z(2) = measurement.z;
+  result = filter_.correct(z);
+  update_count_++;
+}
+
+int KalmanTraker3d::updateState()
+{
+  switch(current_state_)
+  {
+    case START:
+      if(predict_count_ > update_count_)
+      {
+        current_state_ = DIE;
+      }
+      else if(predict_count_ == update_count_)
+      {
+        if(update_count_ > 5)
+        {
+          current_state_ = TRACK;
+        }
+      }
+      else
+      {
+        ROS_ERROR("Should not happen! call predict before update!");
+      }
+      break;
+    case TRACK:
+      if(predict_count_ > update_count_)
+      {
+        current_state_ = LOST;
+      }
+      else if(predict_count_ == update_count_)
+      {
+          current_state_ = TRACK;
+      }
+      else
+      {
+        ROS_ERROR("Should not happen! call predict before update!");
+      }
+      break;
+    case LOST:
+      if((predict_count_ - update_count_) > 30)
+      {
+        predict_count_ = 0;
+        update_count_ = 0;
+        current_state_ = DIE;
+      }
+      break;
+    case DIE:
+      if(update_count_ > 0)
+      {
+        current_state_ = START;
+      }
+      break;
+  }
+  return current_state_;
+}
+
 HandInteraction::HandInteraction(QWidget *parent, Qt::WFlags flags) :
   QMainWindow(parent, flags),
   nh_(), nh_private_("~"),
@@ -77,7 +188,6 @@ bool HandInteraction::initialize()
   }
 
 
-
   hands_subscriber_ = nh_private_.subscribe("hands_in", 1, &HandInteraction::handsCallBack, this);
   hand_gestures_publisher_ = nh_private_.advertise<HandGestures>("hand_gestures", 128);
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("gesture_history", 128);
@@ -87,30 +197,222 @@ bool HandInteraction::initialize()
 
 void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr message)
 {
-  HandGestureDetector* hand_gesture_detector;
+  hg_object_tracking::Hands hands = *message;
+  size_t n_hand = hands.hands.size();
+
+  if ((n_hand != 0) &&  (n_hand != hand_trackers_.size()))
+  {
+    hand_history_.clear();
+    hand_trackers_.clear();
+    hand_history_.resize(n_hand);
+    for (size_t i = 0; i < hands.hands.size(); i++)
+    {
+      KalmanTraker3d traker;
+      cv::Point3f point(hands.hands[i].hand_centroid.translation.x,
+                        hands.hands[i].hand_centroid.translation.y,
+                        hands.hands[i].hand_centroid.translation.z);
+      traker.initialize(1.0 / 30.0, point, 1e-2, 1e-1, 1e-1);
+      hand_trackers_.push_back(traker);
+      hand_history_[i].resize(3);
+    }
+  }
+
+  //ROS_INFO("======");
+  geometry_msgs::Point marker_point;
+  cv::Point3f measurement;
+  cv::Mat result;
+  int state;
+  for (size_t i = 0; i < hand_trackers_.size(); i++)
+  {
+    hand_trackers_[i].predict(result);
+    //ROS_INFO_STREAM("[" << i << "] predicted: " << result);
+    marker_point.x = result.at<float>(0);
+    marker_point.y = result.at<float>(1);
+    marker_point.z = result.at<float>(2);
+    hand_history_[i][KalmanTraker3d::PREDICTED].push_back(marker_point);
+    if (hand_history_[i][KalmanTraker3d::PREDICTED].size() > HAND_HISTORY_SIZE)
+    {
+      hand_history_[i][KalmanTraker3d::PREDICTED].pop_front();
+    }
+
+    if (i + 1 <= n_hand)
+    {
+      tf::Vector3 point1(result.at<float>(0), result.at<float>(1), result.at<float>(2));
+      state = hand_trackers_[i].getState();
+      switch (state)
+      {
+        case KalmanTraker3d::START:
+          measurement.x = hands.hands[i].hand_centroid.translation.x;
+          measurement.y = hands.hands[i].hand_centroid.translation.y;
+          measurement.z = hands.hands[i].hand_centroid.translation.z;
+          break;
+        case KalmanTraker3d::TRACK:
+        case KalmanTraker3d::LOST:
+        {
+          double dist, min_distant = 1e6;
+          size_t index = 0;
+          for (size_t j = 0; j < n_hand; j++)
+          {
+            tf::Vector3 point2(hands.hands[j].hand_centroid.translation.x, hands.hands[j].hand_centroid.translation.y,
+                               hands.hands[j].hand_centroid.translation.z);
+            dist = point1.distance(point2);
+            if (dist < min_distant)
+            {
+              min_distant = dist;
+              index = j;
+            }
+            //ROS_INFO("[%lu] %lu %f", i, j, dist);
+          }
+
+          //ROS_INFO("[%lu] %lu", i, index);
+          measurement.x = hands.hands[index].hand_centroid.translation.x;
+          measurement.y = hands.hands[index].hand_centroid.translation.y;
+          measurement.z = hands.hands[index].hand_centroid.translation.z;
+          break;
+        }
+        case KalmanTraker3d::DIE:
+          //ROS_INFO("DIE");
+          cv::Point3f point(hands.hands[i].hand_centroid.translation.x, hands.hands[i].hand_centroid.translation.y,
+                            hands.hands[i].hand_centroid.translation.z);
+          ROS_INFO_STREAM("[" << i << "] point: " << point);
+          hand_trackers_[i].initialize(1.0 / 30.0, point, 1e-2, 1e-1, 1e-1);
+          break;
+      }
+
+      if ((state == KalmanTraker3d::TRACK) || (state == KalmanTraker3d::START))
+      {
+        hand_trackers_[i].update(measurement, result);
+        marker_point.x = measurement.x;
+        marker_point.y = measurement.y;
+        marker_point.z = measurement.z;
+        hand_history_[i][KalmanTraker3d::MESUREMENT].push_back(marker_point);
+        marker_point.x = result.at<float>(0);
+        marker_point.y = result.at<float>(1);
+        marker_point.z = result.at<float>(2);
+        hand_history_[i][KalmanTraker3d::ESTIMATED].push_back(marker_point);
+
+        //ROS_INFO_STREAM("[" << i << "] measurement: " << measurement);
+        //ROS_INFO_STREAM("[" << i << "] estimated: " << result);
+
+        if (hand_history_[i][KalmanTraker3d::MESUREMENT].size() > HAND_HISTORY_SIZE)
+        {
+          hand_history_[i][KalmanTraker3d::MESUREMENT].pop_front();
+        }
+
+        if (hand_history_[i][KalmanTraker3d::ESTIMATED].size() > HAND_HISTORY_SIZE)
+        {
+          hand_history_[i][KalmanTraker3d::ESTIMATED].pop_front();
+        }
+
+        hands.hands[i].hand_centroid.translation.x = result.at<float>(0);
+        hands.hands[i].hand_centroid.translation.y = result.at<float>(1);
+        hands.hands[i].hand_centroid.translation.z = result.at<float>(2);
+      }
+    }
+
+    state = hand_trackers_[i].updateState();
+    if (state == KalmanTraker3d::DIE)
+    {
+      for (int j = 0; j < 3; j++)
+      {
+        hand_history_[i][j].clear();
+      }
+    }
+  }
+
+
+
+
   MarkerArray marker_array;
+
+  if(ui.checkBoxShowHistory->isChecked())
+  {
+    Marker marker;
+    marker.type = Marker::LINE_STRIP;
+    marker.lifetime = ros::Duration(0.1);
+    marker.header.frame_id = hands.header.frame_id;
+    marker.scale.x = 0.005;
+    marker.pose.position.x = 0;
+    marker.pose.position.y = 0;
+    marker.pose.position.z = 0;
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0;
+    marker.pose.orientation.z = 0;
+    marker.pose.orientation.w = 1;
+
+    for (size_t i = 0; i < hand_history_.size(); i++)
+      for (int j = 0; j < 3; j++)
+      {
+        marker.points.clear();
+        if (hand_history_[i][j].size() != 0)
+        {
+          std::stringstream ss;
+          ss << "point_history" << i << j;
+          marker.ns = ss.str();
+          marker.id = 0;
+
+          std::list<geometry_msgs::Point>::iterator it;
+          for (it = hand_history_[i][j].begin(); it != hand_history_[i][j].end(); it++)
+          {
+            marker.points.push_back(*it);
+          }
+          switch (j)
+          {
+            case 0:
+              marker.color.r = 1;
+              marker.color.g = 0;
+              marker.color.b = 0;
+              break;
+            case 1:
+              marker.color.r = 1;
+              marker.color.g = 0;
+              marker.color.b = 1;
+              break;
+            case 2:
+              marker.color.r = 0;
+              marker.color.g = 1;
+              marker.color.b = 0;
+              break;
+            default:
+              marker.color.r = 0;
+              marker.color.g = 0;
+              marker.color.b = 0;
+              break;
+
+          }
+          marker.color.a = 1.0;
+          marker_array.markers.push_back(marker);
+        }
+      }
+  }
+
   HandGesture gesture;
   HandGestures gestures;
-  gestures.header.stamp = message->header.stamp;
-  for (size_t i = 0; i < gesture_detectors_.size(); i++)
+
+  if(n_hand != 0)
   {
-    hand_gesture_detector = dynamic_cast<HandGestureDetector*>(gesture_detectors_[i]);
-    if(hand_gesture_detector)
+    HandGestureDetector* hand_gesture_detector;
+    gestures.header.stamp = hands.header.stamp;
+    for (size_t i = 0; i < gesture_detectors_.size(); i++)
     {
-      hand_gesture_detector->addHandMessage(message);
-      gesture.type = hand_gesture_detector->lookForGesture();
-      if(gesture.type != HandGesture::NOT_DETECTED)
-        gestures.gestures.push_back(gesture);
-    }
+      hand_gesture_detector = dynamic_cast<HandGestureDetector*>(gesture_detectors_[i]);
+      if(hand_gesture_detector)
+      {
+        hand_gesture_detector->addHandMessage(message);
+        gesture.type = hand_gesture_detector->lookForGesture();
+        if(gesture.type != HandGesture::NOT_DETECTED)
+          gestures.gestures.push_back(gesture);
+      }
 
-    if(ui.checkBoxShowHistory->isChecked())
-    {
-      gesture_detectors_[i]->drawHistory(marker_array, message->header.frame_id);
-    }
+      if(ui.checkBoxShowHistory->isChecked())
+      {
+        //gesture_detectors_[i]->drawHistory(marker_array, hands.header.frame_id);
+      }
 
-    if(ui.checkBoxShowResults->isChecked())
-    {
-      gesture_detectors_[i]->drawResult(marker_array, message->header.frame_id);
+      if(ui.checkBoxShowResults->isChecked())
+      {
+        gesture_detectors_[i]->drawResult(marker_array, hands.header.frame_id);
+      }
     }
   }
 
@@ -167,3 +469,4 @@ int main(int argc, char** argv)
 
   return ret;
 }
+
