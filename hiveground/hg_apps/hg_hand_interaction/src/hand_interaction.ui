@@ -27,7 +27,7 @@
      <string>Show history</string>
     </property>
     <property name="checked">
-     <bool>false</bool>
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QCheckBox" name="checkBoxShowResults">
