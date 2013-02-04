@@ -2,6 +2,6 @@
   <node pkg="hg_inspector_arm" type="inspector_arm" name="inspector_arm" output="screen">
     <param name="base_link" value="base_link" />    
     <param name="world_frame" value="base_link" />    
-    <remap from="hands_message" to="object_tracking/hands"/>
+    <remap from="hands_message" to="hand_interaction/filtered_hands"/>
   </node>
 </launch>

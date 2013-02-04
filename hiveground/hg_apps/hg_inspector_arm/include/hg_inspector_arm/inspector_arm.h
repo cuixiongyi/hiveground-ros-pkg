@@ -208,6 +208,7 @@ private:
   std::string base_link_;
   //ros::ServiceClient ik_query_client_;
   //ros::ServiceClient ik_client_;
+  geometry_msgs::Pose feedback_pose_;
   kinematics_msgs::GetKinematicSolverInfo::Response ik_solver_info_;
   int name_count_;
   std::map<std::string, InspectionPointItem*> markers_;
