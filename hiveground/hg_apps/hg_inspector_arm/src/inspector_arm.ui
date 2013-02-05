@@ -95,6 +95,45 @@
          <double>0.100000000000000</double>
         </property>
        </widget>
+       <widget class="QCheckBox" name="checkBoxEnableGestureControl">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>130</y>
+          <width>191</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Enable gesture control</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBoxEnableSweepGesture">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>160</y>
+          <width>131</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Enable sweep</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBoxEnablePushPullGesture">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>180</y>
+          <width>201</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Enable push pull</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
@@ -279,6 +318,22 @@
     <hint type="destinationlabel">
      <x>452</x>
      <y>174</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxFollowHand</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxEnableGestureControl</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>317</x>
+     <y>204</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>332</x>
+     <y>234</y>
     </hint>
    </hints>
   </connection>

@@ -45,6 +45,7 @@
 #include <spline_smoother/cubic_trajectory.h>
 
 using namespace visualization_msgs;
+using namespace hg_hand_interaction;
 
 
 InspectorArm::InspectorArm(QWidget *parent, Qt::WFlags flags)
@@ -158,7 +159,61 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
 
 void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesConstPtr message)
 {
-  ROS_INFO(__FUNCTION__);
+  //ROS_INFO(__FUNCTION__);
+  if(ui.checkBoxEnableGestureControl->isChecked())
+  {
+    if(ui.checkBoxEnablePushPullGesture->isChecked())
+    {
+      if(markers_.find(selected_markers_.back()) != markers_.end())
+      {
+        for(size_t i = 0; i < message->gestures.size(); i++)
+        {
+          if((message->gestures[i].type >= HandGesture::PUSH_PULL_XP) &&
+             (message->gestures[i].type <= HandGesture::PUSH_PULL_ZN))
+          {
+            tf::StampedTransform ee;
+            listener_.lookupTransform(world_frame_, "link5", ros::Time(0), ee);
+            switch(message->gestures[i].type)
+            {
+              case HandGesture::PUSH_PULL_XP:
+                ee.getOrigin().m_floats[0] += 0.01;
+                break;
+              case HandGesture::PUSH_PULL_XN:
+                ee.getOrigin().m_floats[0] -= 0.01;
+                break;
+              case HandGesture::PUSH_PULL_YP:
+                ee.getOrigin().m_floats[1] += 0.01;
+                break;
+              case HandGesture::PUSH_PULL_YN:
+                ee.getOrigin().m_floats[1] -= 0.01;
+                break;
+              case HandGesture::PUSH_PULL_ZP:
+                ee.getOrigin().m_floats[2] += 0.01;
+                break;
+              case HandGesture::PUSH_PULL_ZN:
+                ee.getOrigin().m_floats[2] -= 0.01;
+                break;
+              default: break;
+            }
+
+            sensor_msgs::JointState joint_state;
+            if (checkIKConstraintAware(ee, joint_state))
+            {
+              control_msgs::FollowJointTrajectoryGoal goal;
+              goal.trajectory.header.stamp = ros::Time::now();
+              goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+              trajectory_msgs::JointTrajectoryPoint point;
+              point.positions = joint_state.position;
+              goal.trajectory.points.push_back(point);
+              action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+              arm_is_active_ = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
 }
 
 void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result)
