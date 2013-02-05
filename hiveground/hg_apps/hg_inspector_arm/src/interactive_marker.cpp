@@ -109,15 +109,15 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
+        tf::Transform pose_new;
+        tf::poseMsgToTF(feedback->pose, pose_new);
+        if(pose_new == last_feedback_pose_)
+          return;
+        last_feedback_pose_ = pose_new;
+
         sensor_msgs::JointState joint_state;
-        feedback_pose_ = feedback->pose;
-        if(checkIKConstraintAware(feedback->pose, joint_state))
+        if(checkIKConstraintAware(pose_new, joint_state))
         {
-          tf::Transform tf_old, tf_new;
-          tf::poseMsgToTF(markers_[feedback->marker_name]->pose(), tf_old);
-          tf::poseMsgToTF(feedback->pose, tf_new);
-          if(tf_old == tf_new)
-            return;
           markers_[feedback->marker_name]->setPose(feedback->pose);
           markers_[feedback->marker_name]->setJointState(joint_state);
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
@@ -384,8 +384,6 @@ void InspectorArm::addMarker(const std::string& name,
     make6DOFControl(int_marker, markers);
   }
 
-
-
   marker_server_.insert(int_marker);
   InteractiveMarkerControl control;
   control.interaction_mode = InteractiveMarkerControl::MENU;
@@ -409,7 +407,6 @@ void InspectorArm::addMarkerAtEndEffector()
   mutex_joint_state_.lock();
   item->setJointState(latest_joint_state_);
   mutex_joint_state_.unlock();
-
   markers_[item->name().toStdString()] = item;
   selectOnlyOneMarker(name);
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
