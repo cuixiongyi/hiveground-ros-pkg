@@ -8,7 +8,7 @@ import hg_hand_interaction.msg
 import std_msgs.msg
 
 class HandGestures(genpy.Message):
-  _md5sum = "6e53ed4eb2268a6b9114b059f3c9fbf9"
+  _md5sum = "27825c1a4244c55115763b262c630b91"
   _type = "hg_hand_interaction/HandGestures"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -35,6 +35,8 @@ string frame_id
 ================================================================================
 MSG: hg_hand_interaction/HandGesture
 int8 type
+float64 var1
+
 #request constants
 int8 NOT_DETECTED = 0
 int8 SWEEP_UP_ONE_HAND = 1
@@ -52,6 +54,13 @@ int8 SWEEP_FORWARD_TWO_HAND = 11
 int8 SWEEP_BACKWARD_TWO_HAND = 12
 int8 SWEEP_OPEN_TWO_HAND = 13
 int8 SWEEP_CLOSE_TWO_HAND = 14
+
+int8 PUSH_PULL_XP = 15
+int8 PUSH_PULL_XN = 16 
+int8 PUSH_PULL_YP = 17
+int8 PUSH_PULL_YN = 18
+int8 PUSH_PULL_ZP = 19
+int8 PUSH_PULL_ZN = 20
 """
   __slots__ = ['header','gestures']
   _slot_types = ['std_msgs/Header','hg_hand_interaction/HandGesture[]']
@@ -104,7 +113,8 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
       length = len(self.gestures)
       buff.write(_struct_I.pack(length))
       for val1 in self.gestures:
-        buff.write(_struct_b.pack(val1.type))
+        _x = val1
+        buff.write(_struct_bd.pack(_x.type, _x.var1))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -138,9 +148,10 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
       self.gestures = []
       for i in range(0, length):
         val1 = hg_hand_interaction.msg.HandGesture()
+        _x = val1
         start = end
-        end += 1
-        (val1.type,) = _struct_b.unpack(str[start:end])
+        end += 9
+        (_x.type, _x.var1,) = _struct_bd.unpack(str[start:end])
         self.gestures.append(val1)
       return self
     except struct.error as e:
@@ -165,7 +176,8 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
       length = len(self.gestures)
       buff.write(_struct_I.pack(length))
       for val1 in self.gestures:
-        buff.write(_struct_b.pack(val1.type))
+        _x = val1
+        buff.write(_struct_bd.pack(_x.type, _x.var1))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -200,14 +212,15 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
       self.gestures = []
       for i in range(0, length):
         val1 = hg_hand_interaction.msg.HandGesture()
+        _x = val1
         start = end
-        end += 1
-        (val1.type,) = _struct_b.unpack(str[start:end])
+        end += 9
+        (_x.type, _x.var1,) = _struct_bd.unpack(str[start:end])
         self.gestures.append(val1)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
+_struct_bd = struct.Struct("<bd")
 _struct_3I = struct.Struct("<3I")
-_struct_b = struct.Struct("<b")

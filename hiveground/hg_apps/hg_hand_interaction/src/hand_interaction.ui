@@ -33,7 +33,7 @@
    <widget class="QCheckBox" name="checkBoxShowResults">
     <property name="geometry">
      <rect>
-      <x>130</x>
+      <x>140</x>
       <y>130</y>
       <width>111</width>
       <height>22</height>
@@ -45,6 +45,45 @@
     <property name="checked">
      <bool>true</bool>
     </property>
+   </widget>
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>190</y>
+      <width>124</width>
+      <height>114</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>GroupBox</string>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QCheckBox" name="checkBoxShowHandRaw">
+       <property name="text">
+        <string>Raw</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxShowHandPredicted">
+       <property name="text">
+        <string>Predicted</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxShowHandEstimated">
+       <property name="text">
+        <string>Estimated</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

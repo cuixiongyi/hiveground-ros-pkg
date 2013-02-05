@@ -10,8 +10,8 @@
 #include "ui_hand_interaction.h"
 #include <hg_hand_interaction/HandGesture.h>
 #include <hg_object_tracking/Hands.h>
-#include <hg_hand_interaction/gesture_hand_sweep.h>
 #include <opencv2/opencv.hpp>
+#include <hg_hand_interaction/gesture.h>
 
 namespace hg_hand_interaction
 {

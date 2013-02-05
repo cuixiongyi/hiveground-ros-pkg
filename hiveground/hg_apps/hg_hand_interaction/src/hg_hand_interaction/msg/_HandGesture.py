@@ -6,10 +6,12 @@ import struct
 
 
 class HandGesture(genpy.Message):
-  _md5sum = "54924b3bfee069bfbfc09b1d80e2254d"
+  _md5sum = "f7a9c9808b5b46db4b902e33263980db"
   _type = "hg_hand_interaction/HandGesture"
   _has_header = False #flag to mark the presence of a Header object
   _full_text = """int8 type
+float64 var1
+
 #request constants
 int8 NOT_DETECTED = 0
 int8 SWEEP_UP_ONE_HAND = 1
@@ -27,6 +29,13 @@ int8 SWEEP_FORWARD_TWO_HAND = 11
 int8 SWEEP_BACKWARD_TWO_HAND = 12
 int8 SWEEP_OPEN_TWO_HAND = 13
 int8 SWEEP_CLOSE_TWO_HAND = 14
+
+int8 PUSH_PULL_XP = 15
+int8 PUSH_PULL_XN = 16 
+int8 PUSH_PULL_YP = 17
+int8 PUSH_PULL_YN = 18
+int8 PUSH_PULL_ZP = 19
+int8 PUSH_PULL_ZN = 20
 """
   # Pseudo-constants
   NOT_DETECTED = 0
@@ -44,9 +53,15 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
   SWEEP_BACKWARD_TWO_HAND = 12
   SWEEP_OPEN_TWO_HAND = 13
   SWEEP_CLOSE_TWO_HAND = 14
+  PUSH_PULL_XP = 15
+  PUSH_PULL_XN = 16
+  PUSH_PULL_YP = 17
+  PUSH_PULL_YN = 18
+  PUSH_PULL_ZP = 19
+  PUSH_PULL_ZN = 20
 
-  __slots__ = ['type']
-  _slot_types = ['int8']
+  __slots__ = ['type','var1']
+  _slot_types = ['int8','float64']
 
   def __init__(self, *args, **kwds):
     """
@@ -56,7 +71,7 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
     changes.  You cannot mix in-order arguments and keyword arguments.
 
     The available fields are:
-       type
+       type,var1
 
     :param args: complete set of field values, in .msg order
     :param kwds: use keyword arguments corresponding to message field names
@@ -67,8 +82,11 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
       #message fields cannot be None, assign default values for those that are
       if self.type is None:
         self.type = 0
+      if self.var1 is None:
+        self.var1 = 0.
     else:
       self.type = 0
+      self.var1 = 0.
 
   def _get_types(self):
     """
@@ -82,7 +100,8 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
     :param buff: buffer, ``StringIO``
     """
     try:
-      buff.write(_struct_b.pack(self.type))
+      _x = self
+      buff.write(_struct_bd.pack(_x.type, _x.var1))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -93,9 +112,10 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
     """
     try:
       end = 0
+      _x = self
       start = end
-      end += 1
-      (self.type,) = _struct_b.unpack(str[start:end])
+      end += 9
+      (_x.type, _x.var1,) = _struct_bd.unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
@@ -108,7 +128,8 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
     :param numpy: numpy python module
     """
     try:
-      buff.write(_struct_b.pack(self.type))
+      _x = self
+      buff.write(_struct_bd.pack(_x.type, _x.var1))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -120,12 +141,13 @@ int8 SWEEP_CLOSE_TWO_HAND = 14
     """
     try:
       end = 0
+      _x = self
       start = end
-      end += 1
-      (self.type,) = _struct_b.unpack(str[start:end])
+      end += 9
+      (_x.type, _x.var1,) = _struct_bd.unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
-_struct_b = struct.Struct("<b")
+_struct_bd = struct.Struct("<bd")

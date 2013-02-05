@@ -3,5 +3,6 @@
     <param name="base_link" value="base_link" />    
     <param name="world_frame" value="base_link" />    
     <remap from="hands_message" to="hand_interaction/filtered_hands"/>
+    <remap from="hand_gestures_message" to="hand_interaction/hand_gestures"/>
   </node>
 </launch>

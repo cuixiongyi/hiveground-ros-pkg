@@ -36,7 +36,8 @@
 #include <QDebug>
 #include <boost/thread.hpp>
 #include <hg_hand_interaction/hand_interaction.h>
-
+#include <hg_hand_interaction/gesture_hand_sweep.h>
+#include <hg_hand_interaction/gesture_push_pull.h>
 
 using namespace hg_hand_interaction;
 using namespace visualization_msgs;
@@ -177,7 +178,7 @@ HandInteraction::~HandInteraction()
 bool HandInteraction::initialize()
 {
   gesture_detectors_.push_back(new SweepHandGestureDetector(nh_private_));
-
+  gesture_detectors_.push_back(new PushPullHandGestureDetector(nh_private_));
 
   //UI for each detector if any
   for(size_t i = 0; i < gesture_detectors_.size(); i++)
@@ -232,7 +233,8 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
     marker_point.x = result.at<float>(0);
     marker_point.y = result.at<float>(1);
     marker_point.z = result.at<float>(2);
-    hand_history_[i][KalmanTraker3d::PREDICTED].push_back(marker_point);
+    if(ui.checkBoxShowHandPredicted->isChecked())
+      hand_history_[i][KalmanTraker3d::PREDICTED].push_back(marker_point);
     if (hand_history_[i][KalmanTraker3d::PREDICTED].size() > HAND_HISTORY_SIZE)
     {
       hand_history_[i][KalmanTraker3d::PREDICTED].pop_front();
@@ -289,11 +291,13 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
         marker_point.x = measurement.x;
         marker_point.y = measurement.y;
         marker_point.z = measurement.z;
-        hand_history_[i][KalmanTraker3d::MESUREMENT].push_back(marker_point);
+        if(ui.checkBoxShowHandRaw->isChecked())
+          hand_history_[i][KalmanTraker3d::MESUREMENT].push_back(marker_point);
         marker_point.x = result.at<float>(0);
         marker_point.y = result.at<float>(1);
         marker_point.z = result.at<float>(2);
-        hand_history_[i][KalmanTraker3d::ESTIMATED].push_back(marker_point);
+        if(ui.checkBoxShowHandEstimated->isChecked())
+          hand_history_[i][KalmanTraker3d::ESTIMATED].push_back(marker_point);
 
         //ROS_INFO_STREAM("[" << i << "] measurement: " << measurement);
         //ROS_INFO_STREAM("[" << i << "] estimated: " << result);
@@ -393,35 +397,27 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
   HandGesture gesture;
   HandGestures gestures;
 
-  if(n_hand != 0)
+  HandGestureDetector* hand_gesture_detector;
+  gestures.header.stamp = hands->header.stamp;
+  for (size_t i = 0; i < gesture_detectors_.size(); i++)
   {
-
-
-
-
-
-    HandGestureDetector* hand_gesture_detector;
-    gestures.header.stamp = hands->header.stamp;
-    for (size_t i = 0; i < gesture_detectors_.size(); i++)
+    hand_gesture_detector = dynamic_cast<HandGestureDetector*>(gesture_detectors_[i]);
+    if (hand_gesture_detector)
     {
-      hand_gesture_detector = dynamic_cast<HandGestureDetector*>(gesture_detectors_[i]);
-      if(hand_gesture_detector)
-      {
-        hand_gesture_detector->addHandMessage(hands);
-        gesture.type = hand_gesture_detector->lookForGesture();
-        if(gesture.type != HandGesture::NOT_DETECTED)
-          gestures.gestures.push_back(gesture);
-      }
+      hand_gesture_detector->addHandMessage(hands);
+      gesture.type = hand_gesture_detector->lookForGesture();
+      if (gesture.type != HandGesture::NOT_DETECTED)
+        gestures.gestures.push_back(gesture);
+    }
 
-      if(ui.checkBoxShowHistory->isChecked())
-      {
-        //gesture_detectors_[i]->drawHistory(marker_array, hands->header.frame_id);
-      }
+    if (ui.checkBoxShowHistory->isChecked())
+    {
+      gesture_detectors_[i]->drawHistory(marker_array, hands->header.frame_id);
+    }
 
-      if(ui.checkBoxShowResults->isChecked())
-      {
-        gesture_detectors_[i]->drawResult(marker_array, hands->header.frame_id);
-      }
+    if (ui.checkBoxShowResults->isChecked())
+    {
+      gesture_detectors_[i]->drawResult(marker_array, hands->header.frame_id);
     }
   }
 

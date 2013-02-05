@@ -33,9 +33,6 @@
 
 #include <hg_hand_interaction/gesture_hand_sweep.h>
 
-#include <QLabel>
-#include <QGridLayout>
-
 using namespace hg_hand_interaction;
 using namespace visualization_msgs;
 
@@ -45,16 +42,21 @@ SweepHandGestureDetector::SweepHandGestureDetector(ros::NodeHandle& nh_private)
 {
   direction_updated_[0] = false;
   direction_updated_[1] = false;
-  three_axes[0] = tf::Vector3(1, 0, 0); //X
-  three_axes[1] = tf::Vector3(0, 1, 0); //Y
-  three_axes[2] = tf::Vector3(0, 0, 1); //Z
+  three_axes_[0] = tf::Vector3(1, 0, 0); //X
+  three_axes_[1] = tf::Vector3(0, 1, 0); //Y
+  three_axes_[2] = tf::Vector3(0, 0, 1); //Z
   hand_moving_direction_filters_.resize(2);
 }
 
 bool SweepHandGestureDetector::initialize()
 {
+  bool b;
   double d;
   int i;
+
+  nh_private_.getParam("sweep_hand_gesture_draw", b);
+  checkbox_draw_marker_->setChecked(b);
+
   nh_private_.getParam("sweep_hand_gesture_windows", d);
   spinbox_window_->setValue(d);
 
@@ -69,6 +71,9 @@ bool SweepHandGestureDetector::initialize()
 
 void SweepHandGestureDetector::drawHistory(MarkerArray& marker_array, const std::string& frame_id)
 {
+  if(!checkbox_draw_marker_->isChecked())
+    return;
+
   Marker markers[2];
 
   for(int i = 0; i < last_hand_count_; i++)
@@ -107,6 +112,9 @@ void SweepHandGestureDetector::drawHistory(MarkerArray& marker_array, const std:
 void SweepHandGestureDetector::drawResult(visualization_msgs::MarkerArray& marker_array,
                                                 const std::string& frame_id)
 {
+  if(!checkbox_draw_marker_->isChecked())
+    return;
+
   int marker_id = 0;
   Marker marker;
   marker.lifetime = ros::Duration(0.1);
@@ -151,17 +159,17 @@ void SweepHandGestureDetector::addHandMessage(const hg_object_tracking::HandsCon
 
   if(message->hands.empty())
   {
-    ROS_WARN_THROTTLE(1.0, "%s got an empty Hands message.", __FUNCTION__);
+    ROS_DEBUG_THROTTLE(1.0, "%s got an empty Hands message.", __FUNCTION__);
     return;
   }
 
   if(message->hands.size() > 2)
   {
-    ROS_WARN_THROTTLE(1.0, "%s got more than two hands in Hands message."
-                           " The first two hands will be used", __FUNCTION__);
+    ROS_DEBUG_THROTTLE(1.0, "%s got more than two hands in Hands message.", __FUNCTION__);
     return;
   }
 
+  last_detected_time_ = ros::Time::now();
   int num_hand = message->hands.size();
 
   if(last_hand_count_ != num_hand)
@@ -221,10 +229,13 @@ void SweepHandGestureDetector::addHandMessage(const hg_object_tracking::HandsCon
 
 int SweepHandGestureDetector::lookForGesture()
 {
+  if((ros::Time::now() - last_detected_time_).toSec() > 0.5)
+    return HandGesture::NOT_DETECTED;
+
   if (gesture_entries_.front().first - gesture_entries_.back().first < gesture_window_)
   {
     ROS_DEBUG("Not enough gesture entries");
-    return 0;
+    return HandGesture::NOT_DETECTED;
   }
 
   int detected_gesture[2];
@@ -296,7 +307,7 @@ int SweepHandGestureDetector::detectOneHandGesture(int id)
     int min_error_index = -1;
     for(int i = 0; i < 3; i++)
     {
-      dot_products[i] = hand_moving_direction_[id].dot(three_axes[i]);
+      dot_products[i] = hand_moving_direction_[id].dot(three_axes_[i]);
 
       if((1 - fabs(dot_products[i])) < min_error)
       {
@@ -450,16 +461,27 @@ void SweepHandGestureDetector::addUI(QToolBox* tool_box)
   spinbox_filter_windows_size_->setMaximum(50);
   spinbox_filter_windows_size_->setSingleStep(1);
 
-  QGridLayout* grid_layout = new QGridLayout;
-  grid_layout->addWidget(label1, 0, 0);
-  grid_layout->addWidget(spinbox_window_, 0, 1);
-  grid_layout->addWidget(label2, 1, 0);
-  grid_layout->addWidget(spinbox_gap_, 1, 1);
-  grid_layout->addWidget(label3, 2, 0);
-  grid_layout->addWidget(spinbox_filter_windows_size_, 2, 1);
+  QHBoxLayout* h_layout_windows = new QHBoxLayout;
+  QHBoxLayout* h_layout_gap = new QHBoxLayout;
+  QHBoxLayout* h_layout_filter = new QHBoxLayout;
+
+  h_layout_windows->addWidget(label1);
+  h_layout_windows->addWidget(spinbox_window_);
+  h_layout_gap->addWidget(label2);
+  h_layout_gap->addWidget(spinbox_gap_);
+  h_layout_filter->addWidget(label3);
+  h_layout_filter->addWidget(spinbox_filter_windows_size_);
+
+  QVBoxLayout* v_layout = new QVBoxLayout;
+  v_layout->addWidget(checkbox_draw_marker_);
+  v_layout->addLayout(h_layout_windows);
+  v_layout->addLayout(h_layout_gap);
+  v_layout->addLayout(h_layout_filter);
+  v_layout->addStretch();
+
 
   QWidget *item_widget = new QWidget;
-  item_widget->setLayout(grid_layout);
+  item_widget->setLayout(v_layout);
   tool_box->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Ignored));
   tool_box->setMinimumWidth(item_widget->sizeHint().width());
   tool_box->addItem(item_widget, tr("Sweep Hand Gesture"));

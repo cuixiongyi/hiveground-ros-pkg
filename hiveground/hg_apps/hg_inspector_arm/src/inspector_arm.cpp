@@ -99,6 +99,7 @@ bool InspectorArm::initializeServiceClient()
   robot_state_ = NULL;
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
   hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
+  hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
 
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
@@ -153,6 +154,11 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
       arm_is_active_ = true;
     }
   }
+}
+
+void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesConstPtr message)
+{
+  ROS_INFO(__FUNCTION__);
 }
 
 void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result)
