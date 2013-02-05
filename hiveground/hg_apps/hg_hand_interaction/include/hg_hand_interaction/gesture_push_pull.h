@@ -31,8 +31,8 @@
  * Author: Mahisorn Wongphati
  */
 
-#ifndef GESTURE_HAND_SWEEP_H_
-#define GESTURE_HAND_SWEEP_H_
+#ifndef GESTURE_PUSH_PULL_H_
+#define GESTURE_PUSH_PULL_H_
 
 #include <hg_hand_interaction/gesture.h>
 #include <pcl/point_cloud.h>
@@ -43,14 +43,22 @@
 namespace hg_hand_interaction
 {
 
-class SweepHandGestureDetector : public HandGestureDetector
+class PushPullHandGestureDetector : public HandGestureDetector
 {
   Q_OBJECT
-  static const double DIRECTION_EPSILON = (1-0.866025404);
 
 public:
-  SweepHandGestureDetector(ros::NodeHandle& nh_private);
-  virtual ~SweepHandGestureDetector() { }
+  enum
+  {
+    IDEL,
+    ENTERING,
+    ACTIVATING,
+    ACTIVATED,
+    LEAVING
+  };
+
+  PushPullHandGestureDetector(ros::NodeHandle& nh_private);
+  virtual ~PushPullHandGestureDetector();
 
   bool initialize();
   void drawHistory(visualization_msgs::MarkerArray& marker_array,
@@ -63,29 +71,27 @@ public:
   void addUI(QToolBox* tool_box);
 
 protected Q_SLOTS:
-  void onWindowTimeValueChanged(double d);
-  void onGapTimeValueChanged(double d);
-  void onFilterWindowSizeChanged(int d);
-
-  int detectOneHandGesture(int id);
-  bool detectTwoHandGesture();
-  tf::Vector3 getHandMovingDirection(int id);
-  tf::Vector3 getFilteredDirection(int id, const tf::Vector3& latest_vector);
 
 protected:
-  int last_hand_count_;
-  pcl::PCA<pcl::PointXYZ> pca_[2];
-  bool direction_updated_[2];
-  tf::Vector3 hand_moving_direction_[2];
-  std::vector<std::list<tf::Vector3> > hand_moving_direction_filters_;
-  int filter_windows_size_;
+  QDoubleSpinBox* spinbox_x_;
+  QDoubleSpinBox* spinbox_y_;
+  QDoubleSpinBox* spinbox_z_;
+  QDoubleSpinBox* spinbox_r1_;
+  QDoubleSpinBox* spinbox_r2_;
+  QDoubleSpinBox* spinbox_r3_;
+  QDoubleSpinBox* spinbox_time_out_;
+  QDoubleSpinBox* spinbox_activating_time_;
+  int current_state_;
+  int last_state_;
+  tf::Transform last_hand_position_;
+  ros::Time start_leaving_time_;
+  ros::Time start_activating_time_;
+  bool is_moving_;
   tf::Vector3 three_axes_[3];
-
-  QSpinBox* spinbox_filter_windows_size_;
 };
 
 }
 
 
 
-#endif /* GESTURE_HAND_SWEEP_H_ */
+#endif /* GESTURE_PUSH_PULL_H_ */

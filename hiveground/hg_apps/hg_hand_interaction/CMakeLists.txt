@@ -35,11 +35,13 @@ ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 set(qt_srcs
       src/hand_interaction.cpp
       src/gesture.cpp
-      src/gesture_hand_sweep.cpp)
+      src/gesture_hand_sweep.cpp
+      src/gesture_push_pull.cpp)
 set(qt_hdrs
       include/hg_hand_interaction/hand_interaction.h
       include/hg_hand_interaction/gesture.h
-      include/hg_hand_interaction/gesture_hand_sweep.h)
+      include/hg_hand_interaction/gesture_hand_sweep.h
+      include/hg_hand_interaction/gesture_push_pull.h)
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
@@ -59,7 +61,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 set(srcs
       src/hand_interaction.cpp
       src/gesture.cpp
-      src/gesture_hand_sweep.cpp)
+      src/gesture_hand_sweep.cpp
+      src/gesture_push_pull.cpp)
 
 rosbuild_add_executable(hand_interaction ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(hand_interaction ${QT_LIBRARIES})

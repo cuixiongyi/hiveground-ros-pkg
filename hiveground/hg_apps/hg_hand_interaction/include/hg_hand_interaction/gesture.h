@@ -39,9 +39,8 @@
 #include <tf/tf.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <hg_object_tracking/Hands.h>
-#include <QToolBox>
 #include <QMutex>
-#include <QDoubleSpinBox>
+#include <QtGui>
 
 
 namespace hg_hand_interaction
@@ -96,8 +95,10 @@ protected:
   ros::Time last_detected_time_;
   std::list<PositionsStamped> gesture_entries_;
   QMutex mutex_;
+  QCheckBox* checkbox_draw_marker_;
   QDoubleSpinBox* spinbox_window_;
   QDoubleSpinBox* spinbox_gap_;
+
 };
 
 class HandGestureDetector : public GestureDetector

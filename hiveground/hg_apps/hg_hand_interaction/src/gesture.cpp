@@ -40,7 +40,7 @@ using namespace hg_hand_interaction;
 GestureDetector::GestureDetector(ros::NodeHandle& nh_private)
     : nh_private_(nh_private)
 {
-
+  checkbox_draw_marker_ = new QCheckBox("Draw marker");
 }
 
 
