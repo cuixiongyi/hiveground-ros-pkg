@@ -1,6 +1,7 @@
 <launch>
   <!--param name="/use_sim_time" value="true" /-->
-  <include file="$(find vp6242_arm_navigation)/launch/vp6242_planning_environment.launch" />
+  <!--include file="$(find vp6242_arm_navigation)/launch/vp6242_planning_environment.launch" /-->
+  <rosparam command="load" ns="robot_description_planning" file="$(find vp6242_arm_navigation)/config/vp6242_planning_description.yaml" />
   <!--node pkg="planning_environment" name="wall_clock_server" type="fake_time.py" /-->
 
   <param name="warehouse_host" value="localhost"/>

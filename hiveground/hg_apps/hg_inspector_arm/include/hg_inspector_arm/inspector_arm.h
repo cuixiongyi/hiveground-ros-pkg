@@ -134,8 +134,6 @@ protected:
 
   //utility functions
   void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
-  bool getLinerTrajectory(const tf::Transform& from, const tf::Transform& to,
-                             double dt, trajectory_msgs::JointTrajectory& trajectory);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
@@ -206,9 +204,7 @@ private:
   tf::TransformListener listener_;
   std::string world_frame_;
   std::string base_link_;
-  //ros::ServiceClient ik_query_client_;
-  //ros::ServiceClient ik_client_;
-  geometry_msgs::Pose feedback_pose_;
+  tf::Transform last_feedback_pose_;
   kinematics_msgs::GetKinematicSolverInfo::Response ik_solver_info_;
   int name_count_;
   std::map<std::string, InspectionPointItem*> markers_;
