@@ -67,6 +67,7 @@ public:
                     const std::string& frame_id = "base_link");
   void addHandMessage(const hg_object_tracking::HandsConstPtr message);
   int lookForGesture();
+  int lookForGesture2();
 
   void addUI(QToolBox* tool_box);
 
@@ -84,6 +85,7 @@ protected:
   int current_state_;
   int last_state_;
   tf::Transform last_hand_position_;
+  tf::Vector3 center_position_;
   ros::Time start_leaving_time_;
   ros::Time start_activating_time_;
   bool is_moving_;
