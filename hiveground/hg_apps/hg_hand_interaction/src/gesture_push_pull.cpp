@@ -201,7 +201,7 @@ int PushPullHandGestureDetector::lookForGesture()
       ROS_INFO("ACTIVATED");
       if (ds < spinbox_r2_->value())
       {
-        if(ds < spinbox_r1_->value())
+        if(ds < (spinbox_r1_->value() / 2.0))
         {
           is_moving_ = false;
         }
@@ -286,14 +286,9 @@ int PushPullHandGestureDetector::lookForGesture()
     default:
       break;
   }
-
-
-
-
-
-
   return detected_gesture;
 }
+
 
 void PushPullHandGestureDetector::addUI(QToolBox* tool_box)
 {
