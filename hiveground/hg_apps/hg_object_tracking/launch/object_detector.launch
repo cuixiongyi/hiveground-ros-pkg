@@ -1,7 +1,8 @@
 <launch>
+  <arg name="cloud"/>  
   <node pkg="hg_object_tracking" type="object_tracking" name="object_tracking" output="screen">
     <!--remap from="~cloud_in" to="passthrough_y/output" /-->
-    <remap from="~cloud_in" to="/vp6242/self_filtered_cloud" />
+    <remap from="~cloud_in" to="$(arg cloud)"/>
     <rosparam>                  
       sac_distance_threshold: 0.025
       ec_cluster_tolerance: 0.05
