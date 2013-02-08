@@ -13,4 +13,9 @@
   
   <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub">  
   </node>     
+
+  <include file="$(find vp6242_with_c920_arm_navigation)/launch/planning_scene_warehouse_viewer_vp6242_with_c920_real_no_rviz.launch"/>
+  <include file="$(find hg_inspector_arm)/launch/inspector_arm.launch"/>
+
+
 </launch>
