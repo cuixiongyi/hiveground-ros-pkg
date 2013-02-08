@@ -1,0 +1,21 @@
+<launch>
+  <arg name="is_simulated" default="false"/>  
+  
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find vp6242_description)/robot/vp6242_with_c920.urdf.xacro'"/>
+  
+  <node name="vp6242_with_c920" pkg="hg_cpp" type="controller_node" output="screen">
+    <param name="is_simulated" value="$(arg is_simulated)"/>
+    <param name="loop_rate" value="100.0"/>
+    <param name="joint_publish_rate" value="25.0"/>
+    <param name="diagnostic_publish_rate" value="10.0"/>    
+    <rosparam file="$(find hg_demo)/parameter/vp6242_with_c920_demo.yaml" command="load" />             
+  </node>
+  
+  <node pkg="robot_state_publisher" type="state_publisher" name="rob_st_pub">  
+  </node>     
+
+  <include file="$(find vp6242_with_c920_arm_navigation)/launch/planning_scene_warehouse_viewer_vp6242_with_c920_real_no_rviz.launch"/>
+  <include file="$(find hg_inspector_arm)/launch/inspector_arm.launch"/>
+
+
+</launch>

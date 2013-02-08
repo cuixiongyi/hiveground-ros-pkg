@@ -1,0 +1,23 @@
+<launch>
+  <node pkg="hg_hand_interaction" type="hand_interaction" name="hand_interaction" output="screen">
+    <remap from="~hands_in" to="/object_tracking/hands" />     
+    <rosparam>           
+      sweep_hand_gesture_draw: false
+      sweep_hand_gesture_windows: 0.3
+      sweep_hand_gesture_gap: 0.5      
+      filter_window_size: 5
+      push_pull_gesture_draw: true
+      push_pull_gesture_x: 0.4
+      push_pull_gesture_y: 0.3
+      push_pull_gesture_z: 0.3
+      push_pull_gesture_r1: 0.08
+      push_pull_gesture_r2: 0.2
+      push_pull_gesture_r3: 0.25
+      push_pull_gesture_timeout: 0.1
+      push_pull_gesture_activating_time: 0.5     
+    </rosparam>
+  </node>
+</launch>  
+  
+
+  
