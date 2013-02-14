@@ -101,6 +101,7 @@ bool InspectorArm::initializeServiceClient()
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
   hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
   hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
+  space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);;
 
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
@@ -213,7 +214,67 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
       }
     }
   }
+}
 
+void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message)
+{
+  //ROS_INFO_STREAM_THROTTLE(1.0, *message);
+  if(!ui.checkBox3DMouse->isChecked()) return;
+
+
+  if(markers_.find(selected_markers_.back()) != markers_.end())
+  {
+    tf::Vector3 linear;
+    tf::vector3MsgToTF(message->linear, linear);
+    tf::Vector3 angular;
+    tf::vector3MsgToTF(message->angular, angular);
+
+    double l1 = linear.length2();
+    double l2 = angular.length2();
+
+    if((l1 == 0.0) & (l2 == 0.0))
+      return;
+
+    bool translate = false;
+    if(l1 > l2)
+      translate = true;
+
+    linear.setX(-linear.x());
+    linear.setY(-linear.y());
+
+    //find max axis
+
+    linear = linear * (1/350.0) * (1.0/ui.doubleSpinBoxLinearScale->value());
+    angular = angular * (1/350.0) * (1.0/ui.doubleSpinBoxAngularScale->value());
+
+    tf::Transform pose;
+    tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
+
+
+    if(translate)
+      pose.setOrigin(pose.getOrigin() + linear);
+    else
+    {
+      //update angular
+      tf::Transform pose_angular;
+      pose_angular.setOrigin(tf::Vector3(0, 0, 0));
+      pose_angular.setRotation(pose.getRotation());
+
+      tf::Transform tf;
+      tf.setOrigin(tf::Vector3(0, 0, 0));
+      tf::Quaternion q;
+      if(ui.checkBoxSwapRxRz->isChecked())
+        q.setRPY(angular.z(), angular.y(), angular.x());
+      else
+        q.setRPY(angular.x(), angular.y(), angular.z());
+      tf.setRotation(q);
+      pose_angular = tf * pose_angular;
+      pose.setRotation(pose.getRotation() * q);
+    }
+
+
+    markers_[selected_markers_.back()]->setPose(pose);
+  }
 }
 
 void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result)

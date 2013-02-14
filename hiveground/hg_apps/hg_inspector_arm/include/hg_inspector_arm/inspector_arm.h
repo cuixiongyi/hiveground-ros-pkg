@@ -69,6 +69,9 @@ typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 class InspectorArm : public QMainWindow, hg_cartesian_trajectory::PlanningBase
 {
   Q_OBJECT
+
+  friend class InspectionPointItem;
+
 public:
 
   InspectorArm(QWidget *parent = 0, Qt::WFlags flags = 0);
@@ -132,6 +135,7 @@ protected:
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
   void handsCallBack(const hg_object_tracking::HandsConstPtr message);
   void handGestureCallBack(const hg_hand_interaction::HandGesturesConstPtr message);
+  void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
 
 
   //utility functions
@@ -245,6 +249,9 @@ private:
   //gesture
   ros::Subscriber hands_subscriber_;
   ros::Subscriber hand_gestures_subscriber_;
+
+  //3d mouse
+  ros::Subscriber space_navigator_subscriber_;
 
 
   //Marker

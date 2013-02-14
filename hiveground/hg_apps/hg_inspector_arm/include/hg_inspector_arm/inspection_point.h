@@ -40,6 +40,7 @@
 
 #include <sensor_msgs/JointState.h>
 
+class InspectorArm;
 class InspectionPointLookAt;
 class InspectionPointItem;
 
@@ -49,7 +50,8 @@ typedef QList<InspectionPointItem*> InspectionPointItemList;
 class InspectionPointItem
 {
 public:
-  InspectionPointItem(interactive_markers::InteractiveMarkerServer* server,
+  InspectionPointItem(InspectorArm* inspector_arm,
+                         interactive_markers::InteractiveMarkerServer* server,
                          const geometry_msgs::Pose& pose = geometry_msgs::Pose());
   virtual ~InspectionPointItem();
 
@@ -100,6 +102,7 @@ public:
   void setYaw(double a) { rotate(roll(), pitch(), a); }
 
   void setPose(const geometry_msgs::Pose& pose);
+  void setPose(const tf::Transform& tf);
   void setJointState(const  sensor_msgs::JointState& joint_state) { joint_state_ = joint_state; }
   void move(double x, double y, double z);
   virtual void moveBy(double x, double y, double z);
@@ -113,6 +116,7 @@ public:
   virtual void load(QDataStream& in);
 
 protected:
+  InspectorArm* inspector_arm_;
   interactive_markers::InteractiveMarkerServer* server_;
   QString name_;
   geometry_msgs::Pose pose_;
