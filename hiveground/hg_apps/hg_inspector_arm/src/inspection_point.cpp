@@ -39,9 +39,10 @@ int InspectionPointItem::rtti() const { return RTTI; }
 int InspectionPointLookAt::RTTI = Rtti_LookAt;
 int InspectionPointLookAt::rtti() const { return RTTI; }
 
-InspectionPointItem::InspectionPointItem(interactive_markers::InteractiveMarkerServer* server,
+InspectionPointItem::InspectionPointItem(InspectorArm* inspector_arm,
+                                               interactive_markers::InteractiveMarkerServer* server,
                                                const geometry_msgs::Pose& pose)
-  : server_(server), pose_(pose)
+  : inspector_arm_(inspector_arm), server_(server), pose_(pose)
 {
 
 }
@@ -53,9 +54,23 @@ InspectionPointItem::~InspectionPointItem()
 
 void InspectionPointItem::setPose(const geometry_msgs::Pose& pose)
 {
-  pose_ = pose;
-  server_->setPose(name_.toStdString(), pose_);
-  server_->applyChanges();
+  sensor_msgs::JointState joint_state;
+  if(inspector_arm_->checkIKConstraintAware(pose, joint_state))
+  {
+    pose_ = pose;
+    joint_state_ = joint_state;
+    server_->setPose(name_.toStdString(), pose_);
+    server_->applyChanges();
+    inspector_arm_->inspectionPointMoved(this);
+    Q_EMIT inspector_arm_->followPointSignal();
+  }
+}
+
+void InspectionPointItem::setPose(const tf::Transform& tf)
+{
+  geometry_msgs::Pose pose;
+  tf::poseTFToMsg(tf, pose);
+  setPose(pose);
 }
 
 void InspectionPointItem::move(double x, double y, double z)
@@ -67,13 +82,23 @@ void InspectionPointItem::moveBy(double dx, double dy, double dz)
 {
   if(dx || dy || dz)
   {
+    geometry_msgs::Pose old_pose = pose_;
+    sensor_msgs::JointState joint_state;
     pose_.position.x += dx;
     pose_.position.y += dy;
     pose_.position.z += dz;
-    ROS_DEBUG_STREAM(name_.toStdString());
-    ROS_DEBUG_STREAM(pose_);
-    server_->setPose(name_.toStdString(), pose_);
-    server_->applyChanges();
+
+    if(inspector_arm_->checkIKConstraintAware(pose_, joint_state))
+    {
+      joint_state_ = joint_state;
+      server_->setPose(name_.toStdString(), pose_);
+      server_->applyChanges();
+    }
+    else
+    {
+      pose_ = old_pose;
+      inspector_arm_->inspectionPointMoved(this);
+    }
   }
 }
 
@@ -84,21 +109,28 @@ void InspectionPointItem::rotate(double roll, double pitch, double yaw)
 
 void InspectionPointItem::rotateBy(double dRoll, double dPitch, double dYaw)
 {
-  if(dRoll || dPitch || dYaw)
+  if((dRoll != 0.0) || (dPitch != 0) || (dYaw != 0))
   {
-    double roll, pitch, yaw;
+    geometry_msgs::Pose old_pose = pose_;
+    sensor_msgs::JointState joint_state;
     tf::Quaternion q;
     tf::quaternionMsgToTF(pose_.orientation, q);
-    tf::Matrix3x3(q).getEulerYPR(yaw, pitch, roll);
-    roll += dRoll;
-    pitch += dPitch;
-    yaw += dYaw;
-    q.setRPY(roll, pitch, yaw);
+    tf::Quaternion dq;
+    dq.setRPY(dRoll, dPitch, dYaw);
+    q = q * dq;
     tf::quaternionTFToMsg(q, pose_.orientation);
-    ROS_DEBUG_STREAM(name_.toStdString());
-    ROS_DEBUG_STREAM(pose_);
-    server_->setPose(name_.toStdString(), pose_);
-    server_->applyChanges();
+
+    if(inspector_arm_->checkIKConstraintAware(pose_, joint_state))
+    {
+      joint_state_ = joint_state;
+      server_->setPose(name_.toStdString(), pose_);
+      server_->applyChanges();
+    }
+    else
+    {
+      pose_ = old_pose;
+      inspector_arm_->inspectionPointMoved(this);
+    }
   }
 }
 

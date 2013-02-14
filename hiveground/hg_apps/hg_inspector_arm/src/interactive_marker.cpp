@@ -138,7 +138,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           tf::poseTFToMsg(transform, pose);
           std::string name = getMarkerName();
           addMarker(name, pose);
-          InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
+          InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
           item->setName(name.c_str());
           markers_[item->name().toStdString()] = item;
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
@@ -147,7 +147,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         {
           std::string name = getMarkerName();
           addMarker(name, feedback->pose);
-          InspectionPointItem* item = new InspectionPointItem(&marker_server_, feedback->pose);
+          InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, feedback->pose);
           item->setName(name.c_str());
           item->setJointState(markers_[feedback->marker_name]->jointState());
           markers_[item->name().toStdString()] = item;
@@ -402,7 +402,7 @@ void InspectorArm::addMarkerAtEndEffector()
   tf::poseTFToMsg(transform, pose);
   std::string name = getMarkerName();
   addMarker(name, pose);
-  InspectionPointItem* item = new InspectionPointItem(&marker_server_, pose);
+  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
   item->setName(name.c_str());
   mutex_joint_state_.lock();
   item->setJointState(latest_joint_state_);
@@ -773,7 +773,7 @@ void InspectorArm::loadMarker()
     {
       case InspectionPointItem::Rtti_Item:
         {
-          InspectionPointItem* item = new InspectionPointItem(&marker_server_);
+          InspectionPointItem* item = new InspectionPointItem(this, &marker_server_);
           item->load(in);
           markers_[item->name().toStdString()] = item;
           addMarker(item->name().toStdString(), item->pose());

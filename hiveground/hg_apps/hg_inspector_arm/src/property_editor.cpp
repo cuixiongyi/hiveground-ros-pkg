@@ -145,21 +145,21 @@ void InspectorArm::inspectionPointClicked(InspectionPointItem* item)
 
   property = double_manager_->addProperty(tr("Roll"));
   double_manager_->setDecimals(property, 2);
-  double_manager_->setSingleStep(property, 0.01);
+  double_manager_->setSingleStep(property, 0.1);
   double_manager_->setRange(property, -180.0, 180.0);
   double_manager_->setValue(property, angles::to_degrees(item->roll()));
   addProperty(property, QLatin1String("pose_roll"));
 
   property = double_manager_->addProperty(tr("Pitch"));
   double_manager_->setDecimals(property, 2);
-  double_manager_->setSingleStep(property, 0.01);
+  double_manager_->setSingleStep(property, 0.1);
   double_manager_->setRange(property, -180.0, 180.0);
   double_manager_->setValue(property, angles::to_degrees(item->pitch()));
   addProperty(property, QLatin1String("pose_pitch"));
 
   property = double_manager_->addProperty(tr("Yaw"));
   double_manager_->setDecimals(property, 2);
-  double_manager_->setSingleStep(property, 0.01);
+  double_manager_->setSingleStep(property, 0.1);
   double_manager_->setRange(property, -180.0, 180.0);
   double_manager_->setValue(property, angles::to_degrees(item->yaw()));
   addProperty(property, QLatin1String("pose_yaw"));
