@@ -40,7 +40,7 @@
 #include <pcl/common/pca.h>
 #include <Eigen/StdVector>
 
-
+#include <planning_models/kinematic_state.h>
 #include <hg_inspector_arm/inspector_arm.h>
 #include <spline_smoother/cubic_trajectory.h>
 
@@ -97,7 +97,33 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
 
 bool InspectorArm::initializeServiceClient()
 {
-  robot_state_ = NULL;
+  robot_state_ = new planning_models::KinematicState(collision_models_interface_->getKinematicModel());
+  target_robot_state_ = new planning_models::KinematicState(collision_models_interface_->getKinematicModel());
+  start_color_.a = 0.3;
+  start_color_.r = 1.0;
+  start_color_.g = 0.5;
+  start_color_.b = 1.0;
+  end_color_.a = 0.3;
+  end_color_.r = 0.5;
+  end_color_.g = 0.9;
+  end_color_.b = 0.5;
+  stat_color_.a = 0.6;
+  stat_color_.r = 0.1;
+  stat_color_.g = 0.8;
+  stat_color_.b = 0.3;
+  attached_color_.a = 1.0;
+  attached_color_.r = 0.6;
+  attached_color_.g = 0.4;
+  attached_color_.b = 0.3;
+  bad_color_.a = 0.5;
+  bad_color_.r = 0.9;
+  bad_color_.g = 0.0;
+  bad_color_.b = 0.0;
+  collision_color_.a = 1.0;
+  collision_color_.r = 1.0;
+  collision_color_.g = 0.5;
+  collision_color_.b = 0.0;
+
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
   hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
   hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
@@ -233,7 +259,17 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     double l2 = angular.length2();
 
     if((l1 == 0.0) & (l2 == 0.0))
-      return;
+      return;  std_msgs::ColorRGBA stat_color_;
+    stat_color_.a = 0.6;
+    stat_color_.r = 0.1;
+    stat_color_.g = 0.8;
+    stat_color_.b = 0.3;
+
+    std_msgs::ColorRGBA attached_color_;
+    attached_color_.a = 1.0;
+    attached_color_.r = 0.6;
+    attached_color_.g = 0.4;
+    attached_color_.b = 0.3;
 
     bool translate = false;
     if(l1 > l2)
@@ -333,10 +369,11 @@ void InspectorArm::on_actionLoadMarker_triggered()
 {
   if(markers_touched_)
   {
-    int ret = QMessageBox::warning(this, tr("Inspector Arm"),
+    int ret = QMessageBox::warning(this,
+                                    tr("Inspector Arm"),
                                     tr("The marker has been modified.\n"
-                                       "Do you want to save your changes?"),
-                                    QMessageBox::Save | QMessageBox::Cancel, QMessageBox::Save);
+                                        "Do you want to save your changes?"),
+                                        QMessageBox::Save | QMessageBox::Cancel, QMessageBox::Save);
 
     if(ret == QMessageBox::Save)
       on_actionSaveMarker_triggered();
@@ -409,9 +446,33 @@ void InspectorArm::followPointSlot()
 void InspectorArm::onMarkerArrayPublisherTimer()
 {
   QMutexLocker lock(&mutex_marker_array_);
-  if(marker_array_publisher_.getNumSubscribers() != 0 && marker_array_.markers.size() != 0)
+  if (marker_array_publisher_.getNumSubscribers() != 0)
   {
+
+    if (ui.checkBoxShowJointMarkers->isChecked() && (markers_.find(selected_markers_.back()) != markers_.end()))
+    {
+      sensor_msgs::JointState joint_state = markers_[selected_markers_.back()]->jointState();
+      std::map<std::string, double> joint_state_map;
+      for (unsigned int i = 0; i < joint_state.name.size(); ++i)
+      {
+        joint_state_map[joint_state.name[i]] = joint_state.position[i];
+      }
+
+      //target_robot_state_->setKinematicState()
+      target_robot_state_->setKinematicState(joint_state_map);
+      //collision_models_interface_->getAllCollisionPointMarkers(*target_robot_state_, marker_array_, bad_color_, ros::Duration(0.1));
+      collision_models_interface_->getGroupAndUpdatedJointMarkersGivenState(*target_robot_state_,
+                                                                                  marker_array_,
+                                                                                  "manipulator", start_color_, end_color_,
+                                                                                  ros::Duration(0.1));
+
+
+    }
+
+
+
     marker_array_publisher_.publish(marker_array_);
+    marker_array_.markers.clear();
   }
 }
 

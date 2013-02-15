@@ -54,7 +54,7 @@ InspectionPointItem::~InspectionPointItem()
 
 void InspectionPointItem::setPose(const geometry_msgs::Pose& pose)
 {
-  sensor_msgs::JointState joint_state;
+  sensor_msgs::JointState joint_state = joint_state_;
   if(inspector_arm_->checkIKConstraintAware(pose, joint_state))
   {
     pose_ = pose;
@@ -83,7 +83,7 @@ void InspectionPointItem::moveBy(double dx, double dy, double dz)
   if(dx || dy || dz)
   {
     geometry_msgs::Pose old_pose = pose_;
-    sensor_msgs::JointState joint_state;
+    sensor_msgs::JointState joint_state = joint_state_;
     pose_.position.x += dx;
     pose_.position.y += dy;
     pose_.position.z += dz;
