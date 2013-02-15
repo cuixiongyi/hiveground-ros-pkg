@@ -67,7 +67,7 @@ public:
                     const std::string& frame_id = "base_link");
   void addHandMessage(const hg_object_tracking::HandsConstPtr message);
   int lookForGesture();
-  int closestHand(const tf::Vector3& point, const hg_object_tracking::HandsConstPtr message);
+
 
   void addUI(QToolBox* tool_box);
 
