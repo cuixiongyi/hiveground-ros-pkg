@@ -100,12 +100,6 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_UP:
-      if (feedback->marker_name.rfind("marker_") != std::string::npos)
-      {
-        markers_[feedback->marker_name]->setPose(markers_[feedback->marker_name]->pose());
-        Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
-        markers_touched_ = true;
-      }
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
@@ -115,7 +109,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           return;
         last_feedback_pose_ = pose_new;
 
-        sensor_msgs::JointState joint_state;
+        sensor_msgs::JointState joint_state = markers_[feedback->marker_name]->jointState();
         if(checkIKConstraintAware(pose_new, joint_state))
         {
           markers_[feedback->marker_name]->setPose(feedback->pose);
@@ -264,7 +258,15 @@ bool InspectorArm::checkIK(const tf::Transform& pose, sensor_msgs::JointState& j
   }
 
   mutex_joint_state_.lock();
-  gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  if(joint_state.position.size() != 0)
+  {
+    gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
+    gpik_req.ik_request.ik_seed_state.joint_state.position = joint_state.position;
+  }
+  else
+  {
+    gpik_req.ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  }
   mutex_joint_state_.unlock();
   gpik_req.ik_request.robot_state = gpik_req.ik_request.ik_seed_state;
 
@@ -321,7 +323,15 @@ bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs
     }
 
   mutex_joint_state_.lock();
-  ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  if(joint_state.position.size() != 0)
+  {
+    ik_request.ik_seed_state.joint_state = latest_joint_state_;
+    ik_request.ik_seed_state.joint_state.position = joint_state.position;
+  }
+  else
+  {
+    ik_request.ik_seed_state.joint_state = latest_joint_state_;
+  }
   mutex_joint_state_.unlock();
   ik_request.robot_state = ik_request.ik_seed_state;
 

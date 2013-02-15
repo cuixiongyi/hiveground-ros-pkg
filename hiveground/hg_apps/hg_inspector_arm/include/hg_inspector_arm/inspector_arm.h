@@ -236,6 +236,14 @@ private:
 
   //trajectory
   planning_models::KinematicState* robot_state_;
+  planning_models::KinematicState* target_robot_state_;
+  std_msgs::ColorRGBA start_color_;
+  std_msgs::ColorRGBA end_color_;
+  std_msgs::ColorRGBA stat_color_;
+  std_msgs::ColorRGBA attached_color_;
+  std_msgs::ColorRGBA bad_color_;
+  std_msgs::ColorRGBA collision_color_;
+
   ros::Subscriber joint_state_subscriber_;
   sensor_msgs::JointState latest_joint_state_;
   QMutex mutex_joint_state_;
