@@ -6,7 +6,7 @@ import struct
 
 
 class HandGesture(genpy.Message):
-  _md5sum = "f7a9c9808b5b46db4b902e33263980db"
+  _md5sum = "58678a7d659f4595153f305ce316bcee"
   _type = "hg_hand_interaction/HandGesture"
   _has_header = False #flag to mark the presence of a Header object
   _full_text = """int8 type
@@ -36,6 +36,13 @@ int8 PUSH_PULL_YP = 17
 int8 PUSH_PULL_YN = 18
 int8 PUSH_PULL_ZP = 19
 int8 PUSH_PULL_ZN = 20
+
+int8 PUSH_PULL_RXP = 21
+int8 PUSH_PULL_RXN = 22
+int8 PUSH_PULL_RYP = 23
+int8 PUSH_PULL_RYN = 24
+int8 PUSH_PULL_RZP = 25
+int8 PUSH_PULL_RZN = 26
 """
   # Pseudo-constants
   NOT_DETECTED = 0
@@ -59,6 +66,12 @@ int8 PUSH_PULL_ZN = 20
   PUSH_PULL_YN = 18
   PUSH_PULL_ZP = 19
   PUSH_PULL_ZN = 20
+  PUSH_PULL_RXP = 21
+  PUSH_PULL_RXN = 22
+  PUSH_PULL_RYP = 23
+  PUSH_PULL_RYN = 24
+  PUSH_PULL_RZP = 25
+  PUSH_PULL_RZN = 26
 
   __slots__ = ['type','var1']
   _slot_types = ['int8','float64']

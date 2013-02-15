@@ -70,12 +70,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_hand_interaction::HandGestures_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "27825c1a4244c55115763b262c630b91";
+    return "6ec8d74eee60d32f06423a7c0f42baa1";
   }
 
   static const char* value(const  ::hg_hand_interaction::HandGestures_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x27825c1a4244c551ULL;
-  static const uint64_t static_value2 = 0x15763b262c630b91ULL;
+  static const uint64_t static_value1 = 0x6ec8d74eee60d32fULL;
+  static const uint64_t static_value2 = 0x06423a7c0f42baa1ULL;
 };
 
 template<class ContainerAllocator>
@@ -142,6 +142,13 @@ int8 PUSH_PULL_YP = 17\n\
 int8 PUSH_PULL_YN = 18\n\
 int8 PUSH_PULL_ZP = 19\n\
 int8 PUSH_PULL_ZN = 20\n\
+\n\
+int8 PUSH_PULL_RXP = 21\n\
+int8 PUSH_PULL_RXN = 22\n\
+int8 PUSH_PULL_RYP = 23\n\
+int8 PUSH_PULL_RYN = 24\n\
+int8 PUSH_PULL_RZP = 25\n\
+int8 PUSH_PULL_RZN = 26\n\
 ";
   }
 

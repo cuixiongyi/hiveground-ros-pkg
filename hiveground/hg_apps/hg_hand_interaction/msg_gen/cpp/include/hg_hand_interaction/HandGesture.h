@@ -60,6 +60,12 @@ struct HandGesture_ {
   enum { PUSH_PULL_YN = 18 };
   enum { PUSH_PULL_ZP = 19 };
   enum { PUSH_PULL_ZN = 20 };
+  enum { PUSH_PULL_RXP = 21 };
+  enum { PUSH_PULL_RXN = 22 };
+  enum { PUSH_PULL_RYP = 23 };
+  enum { PUSH_PULL_RYN = 24 };
+  enum { PUSH_PULL_RZP = 25 };
+  enum { PUSH_PULL_RZN = 26 };
 
   typedef boost::shared_ptr< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::hg_hand_interaction::HandGesture_<ContainerAllocator>  const> ConstPtr;
@@ -89,12 +95,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_hand_interaction::HandGesture_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "f7a9c9808b5b46db4b902e33263980db";
+    return "58678a7d659f4595153f305ce316bcee";
   }
 
   static const char* value(const  ::hg_hand_interaction::HandGesture_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xf7a9c9808b5b46dbULL;
-  static const uint64_t static_value2 = 0x4b902e33263980dbULL;
+  static const uint64_t static_value1 = 0x58678a7d659f4595ULL;
+  static const uint64_t static_value2 = 0x153f305ce316bceeULL;
 };
 
 template<class ContainerAllocator>
@@ -138,6 +144,13 @@ int8 PUSH_PULL_YP = 17\n\
 int8 PUSH_PULL_YN = 18\n\
 int8 PUSH_PULL_ZP = 19\n\
 int8 PUSH_PULL_ZN = 20\n\
+\n\
+int8 PUSH_PULL_RXP = 21\n\
+int8 PUSH_PULL_RXN = 22\n\
+int8 PUSH_PULL_RYP = 23\n\
+int8 PUSH_PULL_RYN = 24\n\
+int8 PUSH_PULL_RZP = 25\n\
+int8 PUSH_PULL_RZN = 26\n\
 ";
   }
 

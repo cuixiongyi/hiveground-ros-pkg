@@ -58,7 +58,13 @@
     (:PUSH_PULL_YP . 17)
     (:PUSH_PULL_YN . 18)
     (:PUSH_PULL_ZP . 19)
-    (:PUSH_PULL_ZN . 20))
+    (:PUSH_PULL_ZN . 20)
+    (:PUSH_PULL_RXP . 21)
+    (:PUSH_PULL_RXN . 22)
+    (:PUSH_PULL_RYP . 23)
+    (:PUSH_PULL_RYN . 24)
+    (:PUSH_PULL_RZP . 25)
+    (:PUSH_PULL_RZN . 26))
 )
 (cl:defmethod roslisp-msg-protocol:symbol-codes ((msg-type (cl:eql 'HandGesture)))
     "Constants for message type 'HandGesture"
@@ -82,7 +88,13 @@
     (:PUSH_PULL_YP . 17)
     (:PUSH_PULL_YN . 18)
     (:PUSH_PULL_ZP . 19)
-    (:PUSH_PULL_ZN . 20))
+    (:PUSH_PULL_ZN . 20)
+    (:PUSH_PULL_RXP . 21)
+    (:PUSH_PULL_RXN . 22)
+    (:PUSH_PULL_RYP . 23)
+    (:PUSH_PULL_RYN . 24)
+    (:PUSH_PULL_RZP . 25)
+    (:PUSH_PULL_RZN . 26))
 )
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <HandGesture>) ostream)
   "Serializes a message object of type '<HandGesture>"
@@ -124,16 +136,16 @@
   "hg_hand_interaction/HandGesture")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<HandGesture>)))
   "Returns md5sum for a message object of type '<HandGesture>"
-  "f7a9c9808b5b46db4b902e33263980db")
+  "58678a7d659f4595153f305ce316bcee")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'HandGesture)))
   "Returns md5sum for a message object of type 'HandGesture"
-  "f7a9c9808b5b46db4b902e33263980db")
+  "58678a7d659f4595153f305ce316bcee")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<HandGesture>)))
   "Returns full string definition for message of type '<HandGesture>"
-  (cl:format cl:nil "int8 type~%float64 var1~%~%#request constants~%int8 NOT_DETECTED = 0~%int8 SWEEP_UP_ONE_HAND = 1~%int8 SWEEP_DOWN_ONE_HAND = 2~%int8 SWEEP_LEFT_ONE_HAND = 3~%int8 SWEEP_RIGHT_ONE_HAND = 4~%int8 SWEEP_FORWARD_ONE_HAND = 5~%int8 SWEEP_BACKWARD_ONE_HAND = 6~%~%int8 SWEEP_UP_TWO_HAND = 7~%int8 SWEEP_DOWN_TWO_HAND = 8~%int8 SWEEP_LEFT_TWO_HAND = 9~%int8 SWEEP_RIGHT_TWO_HAND = 10~%int8 SWEEP_FORWARD_TWO_HAND = 11~%int8 SWEEP_BACKWARD_TWO_HAND = 12~%int8 SWEEP_OPEN_TWO_HAND = 13~%int8 SWEEP_CLOSE_TWO_HAND = 14~%~%int8 PUSH_PULL_XP = 15~%int8 PUSH_PULL_XN = 16 ~%int8 PUSH_PULL_YP = 17~%int8 PUSH_PULL_YN = 18~%int8 PUSH_PULL_ZP = 19~%int8 PUSH_PULL_ZN = 20~%~%"))
+  (cl:format cl:nil "int8 type~%float64 var1~%~%#request constants~%int8 NOT_DETECTED = 0~%int8 SWEEP_UP_ONE_HAND = 1~%int8 SWEEP_DOWN_ONE_HAND = 2~%int8 SWEEP_LEFT_ONE_HAND = 3~%int8 SWEEP_RIGHT_ONE_HAND = 4~%int8 SWEEP_FORWARD_ONE_HAND = 5~%int8 SWEEP_BACKWARD_ONE_HAND = 6~%~%int8 SWEEP_UP_TWO_HAND = 7~%int8 SWEEP_DOWN_TWO_HAND = 8~%int8 SWEEP_LEFT_TWO_HAND = 9~%int8 SWEEP_RIGHT_TWO_HAND = 10~%int8 SWEEP_FORWARD_TWO_HAND = 11~%int8 SWEEP_BACKWARD_TWO_HAND = 12~%int8 SWEEP_OPEN_TWO_HAND = 13~%int8 SWEEP_CLOSE_TWO_HAND = 14~%~%int8 PUSH_PULL_XP = 15~%int8 PUSH_PULL_XN = 16 ~%int8 PUSH_PULL_YP = 17~%int8 PUSH_PULL_YN = 18~%int8 PUSH_PULL_ZP = 19~%int8 PUSH_PULL_ZN = 20~%~%int8 PUSH_PULL_RXP = 21~%int8 PUSH_PULL_RXN = 22~%int8 PUSH_PULL_RYP = 23~%int8 PUSH_PULL_RYN = 24~%int8 PUSH_PULL_RZP = 25~%int8 PUSH_PULL_RZN = 26~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'HandGesture)))
   "Returns full string definition for message of type 'HandGesture"
-  (cl:format cl:nil "int8 type~%float64 var1~%~%#request constants~%int8 NOT_DETECTED = 0~%int8 SWEEP_UP_ONE_HAND = 1~%int8 SWEEP_DOWN_ONE_HAND = 2~%int8 SWEEP_LEFT_ONE_HAND = 3~%int8 SWEEP_RIGHT_ONE_HAND = 4~%int8 SWEEP_FORWARD_ONE_HAND = 5~%int8 SWEEP_BACKWARD_ONE_HAND = 6~%~%int8 SWEEP_UP_TWO_HAND = 7~%int8 SWEEP_DOWN_TWO_HAND = 8~%int8 SWEEP_LEFT_TWO_HAND = 9~%int8 SWEEP_RIGHT_TWO_HAND = 10~%int8 SWEEP_FORWARD_TWO_HAND = 11~%int8 SWEEP_BACKWARD_TWO_HAND = 12~%int8 SWEEP_OPEN_TWO_HAND = 13~%int8 SWEEP_CLOSE_TWO_HAND = 14~%~%int8 PUSH_PULL_XP = 15~%int8 PUSH_PULL_XN = 16 ~%int8 PUSH_PULL_YP = 17~%int8 PUSH_PULL_YN = 18~%int8 PUSH_PULL_ZP = 19~%int8 PUSH_PULL_ZN = 20~%~%"))
+  (cl:format cl:nil "int8 type~%float64 var1~%~%#request constants~%int8 NOT_DETECTED = 0~%int8 SWEEP_UP_ONE_HAND = 1~%int8 SWEEP_DOWN_ONE_HAND = 2~%int8 SWEEP_LEFT_ONE_HAND = 3~%int8 SWEEP_RIGHT_ONE_HAND = 4~%int8 SWEEP_FORWARD_ONE_HAND = 5~%int8 SWEEP_BACKWARD_ONE_HAND = 6~%~%int8 SWEEP_UP_TWO_HAND = 7~%int8 SWEEP_DOWN_TWO_HAND = 8~%int8 SWEEP_LEFT_TWO_HAND = 9~%int8 SWEEP_RIGHT_TWO_HAND = 10~%int8 SWEEP_FORWARD_TWO_HAND = 11~%int8 SWEEP_BACKWARD_TWO_HAND = 12~%int8 SWEEP_OPEN_TWO_HAND = 13~%int8 SWEEP_CLOSE_TWO_HAND = 14~%~%int8 PUSH_PULL_XP = 15~%int8 PUSH_PULL_XN = 16 ~%int8 PUSH_PULL_YP = 17~%int8 PUSH_PULL_YN = 18~%int8 PUSH_PULL_ZP = 19~%int8 PUSH_PULL_ZN = 20~%~%int8 PUSH_PULL_RXP = 21~%int8 PUSH_PULL_RXN = 22~%int8 PUSH_PULL_RYP = 23~%int8 PUSH_PULL_RYN = 24~%int8 PUSH_PULL_RZP = 25~%int8 PUSH_PULL_RZN = 26~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <HandGesture>))
   (cl:+ 0
      1

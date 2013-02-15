@@ -39,7 +39,9 @@ using namespace visualization_msgs;
 
 PushPullHandGestureDetector::PushPullHandGestureDetector(ros::NodeHandle& nh_private)
   : HandGestureDetector(nh_private),
-    current_state_(IDEL)
+    num_hands_(0),
+    current_state_r_(IDEL),
+    current_state_l_(IDEL)
 {
   three_axes_[0] = tf::Vector3(1, 0, 0); //X
   three_axes_[1] = tf::Vector3(0, 1, 0); //Y
@@ -98,18 +100,20 @@ void PushPullHandGestureDetector::drawResult(visualization_msgs::MarkerArray& ma
   marker.header.frame_id = frame_id;
   marker.ns = "PushPullHandGestureDetector_result";
   marker.type = Marker::SPHERE;
-  marker.pose.position.x = spinbox_x_->value();
-  marker.pose.position.y = spinbox_y_->value();
-  marker.pose.position.z = spinbox_z_->value();
   marker.pose.orientation.x = 0;
   marker.pose.orientation.y = 0;
   marker.pose.orientation.z = 0;
   marker.pose.orientation.w = 1;
 
+  //right
+  marker.pose.position.x = spinbox_x_->value();
+  marker.pose.position.y = spinbox_y_->value();
+  marker.pose.position.z = spinbox_z_->value();bool is_moving_;
+
   //R1
   marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value()*2;
-  marker.color.r = (current_state_ == ACTIVATED ? 0.0 : (current_state_ == ACTIVATING ? 0.5 : 1.0));
-  marker.color.g = (current_state_ == ACTIVATED ? (is_moving_) ? 0.5: 1.0 : 0.0);
+  marker.color.r = (current_state_r_ == ACTIVATED ? 0.0 : (current_state_r_ == ACTIVATING ? 0.5 : 1.0));
+  marker.color.g = (current_state_r_ == ACTIVATED ? (is_moving_r_) ? 0.5: 1.0 : 0.0);
   marker.color.b = 0.0;
   marker.color.a = 1.0;
   marker.id = marker_id++;
@@ -133,19 +137,83 @@ void PushPullHandGestureDetector::drawResult(visualization_msgs::MarkerArray& ma
   marker.id = marker_id++;
   marker_array.markers.push_back(marker);
 
+  //Left
+  marker.pose.position.y = -spinbox_y_->value();
+
+  //R1
+  marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value() * 2;
+  marker.color.r = (current_state_l_ == ACTIVATED ? 0.0 : (current_state_l_ == ACTIVATING ? 0.5 : 1.0));
+  marker.color.g = (current_state_l_ == ACTIVATED ? (is_moving_l_) ? 0.5 : 1.0 : 0.0);
+  marker.color.b = 0.0;
+  marker.color.a = 1.0;
+  marker.id = marker_id++;
+  marker_array.markers.push_back(marker);
+
+  //R2
+  marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r2_->value() * 2;
+  marker.color.r = 0.0;
+  marker.color.g = 1.0;
+  marker.color.b = 0.0;
+  marker.color.a = 0.2;
+  marker.id = marker_id++;
+  marker_array.markers.push_back(marker);
+
+  //R3
+  marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r3_->value() * 2;
+  marker.color.r = 0.0;
+  marker.color.g = 0.0;
+  marker.color.b = 1.0;
+  marker.color.a = 0.1;
+  marker.id = marker_id++;
+  marker_array.markers.push_back(marker);
+
+
 }
 
 void PushPullHandGestureDetector::addHandMessage(const hg_object_tracking::HandsConstPtr message)
 {
 
   if(message->hands.empty())
+  {
+    num_hands_ = 0;
     return;
-  tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_);
+  }
+
+  if(message->hands.size() > 2)
+  {
+    num_hands_ = 0;
+    return;
+  }
+
+
+  if(message->hands.size() == 2)
+  {
+    if(message->hands[0].hand_centroid.translation.y > message->hands[1].hand_centroid.translation.y)
+    {
+      tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_r_);
+      tf::transformMsgToTF(message->hands[1].hand_centroid, last_hand_position_l_);
+    }
+    else
+    {
+      tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_l_);
+      tf::transformMsgToTF(message->hands[1].hand_centroid, last_hand_position_r_);
+    }
+    num_hands_ = 2;
+  }
+  else
+  {
+    tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_r_);
+    num_hands_ = 1;
+  }
+
+
   last_detected_time_ = ros::Time::now();
 }
 
 int PushPullHandGestureDetector::lookForGesture()
 {
+  return HandGesture::NOT_DETECTED;
+  /*
   QMutexLocker locker(&mutex_);
 
   double dt = (ros::Time::now() - last_detected_time_).toSec();
@@ -287,6 +355,7 @@ int PushPullHandGestureDetector::lookForGesture()
       break;
   }
   return detected_gesture;
+  */
 }
 
 

@@ -327,36 +327,36 @@ int SweepHandGestureDetector::detectOneHandGesture(int id)
         case 0:
           if(dot_products[min_error_index] > 0)
           {
-            ROS_INFO("[%d]: SWEEP_BACKWARD_ONE_HAND", id);
+            //ROS_INFO("[%d]: SWEEP_BACKWARD_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_BACKWARD_ONE_HAND;
           }
           else
           {
-            ROS_INFO("[%d]: SWEEP_FORWARD_ONE_HAND", id);
+            //ROS_INFO("[%d]: SWEEP_FORWARD_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_FORWARD_ONE_HAND;
           }
           break;
         case 1:
           if (dot_products[min_error_index] > 0)
           {
-            ROS_INFO("[%d]: SWEEP_RIGHT_ONE_HAND", id);
+            //ROS_INFO("[%d]: SWEEP_RIGHT_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_RIGHT_ONE_HAND;
           }
           else
           {
-            ROS_INFO("[%d]: SWEEP_LEFT_ONE_HAND", id);
+            //ROS_INFO("[%d]: SWEEP_LEFT_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_LEFT_ONE_HAND;
           }
           break;
         case 2:
           if (dot_products[min_error_index] > 0)
           {
-            ROS_INFO("[%d]: SWEEP_UP_ONE_HAND", id);
+            //ROS_INFO("[%d]: SWEEP_UP_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_UP_ONE_HAND;
           }
           else
           {
-            ROS_INFO("[%d]: SWEEP_DOWN_ONE_HAND", id);
+            //ROS_INFO("[%d]: SWEEP_DOWN_ONE_HAND", id);
             detected_gesture = HandGesture::SWEEP_DOWN_ONE_HAND;
           }
           break;
