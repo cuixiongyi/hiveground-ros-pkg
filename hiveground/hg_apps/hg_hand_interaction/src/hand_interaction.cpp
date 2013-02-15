@@ -206,81 +206,69 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
 
   if ((n_hand != 0) &&  (n_hand != hand_trackers_.size()))
   {
+    //ROS_INFO("Reset!");
     hand_history_.clear();
     hand_trackers_.clear();
     hand_history_.resize(n_hand);
     for (size_t i = 0; i < hands->hands.size(); i++)
     {
       KalmanTraker3d traker;
-      cv::Point3f point(hands->hands[i].hand_centroid.translation.x,
-                        hands->hands[i].hand_centroid.translation.y,
-                        hands->hands[i].hand_centroid.translation.z);
+      cv::Point3f point(message->hands[i].hand_centroid.translation.x,
+                        message->hands[i].hand_centroid.translation.y,
+                        message->hands[i].hand_centroid.translation.z);
       traker.initialize(1.0 / 30.0, point, 1e-2, 1e-1, 1e-1);
       hand_trackers_.push_back(traker);
       hand_history_[i].resize(3);
     }
   }
 
-  //ROS_INFO("======");
+
   geometry_msgs::Point marker_point;
   cv::Point3f measurement;
   cv::Mat result;
   int state;
   for (size_t i = 0; i < hand_trackers_.size(); i++)
   {
-    hand_trackers_[i].predict(result);
-    //ROS_INFO_STREAM("[" << i << "] predicted: " << result);
-    marker_point.x = result.at<float>(0);
-    marker_point.y = result.at<float>(1);
-    marker_point.z = result.at<float>(2);
-    if(ui.checkBoxShowHandPredicted->isChecked())
-      hand_history_[i][KalmanTraker3d::PREDICTED].push_back(marker_point);
-    if (hand_history_[i][KalmanTraker3d::PREDICTED].size() > HAND_HISTORY_SIZE)
-    {
-      hand_history_[i][KalmanTraker3d::PREDICTED].pop_front();
-    }
-
     if (i + 1 <= n_hand)
     {
+      hand_trackers_[i].predict(result);
+      //ROS_INFO_STREAM("[" << i << "] predicted: " << result);
+      marker_point.x = result.at<float>(0);
+      marker_point.y = result.at<float>(1);
+      marker_point.z = result.at<float>(2);
+      if (ui.checkBoxShowHandPredicted->isChecked())
+        hand_history_[i][KalmanTraker3d::PREDICTED].push_back(marker_point);
+      if (hand_history_[i][KalmanTraker3d::PREDICTED].size() > HAND_HISTORY_SIZE)
+      {
+        hand_history_[i][KalmanTraker3d::PREDICTED].pop_front();
+      }
+
       tf::Vector3 point1(result.at<float>(0), result.at<float>(1), result.at<float>(2));
+      int index = closestHand(point1, message);
       state = hand_trackers_[i].getState();
       switch (state)
       {
         case KalmanTraker3d::START:
-          measurement.x = hands->hands[i].hand_centroid.translation.x;
-          measurement.y = hands->hands[i].hand_centroid.translation.y;
-          measurement.z = hands->hands[i].hand_centroid.translation.z;
+          //ROS_INFO("%d START", i);
+          measurement.x = message->hands[index].hand_centroid.translation.x;
+          measurement.y = message->hands[index].hand_centroid.translation.y;
+          measurement.z = message->hands[index].hand_centroid.translation.z;
           break;
         case KalmanTraker3d::TRACK:
         case KalmanTraker3d::LOST:
         {
-          double dist, min_distant = 1e6;
-          size_t index = 0;
-          for (size_t j = 0; j < n_hand; j++)
-          {
-            tf::Vector3 point2(hands->hands[j].hand_centroid.translation.x, hands->hands[j].hand_centroid.translation.y,
-                               hands->hands[j].hand_centroid.translation.z);
-            dist = point1.distance(point2);
-            if (dist < min_distant)
-            {
-              min_distant = dist;
-              index = j;
-            }
-            //ROS_INFO("[%lu] %lu %f", i, j, dist);
-          }
-
-          //ROS_INFO("[%lu] %lu", i, index);
-          measurement.x = hands->hands[index].hand_centroid.translation.x;
-          measurement.y = hands->hands[index].hand_centroid.translation.y;
-          measurement.z = hands->hands[index].hand_centroid.translation.z;
+          //ROS_INFO("%d TRACK", i);
+          measurement.x = message->hands[index].hand_centroid.translation.x;
+          measurement.y = message->hands[index].hand_centroid.translation.y;
+          measurement.z = message->hands[index].hand_centroid.translation.z;
           break;
         }
         case KalmanTraker3d::DIE:
-          //ROS_INFO("DIE");
-          cv::Point3f point(hands->hands[i].hand_centroid.translation.x,
-                            hands->hands[i].hand_centroid.translation.y,
-                            hands->hands[i].hand_centroid.translation.z);
-          ROS_INFO_STREAM("[" << i << "] point: " << point);
+          //ROS_INFO("%d DIE", i);
+          cv::Point3f point(message->hands[index].hand_centroid.translation.x,
+                            message->hands[index].hand_centroid.translation.y,
+                            message->hands[index].hand_centroid.translation.z);
+          //ROS_INFO_STREAM("[" << i << "] point: " << point);
           hand_trackers_[i].initialize(1.0 / 30.0, point, 1e-2, 1e-1, 1e-1);
           break;
       }
@@ -435,6 +423,26 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
   {
     hand_gestures_publisher_.publish(gestures);
   }
+}
+
+
+int HandInteraction::closestHand(const tf::Vector3& point, const hg_object_tracking::HandsConstPtr message)
+{
+  double dist, min_distant = 1e6;
+  size_t index = 0;
+  for (size_t i = 0; i < message->hands.size(); i++)
+  {
+    tf::Vector3 point2(message->hands[i].hand_centroid.translation.x,
+                       message->hands[i].hand_centroid.translation.y,
+                       message->hands[i].hand_centroid.translation.z);
+    dist = point.distance(point2);
+    if (dist < min_distant)
+    {
+      min_distant = dist;
+      index = i;
+    }
+  }
+  return index;
 }
 
 HandInteraction* g_hand_interaction = NULL;

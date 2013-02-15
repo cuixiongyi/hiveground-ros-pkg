@@ -8,7 +8,7 @@ import hg_hand_interaction.msg
 import std_msgs.msg
 
 class HandGestures(genpy.Message):
-  _md5sum = "27825c1a4244c55115763b262c630b91"
+  _md5sum = "6ec8d74eee60d32f06423a7c0f42baa1"
   _type = "hg_hand_interaction/HandGestures"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -61,6 +61,13 @@ int8 PUSH_PULL_YP = 17
 int8 PUSH_PULL_YN = 18
 int8 PUSH_PULL_ZP = 19
 int8 PUSH_PULL_ZN = 20
+
+int8 PUSH_PULL_RXP = 21
+int8 PUSH_PULL_RXN = 22
+int8 PUSH_PULL_RYP = 23
+int8 PUSH_PULL_RYN = 24
+int8 PUSH_PULL_RZP = 25
+int8 PUSH_PULL_RZN = 26
 """
   __slots__ = ['header','gestures']
   _slot_types = ['std_msgs/Header','hg_hand_interaction/HandGesture[]']
