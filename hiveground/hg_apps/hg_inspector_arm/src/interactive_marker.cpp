@@ -109,15 +109,8 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           return;
         last_feedback_pose_ = pose_new;
 
-        sensor_msgs::JointState joint_state = markers_[feedback->marker_name]->jointState();
-        if(checkIKConstraintAware(pose_new, joint_state))
-        {
-          markers_[feedback->marker_name]->setPose(feedback->pose);
-          markers_[feedback->marker_name]->setJointState(joint_state);
-          Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
+        if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
           markers_touched_ = true;
-        }
-        Q_EMIT followPointSignal();
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
@@ -133,6 +126,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           std::string name = getMarkerName();
           addMarker(name, pose);
           InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
+          item->setJointState(markers_[item->name().toStdString()]->jointState());
           item->setName(name.c_str());
           markers_[item->name().toStdString()] = item;
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
@@ -184,7 +178,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           tf::poseTFToMsg(ee_pose, pose);
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
-          markers_[feedback->marker_name]->setPose(pose);
+          markers_[feedback->marker_name]->setPose(pose, false);
           mutex_joint_state_.lock();
           markers_[feedback->marker_name]->setJointState(latest_joint_state_);
           mutex_joint_state_.unlock();
@@ -596,7 +590,7 @@ bool InspectorArm::setMarkerOrientation(const std::string& name, double roll, do
   sensor_msgs::JointState joint_state;
   if (checkIKConstraintAware(pose, joint_state))
   {
-    markers_[name]->setPose(pose);
+    markers_[name]->setPose(pose, false);
     markers_[name]->setJointState(joint_state);
     marker_server_.setPose(name, pose);
     marker_server_.applyChanges();

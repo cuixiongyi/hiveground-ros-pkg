@@ -99,7 +99,7 @@ bool InspectorArm::initializeServiceClient()
 {
   robot_state_ = new planning_models::KinematicState(collision_models_interface_->getKinematicModel());
   target_robot_state_ = new planning_models::KinematicState(collision_models_interface_->getKinematicModel());
-  start_color_.a = 0.3;
+  start_color_.a = 0.5;
   start_color_.r = 1.0;
   start_color_.g = 0.5;
   start_color_.b = 1.0;
@@ -152,7 +152,7 @@ void InspectorArm::jointStateCallback(const sensor_msgs::JointStateConstPtr& mes
 void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                                const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
-  ROS_INFO("trajectory done");
+  //ROS_INFO("trajectory done");
   arm_is_active_ = false;
 }
 
@@ -259,17 +259,7 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     double l2 = angular.length2();
 
     if((l1 == 0.0) & (l2 == 0.0))
-      return;  std_msgs::ColorRGBA stat_color_;
-    stat_color_.a = 0.6;
-    stat_color_.r = 0.1;
-    stat_color_.g = 0.8;
-    stat_color_.b = 0.3;
-
-    std_msgs::ColorRGBA attached_color_;
-    attached_color_.a = 1.0;
-    attached_color_.r = 0.6;
-    attached_color_.g = 0.4;
-    attached_color_.b = 0.3;
+      return;
 
     bool translate = false;
     if(l1 > l2)
@@ -288,28 +278,35 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
 
 
     if(translate)
-      pose.setOrigin(pose.getOrigin() + linear);
+    {
+      if(ui.checkBox3DMouseTranslation->isChecked())
+        pose.setOrigin(pose.getOrigin() + linear);
+    }
     else
     {
-      //update angular
-      tf::Transform pose_angular;
-      pose_angular.setOrigin(tf::Vector3(0, 0, 0));
-      pose_angular.setRotation(pose.getRotation());
+      if(ui.checkBox3DMouseRotation->isChecked())
+      {
+        //update angular
+        tf::Transform pose_angular;
+        pose_angular.setOrigin(tf::Vector3(0, 0, 0));
+        pose_angular.setRotation(pose.getRotation());
 
-      tf::Transform tf;
-      tf.setOrigin(tf::Vector3(0, 0, 0));
-      tf::Quaternion q;
-      if(ui.checkBoxSwapRxRz->isChecked())
-        q.setRPY(angular.z(), angular.y(), angular.x());
-      else
-        q.setRPY(angular.x(), angular.y(), angular.z());
-      tf.setRotation(q);
-      pose_angular = tf * pose_angular;
-      pose.setRotation(pose.getRotation() * q);
+        tf::Transform tf;
+        tf.setOrigin(tf::Vector3(0, 0, 0));
+        tf::Quaternion q;
+        if(ui.checkBoxSwapRxRz->isChecked())
+          q.setRPY(angular.z(), angular.y(), angular.x());
+        else
+          q.setRPY(angular.x(), angular.y(), angular.z());
+        tf.setRotation(q);
+        pose_angular = tf * pose_angular;
+        pose.setRotation(pose.getRotation() * q);
+      }
     }
 
 
-    markers_[selected_markers_.back()]->setPose(pose);
+    if(ui.checkBox3DMouseTranslation->isChecked() || ui.checkBox3DMouseRotation->isChecked())
+      markers_[selected_markers_.back()]->setPose(pose, true);
   }
 }
 

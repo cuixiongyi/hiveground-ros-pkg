@@ -412,10 +412,10 @@ double IKFastKinematicsPlugin::harmonize_old(const std::vector<double> &ik_seed_
 double IKFastKinematicsPlugin::harmonize(const std::vector<double> &ik_seed_state, std::vector<double> &solution)
 {
   double dist_sqr = 0;
-  for (size_t i = 0; i < ik_seed_state.size(); ++i)
+  for (size_t i = 0; i < ik_seed_state.size()-1; ++i)
   {
     double diff = angles::shortest_angular_distance(ik_seed_state[i], solution[i]);
-    ROS_DEBUG("J%d seed: %6.3f solution: %6.3f diff: %6.3f", i, ik_seed_state[i], solution[i], diff);
+    ROS_DEBUG("J%lu seed: %6.3f solution: %6.3f diff: %6.3f", i, ik_seed_state[i], solution[i], diff);
     dist_sqr += fabs(diff);
   }
   return dist_sqr;
@@ -844,7 +844,7 @@ bool IKFastKinematicsPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose
       std::vector<double> sol;
       getSolution(s, sol);
 
-
+      ROS_DEBUG("Sol %d: %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", s, sol[0], sol[1], sol[2], sol[3], sol[4], sol[5]);
       bool obeys_limits = true;
       for (unsigned int i = 0; i < sol.size(); i++)
       {
@@ -857,10 +857,6 @@ bool IKFastKinematicsPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose
           ROS_DEBUG("       Joint %d exceed limit %6.3f %6.3f %6.3f", i, joint_min_vector_[i], sol[i], joint_max_vector_[i]);
           obeys_limits = false;
           break;
-        }
-        else
-        {
-          ROS_DEBUG("Sol %d: %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f", s, sol[0], sol[1], sol[2], sol[3], sol[4], sol[5]);
         }
       }
 
@@ -887,12 +883,15 @@ bool IKFastKinematicsPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose
       if(constraint_aware_solutions.size() != 0)
       {
         ROS_DEBUG("Found %lu valid constraint aware solution(s)", constraint_aware_solutions.size());
-        solution = constraint_aware_solutions[getClosestSolutionIndex(ik_seed_state, constraint_aware_solutions)];
+        int index = getClosestSolutionIndex(ik_seed_state, constraint_aware_solutions);
+        solution = constraint_aware_solutions[index];
+        ROS_DEBUG("Select solution %d", index);
         double shortest_angle = angles::shortest_angular_distance(ik_seed_state[5], solution[5]);
-        double shortest_target = ik_seed_state[5] + angles::shortest_angular_distance(ik_seed_state[5], solution[5]);
-        if(solution[5] != shortest_target)
+        double shortest_target = ik_seed_state[5] + shortest_angle;
+        ROS_DEBUG("solution[5] %f %f %f", solution[5], shortest_angle, shortest_target);
+        if(solution[5] != shortest_angle)
         {
-          if((shortest_angle >= joint_min_vector_[5]) && (shortest_angle <= joint_max_vector_[5]))
+          if((shortest_target >= joint_min_vector_[5]) && (shortest_target <= joint_max_vector_[5]))
           {
             solution[5] = shortest_target;
           }

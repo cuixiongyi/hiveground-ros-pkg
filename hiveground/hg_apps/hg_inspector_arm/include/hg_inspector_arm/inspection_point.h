@@ -101,8 +101,8 @@ public:
   void setPitch(double a) { rotate(roll(), a, yaw()); }
   void setYaw(double a) { rotate(roll(), pitch(), a); }
 
-  void setPose(const geometry_msgs::Pose& pose);
-  void setPose(const tf::Transform& tf);
+  bool setPose(const geometry_msgs::Pose& pose, bool check_ik);
+  bool setPose(const tf::Transform& tf, bool check_ik);
   void setJointState(const  sensor_msgs::JointState& joint_state) { joint_state_ = joint_state; }
   void move(double x, double y, double z);
   virtual void moveBy(double x, double y, double z);
