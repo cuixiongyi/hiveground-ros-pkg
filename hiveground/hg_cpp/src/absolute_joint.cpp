@@ -162,7 +162,7 @@ double AbsoluteJoint::setPosition(double position)
   {
     ROS_WARN_STREAM_THROTTLE(
         1.0,
-        name_ + " position out of range [" << joint_info_->limits->lower << ", " << joint_info_->limits->upper << "]");
+        name_ + " position [" << position << "] out of range [" << joint_info_->limits->lower << ", " << joint_info_->limits->upper << "]");
     return position_;
   }
 

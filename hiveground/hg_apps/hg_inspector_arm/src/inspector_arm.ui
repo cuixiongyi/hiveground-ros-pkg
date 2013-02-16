@@ -137,8 +137,8 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxLinearScale">
         <property name="geometry">
          <rect>
-          <x>50</x>
-          <y>250</y>
+          <x>70</x>
+          <y>270</y>
           <width>71</width>
           <height>27</height>
          </rect>
@@ -162,8 +162,8 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxAngularScale">
         <property name="geometry">
          <rect>
-          <x>150</x>
-          <y>250</y>
+          <x>220</x>
+          <y>280</y>
           <width>71</width>
           <height>27</height>
          </rect>
@@ -202,7 +202,7 @@
          <rect>
           <x>180</x>
           <y>210</y>
-          <width>97</width>
+          <width>111</width>
           <height>22</height>
          </rect>
         </property>
@@ -227,6 +227,32 @@
         </property>
         <property name="checked">
          <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox3DMouseRotation">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>240</y>
+          <width>97</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Rotation</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox3DMouseTranslation">
+        <property name="geometry">
+         <rect>
+          <x>170</x>
+          <y>240</y>
+          <width>111</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Translation</string>
         </property>
        </widget>
       </widget>
