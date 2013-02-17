@@ -10,7 +10,7 @@
       push_pull_gesture_x: 0.4
       push_pull_gesture_y: 0.3
       push_pull_gesture_z: 0.3
-      push_pull_gesture_r1: 0.08
+      push_pull_gesture_r1: 0.1
       push_pull_gesture_r2: 0.2
       push_pull_gesture_r3: 0.25
       push_pull_gesture_timeout: 0.1

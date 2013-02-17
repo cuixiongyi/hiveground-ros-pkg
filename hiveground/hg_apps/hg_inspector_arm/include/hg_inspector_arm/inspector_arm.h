@@ -158,7 +158,6 @@ private Q_SLOTS:
   void valueChanged(QtProperty *property, const QSize &value);
 
   //UI
-  void on_pushButtonAddInspectionPoint_clicked();
   void on_pushButtonPlan_clicked();
 
 
@@ -262,6 +261,7 @@ private:
 
   //3d mouse
   ros::Subscriber space_navigator_subscriber_;
+  ros::Time space_navigator_last_update_;
 
 
   //Marker
