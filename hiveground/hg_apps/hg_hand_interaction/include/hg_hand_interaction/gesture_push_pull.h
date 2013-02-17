@@ -67,6 +67,7 @@ public:
                     const std::string& frame_id = "base_link");
   void addHandMessage(const hg_object_tracking::HandsConstPtr message);
   int lookForGesture();
+  int getState(int hand, const tf::Vector3& vec_to_hand);
 
 
   void addUI(QToolBox* tool_box);
@@ -83,20 +84,14 @@ protected:
   QDoubleSpinBox* spinbox_time_out_;
   QDoubleSpinBox* spinbox_activating_time_;
   int num_hands_;
-  int current_state_r_;
-  int current_state_l_;
-  int last_state_r_;
-  int last_state_l_;
-  tf::Transform last_hand_position_r_;
-  tf::Vector3 center_position_r_;
-  tf::Transform last_hand_position_l_;
-  tf::Vector3 center_position_l_;
-  ros::Time start_leaving_time_r_;
-  ros::Time start_activating_time_r_;
-  ros::Time start_leaving_time_l_;
-  ros::Time start_activating_time_l_;
-  bool is_moving_r_;
-  bool is_moving_l_;
+  bool left_hand_;
+  int current_state_[2];
+  int last_state_[2];
+  tf::Transform last_hand_positions_[2];
+  tf::Vector3 center_positions_[2];
+  ros::Time start_leaving_time_[2];
+  ros::Time start_activating_time_[2];
+  bool is_moving_[2];
   tf::Vector3 three_axes_[3];
 };
 

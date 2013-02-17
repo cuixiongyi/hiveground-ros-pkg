@@ -74,6 +74,24 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
   if(!PlanningBase::initialize(param_server_prefix))
      return false;
 
+  bool b; double d; int i;
+  nh_private_.getParam("look_at_distance", d);
+  ui.doubleSpinBoxLookAtDistance->setValue(d);
+
+  nh_private_.getParam("mouse3d_translation_scale", d);
+  ui.doubleSpinBoxLinearScale->setValue(d);
+
+  nh_private_.getParam("mouse3d_ratation_scale", d);
+  ui.doubleSpinBoxAngularScale->setValue(d);
+
+  nh_private_.getParam("gesture_translation_scale", d);
+  ui.doubleSpinBoxGestureTranslationScale->setValue(d);
+
+  nh_private_.getParam("gesture_rotation_scale", d);
+  ui.doubleSpinBoxGestureRotationScale->setValue(d);
+
+
+
   hg_cartesian_trajectory::KinematicModelGroupConfigMap::const_iterator it;
   const hg_cartesian_trajectory::KinematicModelGroupConfigMap &group_config_map =
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
@@ -128,7 +146,6 @@ bool InspectorArm::initializeServiceClient()
   hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
   hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
   space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);;
-
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
 
@@ -196,33 +213,50 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
         for(size_t i = 0; i < message->gestures.size(); i++)
         {
           if((message->gestures[i].type >= HandGesture::PUSH_PULL_XP) &&
-             (message->gestures[i].type <= HandGesture::PUSH_PULL_ZN))
+             (message->gestures[i].type <= HandGesture::PUSH_PULL_RZN))
           {
-            tf::StampedTransform ee;
-            listener_.lookupTransform(world_frame_, "link5", ros::Time(0), ee);
+            tf::Transform pose;
+            tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
+            double rx, ry, rz;
+            rx = ry = rz = 0;
+            double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value();
+            double rotation_scale = ui.doubleSpinBoxGestureRotationScale->value();
             switch(message->gestures[i].type)
             {
               case HandGesture::PUSH_PULL_XP:
-                ee.getOrigin().m_floats[0] += 0.01;
+                pose.getOrigin().m_floats[0] += translation_scale;
                 break;
               case HandGesture::PUSH_PULL_XN:
-                ee.getOrigin().m_floats[0] -= 0.01;
+                pose.getOrigin().m_floats[0] -= translation_scale;
                 break;
               case HandGesture::PUSH_PULL_YP:
-                ee.getOrigin().m_floats[1] += 0.01;
+                pose.getOrigin().m_floats[1] += translation_scale;
                 break;
               case HandGesture::PUSH_PULL_YN:
-                ee.getOrigin().m_floats[1] -= 0.01;
+                pose.getOrigin().m_floats[1] -= translation_scale;
                 break;
               case HandGesture::PUSH_PULL_ZP:
-                ee.getOrigin().m_floats[2] += 0.01;
+                pose.getOrigin().m_floats[2] += translation_scale;
                 break;
               case HandGesture::PUSH_PULL_ZN:
-                ee.getOrigin().m_floats[2] -= 0.01;
+                pose.getOrigin().m_floats[2] -= translation_scale;
+                break;
+              case HandGesture::PUSH_PULL_RXP: rx = rotation_scale; break;
+              case HandGesture::PUSH_PULL_RXN: rx = -rotation_scale; break;
+              case HandGesture::PUSH_PULL_RYP: ry = rotation_scale; break;
+              case HandGesture::PUSH_PULL_RYN: ry = -rotation_scale; break;
+              case HandGesture::PUSH_PULL_RZP: rz = rotation_scale; break;
+              case HandGesture::PUSH_PULL_RZN: rz = -rotation_scale; break;
                 break;
               default: break;
             }
 
+            tf::Quaternion q;
+            q.setRPY(rx, ry, rz);
+            pose.setRotation(pose.getRotation() * q);
+            markers_[selected_markers_.back()]->setPose(pose, true);
+
+/*
             sensor_msgs::JointState joint_state;
             if (checkIKConstraintAware(ee, joint_state))
             {
@@ -235,6 +269,7 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
               action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
               arm_is_active_ = true;
             }
+*/
           }
         }
       }
@@ -244,6 +279,15 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
 
 void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message)
 {
+  if((ros::Time::now() - space_navigator_last_update_).toSec() < 0.05)
+  {
+    return;
+  }
+  else
+  {
+    space_navigator_last_update_ = ros::Time::now();
+  }
+
   //ROS_INFO_STREAM_THROTTLE(1.0, *message);
   if(!ui.checkBox3DMouse->isChecked()) return;
 
@@ -270,8 +314,8 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
 
     //find max axis
 
-    linear = linear * (1/350.0) * (1.0/ui.doubleSpinBoxLinearScale->value());
-    angular = angular * (1/350.0) * (1.0/ui.doubleSpinBoxAngularScale->value());
+    linear = linear * (1/350.0) * ui.doubleSpinBoxLinearScale->value();
+    angular = angular * (1/350.0) * ui.doubleSpinBoxAngularScale->value();
 
     tf::Transform pose;
     tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
@@ -321,11 +365,6 @@ void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, doub
   //ROS_INFO("(%6.3f, %6.3f, %6.3f) (%6.3f, %6.3f, %6.3f, %6.3f)",
            //result.getOrigin().x(), result.getOrigin().y(),result. getOrigin().z(),
            //result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
-}
-
-void InspectorArm::on_pushButtonAddInspectionPoint_clicked()
-{
-
 }
 
 void InspectorArm::on_pushButtonPlan_clicked()

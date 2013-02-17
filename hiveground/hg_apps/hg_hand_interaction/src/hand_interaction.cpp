@@ -249,11 +249,6 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
       switch (state)
       {
         case KalmanTraker3d::START:
-          //ROS_INFO("%d START", i);
-          measurement.x = message->hands[index].hand_centroid.translation.x;
-          measurement.y = message->hands[index].hand_centroid.translation.y;
-          measurement.z = message->hands[index].hand_centroid.translation.z;
-          break;
         case KalmanTraker3d::TRACK:
         case KalmanTraker3d::LOST:
         {

@@ -39,10 +39,9 @@ using namespace visualization_msgs;
 
 PushPullHandGestureDetector::PushPullHandGestureDetector(ros::NodeHandle& nh_private)
   : HandGestureDetector(nh_private),
-    num_hands_(0),
-    current_state_r_(IDEL),
-    current_state_l_(IDEL)
+    num_hands_(0)
 {
+  current_state_[0] = current_state_[1] = IDEL;
   three_axes_[0] = tf::Vector3(1, 0, 0); //X
   three_axes_[1] = tf::Vector3(0, 1, 0); //Y
   three_axes_[2] = tf::Vector3(0, 0, 1); //Z
@@ -108,14 +107,23 @@ void PushPullHandGestureDetector::drawResult(visualization_msgs::MarkerArray& ma
   //right
   marker.pose.position.x = spinbox_x_->value();
   marker.pose.position.y = spinbox_y_->value();
-  marker.pose.position.z = spinbox_z_->value();bool is_moving_;
+  marker.pose.position.z = spinbox_z_->value();
 
   //R1
-  marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value()*2;
-  marker.color.r = (current_state_r_ == ACTIVATED ? 0.0 : (current_state_r_ == ACTIVATING ? 0.5 : 1.0));
-  marker.color.g = (current_state_r_ == ACTIVATED ? (is_moving_r_) ? 0.5: 1.0 : 0.0);
+  if(num_hands_ == 1)
+  {
+    marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value() * (current_state_[left_hand_ ? 1 : 0] == ACTIVATED ? 1 : 2);
+    marker.color.r = (current_state_[left_hand_ ? 1 : 0] == ACTIVATED ? 0.0 : (current_state_[left_hand_ ? 1 : 0] == ACTIVATING ? 0.5 : 1.0));
+    marker.color.g = (current_state_[left_hand_ ? 1 : 0] == ACTIVATED ? (is_moving_[left_hand_ ? 1 : 0]) ? 0.5 : 1.0 : 0.0);
+  }
+  else
+  {
+    marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value() * (current_state_[1] == ACTIVATED ? 1 : 2);
+    marker.color.r = (current_state_[1] == ACTIVATED ? 0.0 : (current_state_[1] == ACTIVATING ? 0.5 : 1.0));
+    marker.color.g = (current_state_[1] == ACTIVATED ? (is_moving_[1]) ? 0.5 : 1.0 : 0.0);
+  }
   marker.color.b = 0.0;
-  marker.color.a = 1.0;
+  marker.color.a = 0.5;
   marker.id = marker_id++;
   marker_array.markers.push_back(marker);
 
@@ -137,15 +145,25 @@ void PushPullHandGestureDetector::drawResult(visualization_msgs::MarkerArray& ma
   marker.id = marker_id++;
   marker_array.markers.push_back(marker);
 
+
   //Left
   marker.pose.position.y = -spinbox_y_->value();
 
   //R1
-  marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value() * 2;
-  marker.color.r = (current_state_l_ == ACTIVATED ? 0.0 : (current_state_l_ == ACTIVATING ? 0.5 : 1.0));
-  marker.color.g = (current_state_l_ == ACTIVATED ? (is_moving_l_) ? 0.5 : 1.0 : 0.0);
+  if(num_hands_ == 1)
+  {
+    marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value() * (current_state_[left_hand_ ? 0 : 1] == ACTIVATED ? 1 : 2);
+    marker.color.r = (current_state_[left_hand_ ? 0 : 1] == ACTIVATED ? 0.0 : (current_state_[left_hand_ ? 0 : 1] == ACTIVATING ? 0.5 : 1.0));
+    marker.color.g = (current_state_[left_hand_ ? 0 : 1] == ACTIVATED ? (is_moving_[left_hand_ ? 0 : 1]) ? 0.5 : 1.0 : 0.0);
+  }
+  else
+  {
+    marker.scale.x = marker.scale.y = marker.scale.z = spinbox_r1_->value() * (current_state_[0] == ACTIVATED ? 1 : 2);
+    marker.color.r = (current_state_[0] == ACTIVATED ? 0.0 : (current_state_[0] == ACTIVATING ? 0.5 : 1.0));
+    marker.color.g = (current_state_[0] == ACTIVATED ? (is_moving_[0]) ? 0.5 : 1.0 : 0.0);
+  }
   marker.color.b = 0.0;
-  marker.color.a = 1.0;
+  marker.color.a = 0.5;
   marker.id = marker_id++;
   marker_array.markers.push_back(marker);
 
@@ -168,10 +186,13 @@ void PushPullHandGestureDetector::drawResult(visualization_msgs::MarkerArray& ma
   marker_array.markers.push_back(marker);
 
 
+
 }
 
 void PushPullHandGestureDetector::addHandMessage(const hg_object_tracking::HandsConstPtr message)
 {
+  num_hands_ = 0;
+  left_hand_ = true;
 
   if(message->hands.empty())
   {
@@ -190,99 +211,170 @@ void PushPullHandGestureDetector::addHandMessage(const hg_object_tracking::Hands
   {
     if(message->hands[0].hand_centroid.translation.y > message->hands[1].hand_centroid.translation.y)
     {
-      tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_r_);
-      tf::transformMsgToTF(message->hands[1].hand_centroid, last_hand_position_l_);
+      tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_positions_[1]);
+      tf::transformMsgToTF(message->hands[1].hand_centroid, last_hand_positions_[0]);
     }
     else
     {
-      tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_l_);
-      tf::transformMsgToTF(message->hands[1].hand_centroid, last_hand_position_r_);
+      tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_positions_[0]);
+      tf::transformMsgToTF(message->hands[1].hand_centroid, last_hand_positions_[1]);
     }
     num_hands_ = 2;
   }
   else
   {
-    tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_position_r_);
+    if(message->hands[0].hand_centroid.translation.y > 0)
+    {
+      left_hand_ = false;
+    }
+    else
+    {
+      left_hand_ = true;
+    }
+    tf::transformMsgToTF(message->hands[0].hand_centroid, last_hand_positions_[0]);
     num_hands_ = 1;
   }
-
-
-  last_detected_time_ = ros::Time::now();
 }
 
 int PushPullHandGestureDetector::lookForGesture()
 {
-  return HandGesture::NOT_DETECTED;
-  /*
   QMutexLocker locker(&mutex_);
 
-  double dt = (ros::Time::now() - last_detected_time_).toSec();
-  if(dt > spinbox_time_out_->value())
+  if(num_hands_ == 0)
   {
-    if(current_state_ != IDEL)
-    {
-      ROS_INFO("Time out");
-      current_state_ = IDEL;
-    }
+    //ROS_INFO_THROTTLE(1.0, "No hand");
+    current_state_[0] = current_state_[1] = IDEL;
     return HandGesture::NOT_DETECTED;
   }
-
-  tf::Vector3 center(spinbox_x_->value(), spinbox_y_->value(), spinbox_z_->value());
-  tf::Vector3 vec = last_hand_position_.getOrigin()- center;
-  double ds = vec.length();
   int detected_gesture = HandGesture::NOT_DETECTED;
-  switch(current_state_)
+
+  //0 is LEFT side
+
+  center_positions_[0].setValue(spinbox_x_->value(), -spinbox_y_->value(), spinbox_z_->value());
+  center_positions_[1].setValue(spinbox_x_->value(), spinbox_y_->value(), spinbox_z_->value());
+  if(num_hands_ == 1)
+  {
+    tf::Vector3 vec_to_hand;
+    if(left_hand_)
+    {
+      vec_to_hand = last_hand_positions_[0].getOrigin() - center_positions_[0];
+    }
+    else
+    {
+      vec_to_hand = last_hand_positions_[0].getOrigin() - center_positions_[1];
+    }
+    detected_gesture = getState(0, vec_to_hand);
+
+
+  }
+  else
+  {
+    tf::Vector3 vec_to_left = last_hand_positions_[0].getOrigin() - center_positions_[0];
+    tf::Vector3 vec_to_right = last_hand_positions_[1].getOrigin() - center_positions_[1];
+    int detected_gesture_l = getState(0, vec_to_left);
+    int detected_gesture_r = getState(1, vec_to_right);
+    switch(detected_gesture_l)
+    {
+      case HandGesture::PUSH_PULL_ZP:
+        if(detected_gesture_r == HandGesture::PUSH_PULL_ZN)
+        {
+          ROS_INFO("Rotate X-");
+          detected_gesture = HandGesture::PUSH_PULL_RXN;
+        }
+        break;
+      case HandGesture::PUSH_PULL_ZN:
+        if(detected_gesture_r == HandGesture::PUSH_PULL_ZP)
+        {
+          ROS_INFO("Rotate X+");
+          detected_gesture = HandGesture::PUSH_PULL_RXP;
+        }
+        break;
+      case HandGesture::PUSH_PULL_XP:
+        if (detected_gesture_r == HandGesture::PUSH_PULL_XP)
+        {
+          ROS_INFO("Rotate Y+");
+          detected_gesture = HandGesture::PUSH_PULL_RYP;
+        }
+        else if (detected_gesture_r == HandGesture::PUSH_PULL_XN)
+        {
+          ROS_INFO("Rotate Z+");
+          detected_gesture = HandGesture::PUSH_PULL_RZP;
+        }
+        break;
+      case HandGesture::PUSH_PULL_XN:
+        if (detected_gesture_r == HandGesture::PUSH_PULL_XP)
+        {
+          ROS_INFO("Rotate Z-");
+          detected_gesture = HandGesture::PUSH_PULL_RZN;
+        }
+        else if (detected_gesture_r == HandGesture::PUSH_PULL_XN)
+        {
+          ROS_INFO("Rotate Y-");
+          detected_gesture = HandGesture::PUSH_PULL_RYN;
+        }
+        break;
+    }
+  }
+
+  return detected_gesture;
+}
+
+int PushPullHandGestureDetector::getState(int hand, const tf::Vector3& vec_to_hand)
+{
+  int detected_gesture = HandGesture::NOT_DETECTED;
+  double ds = vec_to_hand.length();
+  switch (current_state_[hand])
   {
     case IDEL:
-      ROS_INFO("IDEL");
-      if(ds < spinbox_r3_->value())
-        current_state_ = ENTERING;
+      //ROS_INFO("IDEL");
+      if (ds < spinbox_r3_->value())
+        current_state_[hand] = ENTERING;
       break;
     case ENTERING:
-      ROS_INFO("ENTERING");
-      if(ds < spinbox_r2_->value())
+      //ROS_INFO("ENTERING");
+      if (ds < spinbox_r2_->value())
       {
-        start_activating_time_ = ros::Time::now();
-        current_state_ = ACTIVATING;
+        start_activating_time_[hand] = ros::Time::now();
+        current_state_[hand] = ACTIVATING;
       }
-      else if(ds > spinbox_r3_->value())
+      else if (ds > spinbox_r3_->value())
       {
-        current_state_ = IDEL;
+        current_state_[hand] = IDEL;
       }
       break;
     case ACTIVATING:
-      ROS_INFO("ACTIVATING");
-      if(ds < spinbox_r1_->value())
+      //ROS_INFO("ACTIVATING");
+      if (ds < spinbox_r1_->value())
       {
-        double activating_time = (ros::Time::now() - start_activating_time_).toSec();
-        if(activating_time >= spinbox_activating_time_->value())
+        double activating_time = (ros::Time::now() - start_activating_time_[hand]).toSec();
+        if (activating_time >= spinbox_activating_time_->value())
         {
-          current_state_ = ACTIVATED;
+          current_state_[hand] = ACTIVATED;
         }
       }
       else
       {
-        current_state_ = IDEL;
+        current_state_[hand] = IDEL;
       }
       break;
     case ACTIVATED:
-      ROS_INFO("ACTIVATED");
+      //ROS_INFO("ACTIVATED");
       if (ds < spinbox_r2_->value())
       {
-        if(ds < (spinbox_r1_->value() / 2.0))
+        if (ds < (spinbox_r1_->value() / 2.0))
         {
-          is_moving_ = false;
+          is_moving_[hand] = false;
         }
         else
         {
-          is_moving_ = true;
+          is_moving_[hand] = true;
           //check direction
           double dot_products[3];
           double min_error = 1e6;
           int min_error_index = -1;
           for (int i = 0; i < 3; i++)
           {
-            dot_products[i] = vec.dot(three_axes_[i]);
+            dot_products[i] = vec_to_hand.dot(three_axes_[i]);
 
             if ((1 - fabs(dot_products[i])) < min_error)
             {
@@ -296,36 +388,36 @@ int PushPullHandGestureDetector::lookForGesture()
             case 0:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO("X+");
+                ROS_INFO("[%d] X+", hand);
                 detected_gesture = HandGesture::PUSH_PULL_XP;
               }
               else
               {
-                ROS_INFO("X-");
+                ROS_INFO("[%d] X-", hand);
                 detected_gesture = HandGesture::PUSH_PULL_XN;
               }
               break;
             case 1:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO("Y+");
+                ROS_INFO("[%d] Y+", hand);
                 detected_gesture = HandGesture::PUSH_PULL_YP;
               }
               else
               {
-                ROS_INFO("Y-");
+                ROS_INFO("[%d] Y-", hand);
                 detected_gesture = HandGesture::PUSH_PULL_YN;
               }
               break;
             case 2:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO("Z+");
+                ROS_INFO("[%d] Z+", hand);
                 detected_gesture = HandGesture::PUSH_PULL_ZP;
               }
               else
               {
-                ROS_INFO("Z-");
+                ROS_INFO("[%d] Z-", hand);
                 detected_gesture = HandGesture::PUSH_PULL_ZN;
               }
               break;
@@ -336,26 +428,25 @@ int PushPullHandGestureDetector::lookForGesture()
       }
       else
       {
-        last_state_ = current_state_;
-        current_state_ = LEAVING;
+        last_state_[hand] = current_state_[hand];
+        current_state_[hand] = LEAVING;
       }
       break;
     case LEAVING:
-      ROS_INFO("LEAVING");
-      if(ds > spinbox_r3_->value())
+      //ROS_INFO("LEAVING");
+      if (ds > spinbox_r3_->value())
       {
-        current_state_ = IDEL;
+        current_state_[hand] = IDEL;
       }
-      else if(ds < spinbox_r2_->value())
+      else if (ds < spinbox_r2_->value())
       {
-        current_state_ = last_state_;
+        current_state_[hand] = last_state_[hand];
       }
       break;
     default:
       break;
   }
   return detected_gesture;
-  */
 }
 
 
@@ -428,7 +519,6 @@ void PushPullHandGestureDetector::addUI(QToolBox* tool_box)
   h_layout_time_out->addWidget(spinbox_time_out_);
   h_layout_activating_time->addWidget(new QLabel("Active"));
   h_layout_activating_time->addWidget(spinbox_activating_time_);
-
 
 
   QVBoxLayout* v_layout = new QVBoxLayout;
