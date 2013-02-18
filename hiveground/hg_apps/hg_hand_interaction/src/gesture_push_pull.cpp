@@ -657,6 +657,7 @@ int PushPullHandGestureDetector::getStateAuto(int hand, const tf::Vector3& vec_t
       ROS_INFO("%d IDEL %f", hand, ds);
       if (ds < spinbox_r2_->value())
       {
+        //set current hand position as center
         start_activating_time_[hand] = ros::Time::now();
         activated_hand_positions_[hand] = last_hand_positions_[hand];
         current_state_[hand] = ENTERING;
@@ -685,6 +686,8 @@ int PushPullHandGestureDetector::getStateAuto(int hand, const tf::Vector3& vec_t
         double activating_time = (ros::Time::now() - start_activating_time_[hand]).toSec();
         if (activating_time >= spinbox_activating_time_->value())
         {
+          //set current hand position as center
+          activated_hand_positions_[hand] = last_hand_positions_[hand];
           current_state_[hand] = ACTIVATED;
         }
       }
