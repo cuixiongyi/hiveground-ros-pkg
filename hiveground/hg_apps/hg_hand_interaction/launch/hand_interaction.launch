@@ -7,6 +7,7 @@
       sweep_hand_gesture_gap: 0.5      
       filter_window_size: 5
       push_pull_gesture_draw: true
+      push_pull_fixed_activating_position: false
       push_pull_gesture_x: 0.4
       push_pull_gesture_y: 0.3
       push_pull_gesture_z: 0.3
@@ -14,7 +15,7 @@
       push_pull_gesture_r2: 0.2
       push_pull_gesture_r3: 0.25
       push_pull_gesture_timeout: 0.1
-      push_pull_gesture_activating_time: 0.5     
+      push_pull_gesture_activating_time: 1.0     
     </rosparam>
   </node>
 </launch>  
