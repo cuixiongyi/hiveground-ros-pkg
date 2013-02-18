@@ -1,0 +1,5 @@
+<library path="lib/libve026a">
+  <class name="controller_plugins/VE026AController" type="hg_controller::VE026AController" base_class_type="hg::Controller">
+    <description>This is a VE026A controller plugin.</description>
+  </class>  
+</library>
