@@ -64,15 +64,27 @@ public:
   void drawHistory(visualization_msgs::MarkerArray& marker_array,
                      const std::string& frame_id = "base_link");
   void drawResult(visualization_msgs::MarkerArray& marker_array,
+                      const std::string& frame_id = "base_link");
+  void drawResultFixed(visualization_msgs::MarkerArray& marker_array,
                     const std::string& frame_id = "base_link");
+  void drawResultAuto(visualization_msgs::MarkerArray& marker_array,
+                     const std::string& frame_id = "base_link");
   void addHandMessage(const hg_object_tracking::HandsConstPtr message);
+
   int lookForGesture();
-  int getState(int hand, const tf::Vector3& vec_to_hand);
+
+  int lookForGestureFixed();
+  int getStateFixed(int hand, const tf::Vector3& vec_to_hand);
+
+  int lookForGestureAuto();
+  int getStateAuto(int hand, const tf::Vector3& vec_to_hand);
+
 
 
   void addUI(QToolBox* tool_box);
 
 protected Q_SLOTS:
+  void onCheckboxFixedActivatingPositionToggled(bool checked);
 
 protected:
   QDoubleSpinBox* spinbox_x_;
@@ -83,11 +95,13 @@ protected:
   QDoubleSpinBox* spinbox_r3_;
   QDoubleSpinBox* spinbox_time_out_;
   QDoubleSpinBox* spinbox_activating_time_;
+  QCheckBox* checkbox_fixed_activating_position_;
   int num_hands_;
   bool left_hand_;
   int current_state_[2];
   int last_state_[2];
   tf::Transform last_hand_positions_[2];
+  tf::Transform activated_hand_positions_[2];
   tf::Vector3 center_positions_[2];
   ros::Time start_leaving_time_[2];
   ros::Time start_activating_time_[2];

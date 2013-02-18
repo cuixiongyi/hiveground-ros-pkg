@@ -255,21 +255,6 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
             q.setRPY(rx, ry, rz);
             pose.setRotation(pose.getRotation() * q);
             markers_[selected_markers_.back()]->setPose(pose, true);
-
-/*
-            sensor_msgs::JointState joint_state;
-            if (checkIKConstraintAware(ee, joint_state))
-            {
-              control_msgs::FollowJointTrajectoryGoal goal;
-              goal.trajectory.header.stamp = ros::Time::now();
-              goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
-              trajectory_msgs::JointTrajectoryPoint point;
-              point.positions = joint_state.position;
-              goal.trajectory.points.push_back(point);
-              action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
-              arm_is_active_ = true;
-            }
-*/
           }
         }
       }
