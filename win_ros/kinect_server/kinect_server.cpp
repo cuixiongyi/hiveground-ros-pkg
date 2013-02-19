@@ -9,7 +9,7 @@
 #include <strsafe.h>
 
 #include <std_msgs/String.h>
-
+#include <kinect_msgs/Skeletons.h>
 
 //lookups for color tinting based on player index
 static const int g_IntensityShiftByPlayerR[] = { 1, 2, 0, 2, 0, 0, 2, 0 };
