@@ -73,27 +73,27 @@ struct Skeleton_ {
   typedef uint64_t _quality_flag_type;
   uint64_t quality_flag;
 
-  enum { NUI_SKELETON_POSITION_HIP_CENTER = 0 };
-  enum { NUI_SKELETON_POSITION_SPINE = 1 };
-  enum { NUI_SKELETON_POSITION_SHOULDER_CENTER = 2 };
-  enum { NUI_SKELETON_POSITION_HEAD = 3 };
-  enum { NUI_SKELETON_POSITION_SHOULDER_LEFT = 4 };
-  enum { NUI_SKELETON_POSITION_ELBOW_LEFT = 5 };
-  enum { NUI_SKELETON_POSITION_WRIST_LEFT = 6 };
-  enum { NUI_SKELETON_POSITION_HAND_LEFT = 7 };
-  enum { NUI_SKELETON_POSITION_SHOULDER_RIGHT = 8 };
-  enum { NUI_SKELETON_POSITION_ELBOW_RIGHT = 9 };
-  enum { NUI_SKELETON_POSITION_WRIST_RIGHT = 10 };
-  enum { NUI_SKELETON_POSITION_HAND_RIGHT = 11 };
-  enum { NUI_SKELETON_POSITION_HIP_LEFT = 12 };
-  enum { NUI_SKELETON_POSITION_KNEE_LEFT = 13 };
-  enum { NUI_SKELETON_POSITION_ANKLE_LEFT = 14 };
-  enum { NUI_SKELETON_POSITION_FOOT_LEFT = 15 };
-  enum { NUI_SKELETON_POSITION_HIP_RIGHT = 16 };
-  enum { NUI_SKELETON_POSITION_KNEE_RIGHT = 17 };
-  enum { NUI_SKELETON_POSITION_ANKLE_RIGHT = 18 };
-  enum { NUI_SKELETON_POSITION_FOOT_RIGHT = 19 };
-  enum { NUI_SKELETON_POSITION_COUNT = 20 };
+  enum { SKELETON_POSITION_HIP_CENTER = 0 };
+  enum { SKELETON_POSITION_SPINE = 1 };
+  enum { SKELETON_POSITION_SHOULDER_CENTER = 2 };
+  enum { SKELETON_POSITION_HEAD = 3 };
+  enum { SKELETON_POSITION_SHOULDER_LEFT = 4 };
+  enum { SKELETON_POSITION_ELBOW_LEFT = 5 };
+  enum { SKELETON_POSITION_WRIST_LEFT = 6 };
+  enum { SKELETON_POSITION_HAND_LEFT = 7 };
+  enum { SKELETON_POSITION_SHOULDER_RIGHT = 8 };
+  enum { SKELETON_POSITION_ELBOW_RIGHT = 9 };
+  enum { SKELETON_POSITION_WRIST_RIGHT = 10 };
+  enum { SKELETON_POSITION_HAND_RIGHT = 11 };
+  enum { SKELETON_POSITION_HIP_LEFT = 12 };
+  enum { SKELETON_POSITION_KNEE_LEFT = 13 };
+  enum { SKELETON_POSITION_ANKLE_LEFT = 14 };
+  enum { SKELETON_POSITION_FOOT_LEFT = 15 };
+  enum { SKELETON_POSITION_HIP_RIGHT = 16 };
+  enum { SKELETON_POSITION_KNEE_RIGHT = 17 };
+  enum { SKELETON_POSITION_ANKLE_RIGHT = 18 };
+  enum { SKELETON_POSITION_FOOT_RIGHT = 19 };
+  enum { SKELETON_POSITION_COUNT = 20 };
 
   typedef boost::shared_ptr< ::kinect_msgs::Skeleton_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::kinect_msgs::Skeleton_<ContainerAllocator>  const> ConstPtr;
@@ -123,12 +123,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeleton_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "c36e53ab36dd280a1c60d91e51415e29";
+    return "01435aa048fa87541ff72201f8f5c5f6";
   }
 
   static const char* value(const  ::kinect_msgs::Skeleton_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xc36e53ab36dd280aULL;
-  static const uint64_t static_value2 = 0x1c60d91e51415e29ULL;
+  static const uint64_t static_value1 = 0x01435aa048fa8754ULL;
+  static const uint64_t static_value2 = 0x1ff72201f8f5c5f6ULL;
 };
 
 template<class ContainerAllocator>
@@ -154,33 +154,33 @@ geometry_msgs/Transform[] skeleton_positions\n\
 SkeletonPositionTrackingState[] skeleton_position_tracking_state\n\
 uint64 quality_flag\n\
 \n\
-int8 NUI_SKELETON_POSITION_HIP_CENTER = 0\n\
-int8 NUI_SKELETON_POSITION_SPINE = 1\n\
-int8 NUI_SKELETON_POSITION_SHOULDER_CENTER = 2\n\
-int8 NUI_SKELETON_POSITION_HEAD = 3\n\
-int8 NUI_SKELETON_POSITION_SHOULDER_LEFT = 4\n\
-int8 NUI_SKELETON_POSITION_ELBOW_LEFT = 5\n\
-int8 NUI_SKELETON_POSITION_WRIST_LEFT = 6\n\
-int8 NUI_SKELETON_POSITION_HAND_LEFT = 7\n\
-int8 NUI_SKELETON_POSITION_SHOULDER_RIGHT = 8\n\
-int8 NUI_SKELETON_POSITION_ELBOW_RIGHT = 9\n\
-int8 NUI_SKELETON_POSITION_WRIST_RIGHT = 10\n\
-int8 NUI_SKELETON_POSITION_HAND_RIGHT = 11\n\
-int8 NUI_SKELETON_POSITION_HIP_LEFT = 12\n\
-int8 NUI_SKELETON_POSITION_KNEE_LEFT = 13\n\
-int8 NUI_SKELETON_POSITION_ANKLE_LEFT = 14\n\
-int8 NUI_SKELETON_POSITION_FOOT_LEFT = 15\n\
-int8 NUI_SKELETON_POSITION_HIP_RIGHT = 16\n\
-int8 NUI_SKELETON_POSITION_KNEE_RIGHT = 17\n\
-int8 NUI_SKELETON_POSITION_ANKLE_RIGHT = 18\n\
-int8 NUI_SKELETON_POSITION_FOOT_RIGHT = 19\n\
-int8 NUI_SKELETON_POSITION_COUNT = 20\n\
+int8 SKELETON_POSITION_HIP_CENTER = 0\n\
+int8 SKELETON_POSITION_SPINE = 1\n\
+int8 SKELETON_POSITION_SHOULDER_CENTER = 2\n\
+int8 SKELETON_POSITION_HEAD = 3\n\
+int8 SKELETON_POSITION_SHOULDER_LEFT = 4\n\
+int8 SKELETON_POSITION_ELBOW_LEFT = 5\n\
+int8 SKELETON_POSITION_WRIST_LEFT = 6\n\
+int8 SKELETON_POSITION_HAND_LEFT = 7\n\
+int8 SKELETON_POSITION_SHOULDER_RIGHT = 8\n\
+int8 SKELETON_POSITION_ELBOW_RIGHT = 9\n\
+int8 SKELETON_POSITION_WRIST_RIGHT = 10\n\
+int8 SKELETON_POSITION_HAND_RIGHT = 11\n\
+int8 SKELETON_POSITION_HIP_LEFT = 12\n\
+int8 SKELETON_POSITION_KNEE_LEFT = 13\n\
+int8 SKELETON_POSITION_ANKLE_LEFT = 14\n\
+int8 SKELETON_POSITION_FOOT_LEFT = 15\n\
+int8 SKELETON_POSITION_HIP_RIGHT = 16\n\
+int8 SKELETON_POSITION_KNEE_RIGHT = 17\n\
+int8 SKELETON_POSITION_ANKLE_RIGHT = 18\n\
+int8 SKELETON_POSITION_FOOT_RIGHT = 19\n\
+int8 SKELETON_POSITION_COUNT = 20\n\
 \n\
 ================================================================================\n\
 MSG: kinect_msgs/SkeletonTrackingState\n\
-int8 NUI_SKELETON_NOT_TRACKED = 0\n\
-int8 NUI_SKELETON_POSITION_ONLY = 1\n\
-int8 NUI_SKELETON_TRACKED = 2\n\
+int8 SKELETON_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_ONLY = 1\n\
+int8 SKELETON_TRACKED = 2\n\
 \n\
 ================================================================================\n\
 MSG: geometry_msgs/Transform\n\
@@ -207,9 +207,9 @@ float64 w\n\
 \n\
 ================================================================================\n\
 MSG: kinect_msgs/SkeletonPositionTrackingState\n\
-int8 NUI_SKELETON_POSITION_NOT_TRACKED = 0\n\
-int8 NUI_SKELETON_POSITION_INFERRED = 1\n\
-int8 NUI_SKELETON_POSITION_TRACKED = 2\n\
+int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_INFERRED = 1\n\
+int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 ";
   }

@@ -6,18 +6,18 @@ import struct
 
 
 class SkeletonTrackingState(genpy.Message):
-  _md5sum = "61454daff706a633eb9d2006addfb20a"
+  _md5sum = "5ef7185bd672713cd4304a672c9b653f"
   _type = "kinect_msgs/SkeletonTrackingState"
   _has_header = False #flag to mark the presence of a Header object
-  _full_text = """int8 NUI_SKELETON_NOT_TRACKED = 0
-int8 NUI_SKELETON_POSITION_ONLY = 1
-int8 NUI_SKELETON_TRACKED = 2
+  _full_text = """int8 SKELETON_NOT_TRACKED = 0
+int8 SKELETON_POSITION_ONLY = 1
+int8 SKELETON_TRACKED = 2
 
 """
   # Pseudo-constants
-  NUI_SKELETON_NOT_TRACKED = 0
-  NUI_SKELETON_POSITION_ONLY = 1
-  NUI_SKELETON_TRACKED = 2
+  SKELETON_NOT_TRACKED = 0
+  SKELETON_POSITION_ONLY = 1
+  SKELETON_TRACKED = 2
 
   __slots__ = []
   _slot_types = []

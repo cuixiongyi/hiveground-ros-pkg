@@ -41,7 +41,7 @@ struct Skeletons_ {
   typedef std::vector< ::kinect_msgs::Skeleton_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::Skeleton_<ContainerAllocator> >::other >  _skeleton_type;
   std::vector< ::kinect_msgs::Skeleton_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::Skeleton_<ContainerAllocator> >::other >  skeleton;
 
-  enum { NUI_SKELETON_COUNT = 6 };
+  enum { SKELETON_COUNT = 6 };
 
   typedef boost::shared_ptr< ::kinect_msgs::Skeletons_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::kinect_msgs::Skeletons_<ContainerAllocator>  const> ConstPtr;
@@ -71,12 +71,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeletons_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "bda7ce67dd79e8cf14eda85e22cc84bb";
+    return "d21159ab0ce87ac42a5854d288a9f5e2";
   }
 
   static const char* value(const  ::kinect_msgs::Skeletons_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xbda7ce67dd79e8cfULL;
-  static const uint64_t static_value2 = 0x14eda85e22cc84bbULL;
+  static const uint64_t static_value1 = 0xd21159ab0ce87ac4ULL;
+  static const uint64_t static_value2 = 0x2a5854d288a9f5e2ULL;
 };
 
 template<class ContainerAllocator>
@@ -96,7 +96,7 @@ struct Definition< ::kinect_msgs::Skeletons_<ContainerAllocator> > {
     return "Header header\n\
 Skeleton[] skeleton\n\
 \n\
-int8 NUI_SKELETON_COUNT = 6\n\
+int8 SKELETON_COUNT = 6\n\
 \n\
 ================================================================================\n\
 MSG: std_msgs/Header\n\
@@ -127,33 +127,33 @@ geometry_msgs/Transform[] skeleton_positions\n\
 SkeletonPositionTrackingState[] skeleton_position_tracking_state\n\
 uint64 quality_flag\n\
 \n\
-int8 NUI_SKELETON_POSITION_HIP_CENTER = 0\n\
-int8 NUI_SKELETON_POSITION_SPINE = 1\n\
-int8 NUI_SKELETON_POSITION_SHOULDER_CENTER = 2\n\
-int8 NUI_SKELETON_POSITION_HEAD = 3\n\
-int8 NUI_SKELETON_POSITION_SHOULDER_LEFT = 4\n\
-int8 NUI_SKELETON_POSITION_ELBOW_LEFT = 5\n\
-int8 NUI_SKELETON_POSITION_WRIST_LEFT = 6\n\
-int8 NUI_SKELETON_POSITION_HAND_LEFT = 7\n\
-int8 NUI_SKELETON_POSITION_SHOULDER_RIGHT = 8\n\
-int8 NUI_SKELETON_POSITION_ELBOW_RIGHT = 9\n\
-int8 NUI_SKELETON_POSITION_WRIST_RIGHT = 10\n\
-int8 NUI_SKELETON_POSITION_HAND_RIGHT = 11\n\
-int8 NUI_SKELETON_POSITION_HIP_LEFT = 12\n\
-int8 NUI_SKELETON_POSITION_KNEE_LEFT = 13\n\
-int8 NUI_SKELETON_POSITION_ANKLE_LEFT = 14\n\
-int8 NUI_SKELETON_POSITION_FOOT_LEFT = 15\n\
-int8 NUI_SKELETON_POSITION_HIP_RIGHT = 16\n\
-int8 NUI_SKELETON_POSITION_KNEE_RIGHT = 17\n\
-int8 NUI_SKELETON_POSITION_ANKLE_RIGHT = 18\n\
-int8 NUI_SKELETON_POSITION_FOOT_RIGHT = 19\n\
-int8 NUI_SKELETON_POSITION_COUNT = 20\n\
+int8 SKELETON_POSITION_HIP_CENTER = 0\n\
+int8 SKELETON_POSITION_SPINE = 1\n\
+int8 SKELETON_POSITION_SHOULDER_CENTER = 2\n\
+int8 SKELETON_POSITION_HEAD = 3\n\
+int8 SKELETON_POSITION_SHOULDER_LEFT = 4\n\
+int8 SKELETON_POSITION_ELBOW_LEFT = 5\n\
+int8 SKELETON_POSITION_WRIST_LEFT = 6\n\
+int8 SKELETON_POSITION_HAND_LEFT = 7\n\
+int8 SKELETON_POSITION_SHOULDER_RIGHT = 8\n\
+int8 SKELETON_POSITION_ELBOW_RIGHT = 9\n\
+int8 SKELETON_POSITION_WRIST_RIGHT = 10\n\
+int8 SKELETON_POSITION_HAND_RIGHT = 11\n\
+int8 SKELETON_POSITION_HIP_LEFT = 12\n\
+int8 SKELETON_POSITION_KNEE_LEFT = 13\n\
+int8 SKELETON_POSITION_ANKLE_LEFT = 14\n\
+int8 SKELETON_POSITION_FOOT_LEFT = 15\n\
+int8 SKELETON_POSITION_HIP_RIGHT = 16\n\
+int8 SKELETON_POSITION_KNEE_RIGHT = 17\n\
+int8 SKELETON_POSITION_ANKLE_RIGHT = 18\n\
+int8 SKELETON_POSITION_FOOT_RIGHT = 19\n\
+int8 SKELETON_POSITION_COUNT = 20\n\
 \n\
 ================================================================================\n\
 MSG: kinect_msgs/SkeletonTrackingState\n\
-int8 NUI_SKELETON_NOT_TRACKED = 0\n\
-int8 NUI_SKELETON_POSITION_ONLY = 1\n\
-int8 NUI_SKELETON_TRACKED = 2\n\
+int8 SKELETON_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_ONLY = 1\n\
+int8 SKELETON_TRACKED = 2\n\
 \n\
 ================================================================================\n\
 MSG: geometry_msgs/Transform\n\
@@ -180,9 +180,9 @@ float64 w\n\
 \n\
 ================================================================================\n\
 MSG: kinect_msgs/SkeletonPositionTrackingState\n\
-int8 NUI_SKELETON_POSITION_NOT_TRACKED = 0\n\
-int8 NUI_SKELETON_POSITION_INFERRED = 1\n\
-int8 NUI_SKELETON_POSITION_TRACKED = 2\n\
+int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_INFERRED = 1\n\
+int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 ";
   }
