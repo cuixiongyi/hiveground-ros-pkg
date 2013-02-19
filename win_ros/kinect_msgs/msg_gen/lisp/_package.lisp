@@ -1,0 +1,13 @@
+(cl:defpackage kinect_msgs-msg
+  (:use )
+  (:export
+   "<SKELETON>"
+   "SKELETON"
+   "<SKELETONPOSITIONTRACKINGSTATE>"
+   "SKELETONPOSITIONTRACKINGSTATE"
+   "<SKELETONTRACKINGSTATE>"
+   "SKELETONTRACKINGSTATE"
+   "<SKELETONS>"
+   "SKELETONS"
+  ))
+
