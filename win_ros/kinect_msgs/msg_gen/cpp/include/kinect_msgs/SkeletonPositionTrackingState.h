@@ -29,9 +29,9 @@ struct SkeletonPositionTrackingState_ {
   {
   }
 
-  enum { NUI_SKELETON_POSITION_NOT_TRACKED = 0 };
-  enum { NUI_SKELETON_POSITION_INFERRED = 1 };
-  enum { NUI_SKELETON_POSITION_TRACKED = 2 };
+  enum { SKELETON_POSITION_NOT_TRACKED = 0 };
+  enum { SKELETON_POSITION_INFERRED = 1 };
+  enum { SKELETON_POSITION_TRACKED = 2 };
 
   typedef boost::shared_ptr< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator>  const> ConstPtr;
@@ -61,12 +61,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "8e5b6512cb1c58f34c3877dc4c11e2fb";
+    return "f785a43f3434418746121bf4645eda09";
   }
 
   static const char* value(const  ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x8e5b6512cb1c58f3ULL;
-  static const uint64_t static_value2 = 0x4c3877dc4c11e2fbULL;
+  static const uint64_t static_value1 = 0xf785a43f34344187ULL;
+  static const uint64_t static_value2 = 0x46121bf4645eda09ULL;
 };
 
 template<class ContainerAllocator>
@@ -83,9 +83,9 @@ template<class ContainerAllocator>
 struct Definition< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "int8 NUI_SKELETON_POSITION_NOT_TRACKED = 0\n\
-int8 NUI_SKELETON_POSITION_INFERRED = 1\n\
-int8 NUI_SKELETON_POSITION_TRACKED = 2\n\
+    return "int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_INFERRED = 1\n\
+int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 ";
   }

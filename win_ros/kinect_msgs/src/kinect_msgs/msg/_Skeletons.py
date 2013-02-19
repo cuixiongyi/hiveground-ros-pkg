@@ -9,13 +9,13 @@ import kinect_msgs.msg
 import std_msgs.msg
 
 class Skeletons(genpy.Message):
-  _md5sum = "bda7ce67dd79e8cf14eda85e22cc84bb"
+  _md5sum = "d21159ab0ce87ac42a5854d288a9f5e2"
   _type = "kinect_msgs/Skeletons"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
 Skeleton[] skeleton
 
-int8 NUI_SKELETON_COUNT = 6
+int8 SKELETON_COUNT = 6
 
 ================================================================================
 MSG: std_msgs/Header
@@ -46,33 +46,33 @@ geometry_msgs/Transform[] skeleton_positions
 SkeletonPositionTrackingState[] skeleton_position_tracking_state
 uint64 quality_flag
 
-int8 NUI_SKELETON_POSITION_HIP_CENTER = 0
-int8 NUI_SKELETON_POSITION_SPINE = 1
-int8 NUI_SKELETON_POSITION_SHOULDER_CENTER = 2
-int8 NUI_SKELETON_POSITION_HEAD = 3
-int8 NUI_SKELETON_POSITION_SHOULDER_LEFT = 4
-int8 NUI_SKELETON_POSITION_ELBOW_LEFT = 5
-int8 NUI_SKELETON_POSITION_WRIST_LEFT = 6
-int8 NUI_SKELETON_POSITION_HAND_LEFT = 7
-int8 NUI_SKELETON_POSITION_SHOULDER_RIGHT = 8
-int8 NUI_SKELETON_POSITION_ELBOW_RIGHT = 9
-int8 NUI_SKELETON_POSITION_WRIST_RIGHT = 10
-int8 NUI_SKELETON_POSITION_HAND_RIGHT = 11
-int8 NUI_SKELETON_POSITION_HIP_LEFT = 12
-int8 NUI_SKELETON_POSITION_KNEE_LEFT = 13
-int8 NUI_SKELETON_POSITION_ANKLE_LEFT = 14
-int8 NUI_SKELETON_POSITION_FOOT_LEFT = 15
-int8 NUI_SKELETON_POSITION_HIP_RIGHT = 16
-int8 NUI_SKELETON_POSITION_KNEE_RIGHT = 17
-int8 NUI_SKELETON_POSITION_ANKLE_RIGHT = 18
-int8 NUI_SKELETON_POSITION_FOOT_RIGHT = 19
-int8 NUI_SKELETON_POSITION_COUNT = 20
+int8 SKELETON_POSITION_HIP_CENTER = 0
+int8 SKELETON_POSITION_SPINE = 1
+int8 SKELETON_POSITION_SHOULDER_CENTER = 2
+int8 SKELETON_POSITION_HEAD = 3
+int8 SKELETON_POSITION_SHOULDER_LEFT = 4
+int8 SKELETON_POSITION_ELBOW_LEFT = 5
+int8 SKELETON_POSITION_WRIST_LEFT = 6
+int8 SKELETON_POSITION_HAND_LEFT = 7
+int8 SKELETON_POSITION_SHOULDER_RIGHT = 8
+int8 SKELETON_POSITION_ELBOW_RIGHT = 9
+int8 SKELETON_POSITION_WRIST_RIGHT = 10
+int8 SKELETON_POSITION_HAND_RIGHT = 11
+int8 SKELETON_POSITION_HIP_LEFT = 12
+int8 SKELETON_POSITION_KNEE_LEFT = 13
+int8 SKELETON_POSITION_ANKLE_LEFT = 14
+int8 SKELETON_POSITION_FOOT_LEFT = 15
+int8 SKELETON_POSITION_HIP_RIGHT = 16
+int8 SKELETON_POSITION_KNEE_RIGHT = 17
+int8 SKELETON_POSITION_ANKLE_RIGHT = 18
+int8 SKELETON_POSITION_FOOT_RIGHT = 19
+int8 SKELETON_POSITION_COUNT = 20
 
 ================================================================================
 MSG: kinect_msgs/SkeletonTrackingState
-int8 NUI_SKELETON_NOT_TRACKED = 0
-int8 NUI_SKELETON_POSITION_ONLY = 1
-int8 NUI_SKELETON_TRACKED = 2
+int8 SKELETON_NOT_TRACKED = 0
+int8 SKELETON_POSITION_ONLY = 1
+int8 SKELETON_TRACKED = 2
 
 ================================================================================
 MSG: geometry_msgs/Transform
@@ -99,13 +99,13 @@ float64 w
 
 ================================================================================
 MSG: kinect_msgs/SkeletonPositionTrackingState
-int8 NUI_SKELETON_POSITION_NOT_TRACKED = 0
-int8 NUI_SKELETON_POSITION_INFERRED = 1
-int8 NUI_SKELETON_POSITION_TRACKED = 2
+int8 SKELETON_POSITION_NOT_TRACKED = 0
+int8 SKELETON_POSITION_INFERRED = 1
+int8 SKELETON_POSITION_TRACKED = 2
 
 """
   # Pseudo-constants
-  NUI_SKELETON_COUNT = 6
+  SKELETON_COUNT = 6
 
   __slots__ = ['header','skeleton']
   _slot_types = ['std_msgs/Header','kinect_msgs/Skeleton[]']
