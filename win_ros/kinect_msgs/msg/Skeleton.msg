@@ -1,11 +1,11 @@
 int8 skeleton_tracking_state
-uint64 tracking_id
-uint64 enrollment_index
-uint64 user_index
+uint32 tracking_id
+uint32 enrollment_index
+uint32 user_index
 geometry_msgs/Transform position
 geometry_msgs/Transform[] skeleton_positions
 int8[] skeleton_position_tracking_state
-uint64 quality_flag
+uint32 quality_flag
 
 int8 SKELETON_NOT_TRACKED = 0
 int8 SKELETON_POSITION_ONLY = 1
@@ -36,3 +36,8 @@ int8 SKELETON_POSITION_KNEE_RIGHT = 17
 int8 SKELETON_POSITION_ANKLE_RIGHT = 18
 int8 SKELETON_POSITION_FOOT_RIGHT = 19
 int8 SKELETON_POSITION_COUNT = 20
+
+uint32 SKELETON_QUALITY_CLIPPED_RIGHT = 1
+uint32 SKELETON_QUALITY_CLIPPED_LEFT = 2 
+uint32 SKELETON_QUALITY_CLIPPED_TOP = 4 
+uint32 SKELETON_QUALITY_CLIPPED_BOTTOM = 8  
