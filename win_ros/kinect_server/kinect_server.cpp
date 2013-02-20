@@ -88,15 +88,9 @@ kinect_server::kinect_server(ros::NodeHandle& nh, QWidget *parent, Qt::WFlags fl
 
 
   gesture_pub_ = nh_.advertise<std_msgs::String>("kinect_gesture", 10);
-  //connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
-  //connect(&double_swipe_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
-  //connect(&three_axis_gesture_, SIGNAL(gestureDetected(const QString&)), this, SLOT(publish_gesture(const QString&)));
-
-
+  skeleton_pub_ = nh_.advertise<kinect_msgs::Skeletons>("kinect_skeletons", 10);
+  
   nuiInit();
-
-
-
 }
 
 kinect_server::~kinect_server()
@@ -137,7 +131,7 @@ void kinect_server::publish_gesture(const QString& gesture)
 */
 void kinect_server::closeEvent(QCloseEvent *event)
 {
-  quit_threads_ = true;
+  quit_threads_ = true;  
   nuiUnInit();
   event->accept();
 }
@@ -622,60 +616,56 @@ bool kinect_server::nuiGotSkeletonAlert()
   int width = skeleton_image.width();
   int height = skeleton_image.height();
   QPainter painter(&skeleton_image);
-
+   
 
   kinect_msgs::Skeletons skelentons_message;
   skelentons_message.header.stamp = ros::Time::now();
   skelentons_message.header.seq = SkeletonFrame.dwFrameNumber;
   skelentons_message.header.frame_id = "kinect_server";
+  skelentons_message.skeletons.resize(NUI_SKELETON_COUNT);
   for ( int i = 0 ; i < NUI_SKELETON_COUNT; i++ )
   {
     NUI_SKELETON_TRACKING_STATE trackingState = SkeletonFrame.SkeletonData[i].eTrackingState;
     kinect_msgs::Skeleton skeleton;
 
-    skeleton.tracking_id = SkeletonFrame.SkeletonData[i].dwTrackingID;
-    skeleton.enrollment_index = SkeletonFrame.SkeletonData[i].dwEnrollmentIndex;
-    skeleton.user_index = SkeletonFrame.SkeletonData[i].dwUserIndex;
-    skeleton.skeleton_tracking_state = SkeletonFrame.SkeletonData[i].eTrackingState;
-    skeleton.quality_flag = SkeletonFrame.SkeletonData[i].dwQualityFlags;
+    skelentons_message.skeletons[i].tracking_id = SkeletonFrame.SkeletonData[i].dwTrackingID;
+    skelentons_message.skeletons[i].enrollment_index = SkeletonFrame.SkeletonData[i].dwEnrollmentIndex;
+    skelentons_message.skeletons[i].user_index = SkeletonFrame.SkeletonData[i].dwUserIndex;
+    skelentons_message.skeletons[i].skeleton_tracking_state = SkeletonFrame.SkeletonData[i].eTrackingState;
+    skelentons_message.skeletons[i].quality_flag = SkeletonFrame.SkeletonData[i].dwQualityFlags;
 
-    skeleton.position.translation.x = SkeletonFrame.SkeletonData[i].Position.x;
-    skeleton.position.translation.y = SkeletonFrame.SkeletonData[i].Position.y;
-    skeleton.position.translation.z = SkeletonFrame.SkeletonData[i].Position.z;        
-    skeleton.position.rotation.x = 0;
-    skeleton.position.rotation.y = 0;
-    skeleton.position.rotation.z = 0;
-    skeleton.position.rotation.w = 1;
+    skelentons_message.skeletons[i].position.translation.x = SkeletonFrame.SkeletonData[i].Position.x;
+    skelentons_message.skeletons[i].position.translation.y = SkeletonFrame.SkeletonData[i].Position.y;
+    skelentons_message.skeletons[i].position.translation.z = SkeletonFrame.SkeletonData[i].Position.z;        
+    skelentons_message.skeletons[i].position.rotation.x = 0;
+    skelentons_message.skeletons[i].position.rotation.y = 0;
+    skelentons_message.skeletons[i].position.rotation.z = 0;
+    skelentons_message.skeletons[i].position.rotation.w = 1;
       
-    skeleton.skeleton_positions.resize(NUI_SKELETON_POSITION_COUNT);
-    skeleton.skeleton_position_tracking_state.resize(NUI_SKELETON_POSITION_COUNT);
+    skelentons_message.skeletons[i].skeleton_positions.resize(NUI_SKELETON_POSITION_COUNT);
+    skelentons_message.skeletons[i].skeleton_position_tracking_state.resize(NUI_SKELETON_POSITION_COUNT);
     for(int j = 0; j < NUI_SKELETON_POSITION_COUNT; j++)
     {
-      skeleton.skeleton_position_tracking_state[j] = SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[j];
-      skeleton.skeleton_positions[j].translation.x = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].x;
-      skeleton.skeleton_positions[j].translation.y = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].y;
-      skeleton.skeleton_positions[j].translation.z = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].z;        
-      skeleton.skeleton_positions[j].rotation.x = 0;
-      skeleton.skeleton_positions[j].rotation.y = 0;
-      skeleton.skeleton_positions[j].rotation.z = 0;
-      skeleton.skeleton_positions[j].rotation.w = 1;
-
+      skelentons_message.skeletons[i].skeleton_position_tracking_state[j] = SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[j];
+      skelentons_message.skeletons[i].skeleton_positions[j].translation.x = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].x;
+      skelentons_message.skeletons[i].skeleton_positions[j].translation.y = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].y;
+      skelentons_message.skeletons[i].skeleton_positions[j].translation.z = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].z;        
+      skelentons_message.skeletons[i].skeleton_positions[j].rotation.x = 0;
+      skelentons_message.skeletons[i].skeleton_positions[j].rotation.y = 0;
+      skelentons_message.skeletons[i].skeleton_positions[j].rotation.z = 0;
+      skelentons_message.skeletons[i].skeleton_positions[j].rotation.w = 1;
     }
+
+    
 
     
 
 
     if ( trackingState == NUI_SKELETON_TRACKED )
     {
-      
 
-      //skeleton.
-
-
-
-
-
-      /*
+#if 0      
+      //skeleton.      
       QString gesture;
 
       GestureDetector::Positions positions0;
@@ -715,7 +705,7 @@ bool kinect_server::nuiGotSkeletonAlert()
         ROS_INFO_STREAM_THROTTLE(1.0, msg.data);
         gesture_pub_.publish(msg); 
       }
-      */
+#endif      
       // We're tracking the skeleton, draw it
       nuiDrawSkeleton(painter, SkeletonFrame.SkeletonData[i], width, height );
     }
@@ -726,6 +716,8 @@ bool kinect_server::nuiGotSkeletonAlert()
       painter.drawEllipse(point, 3, 3);
     }
   }
+
+  skeleton_pub_.publish(skelentons_message);
   emit showDepth(skeleton_image);   
   return true;
 }

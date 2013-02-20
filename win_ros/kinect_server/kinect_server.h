@@ -78,6 +78,7 @@ private:
   
   //ROS
   ros::Publisher gesture_pub_;
+  ros::Publisher skeleton_pub_;
 
 
   //Kinect
