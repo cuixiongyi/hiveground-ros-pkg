@@ -9,11 +9,11 @@ import kinect_msgs.msg
 import std_msgs.msg
 
 class Skeletons(genpy.Message):
-  _md5sum = "f026931349e1ac4bdfdd321ca25f41b9"
+  _md5sum = "fea4b07d293d1980dc796dc53353ba55"
   _type = "kinect_msgs/Skeletons"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
-Skeleton[] skeleton
+Skeleton[] skeletons
 
 int8 SKELETON_COUNT = 6
 
@@ -103,7 +103,7 @@ float64 w
   # Pseudo-constants
   SKELETON_COUNT = 6
 
-  __slots__ = ['header','skeleton']
+  __slots__ = ['header','skeletons']
   _slot_types = ['std_msgs/Header','kinect_msgs/Skeleton[]']
 
   def __init__(self, *args, **kwds):
@@ -114,7 +114,7 @@ float64 w
     changes.  You cannot mix in-order arguments and keyword arguments.
 
     The available fields are:
-       header,skeleton
+       header,skeletons
 
     :param args: complete set of field values, in .msg order
     :param kwds: use keyword arguments corresponding to message field names
@@ -125,11 +125,11 @@ float64 w
       #message fields cannot be None, assign default values for those that are
       if self.header is None:
         self.header = std_msgs.msg.Header()
-      if self.skeleton is None:
-        self.skeleton = []
+      if self.skeletons is None:
+        self.skeletons = []
     else:
       self.header = std_msgs.msg.Header()
-      self.skeleton = []
+      self.skeletons = []
 
   def _get_types(self):
     """
@@ -151,9 +151,9 @@ float64 w
         _x = _x.encode('utf-8')
         length = len(_x)
       buff.write(struct.pack('<I%ss'%length, length, _x))
-      length = len(self.skeleton)
+      length = len(self.skeletons)
       buff.write(_struct_I.pack(length))
-      for val1 in self.skeleton:
+      for val1 in self.skeletons:
         _x = val1
         buff.write(_struct_b3Q.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
         _v1 = val1.position
@@ -188,8 +188,8 @@ float64 w
     try:
       if self.header is None:
         self.header = std_msgs.msg.Header()
-      if self.skeleton is None:
-        self.skeleton = None
+      if self.skeletons is None:
+        self.skeletons = None
       end = 0
       _x = self
       start = end
@@ -207,7 +207,7 @@ float64 w
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
-      self.skeleton = []
+      self.skeletons = []
       for i in range(0, length):
         val1 = kinect_msgs.msg.Skeleton()
         _x = val1
@@ -252,7 +252,7 @@ float64 w
         start = end
         end += 8
         (val1.quality_flag,) = _struct_Q.unpack(str[start:end])
-        self.skeleton.append(val1)
+        self.skeletons.append(val1)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
@@ -273,9 +273,9 @@ float64 w
         _x = _x.encode('utf-8')
         length = len(_x)
       buff.write(struct.pack('<I%ss'%length, length, _x))
-      length = len(self.skeleton)
+      length = len(self.skeletons)
       buff.write(_struct_I.pack(length))
-      for val1 in self.skeleton:
+      for val1 in self.skeletons:
         _x = val1
         buff.write(_struct_b3Q.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
         _v11 = val1.position
@@ -311,8 +311,8 @@ float64 w
     try:
       if self.header is None:
         self.header = std_msgs.msg.Header()
-      if self.skeleton is None:
-        self.skeleton = None
+      if self.skeletons is None:
+        self.skeletons = None
       end = 0
       _x = self
       start = end
@@ -330,7 +330,7 @@ float64 w
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
-      self.skeleton = []
+      self.skeletons = []
       for i in range(0, length):
         val1 = kinect_msgs.msg.Skeleton()
         _x = val1
@@ -375,7 +375,7 @@ float64 w
         start = end
         end += 8
         (val1.quality_flag,) = _struct_Q.unpack(str[start:end])
-        self.skeleton.append(val1)
+        self.skeletons.append(val1)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill

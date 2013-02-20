@@ -25,21 +25,21 @@ struct Skeletons_ {
 
   Skeletons_()
   : header()
-  , skeleton()
+  , skeletons()
   {
   }
 
   Skeletons_(const ContainerAllocator& _alloc)
   : header(_alloc)
-  , skeleton(_alloc)
+  , skeletons(_alloc)
   {
   }
 
   typedef  ::std_msgs::Header_<ContainerAllocator>  _header_type;
    ::std_msgs::Header_<ContainerAllocator>  header;
 
-  typedef std::vector< ::kinect_msgs::Skeleton_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::Skeleton_<ContainerAllocator> >::other >  _skeleton_type;
-  std::vector< ::kinect_msgs::Skeleton_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::Skeleton_<ContainerAllocator> >::other >  skeleton;
+  typedef std::vector< ::kinect_msgs::Skeleton_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::Skeleton_<ContainerAllocator> >::other >  _skeletons_type;
+  std::vector< ::kinect_msgs::Skeleton_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::Skeleton_<ContainerAllocator> >::other >  skeletons;
 
   enum { SKELETON_COUNT = 6 };
 
@@ -71,12 +71,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeletons_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "f026931349e1ac4bdfdd321ca25f41b9";
+    return "fea4b07d293d1980dc796dc53353ba55";
   }
 
   static const char* value(const  ::kinect_msgs::Skeletons_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xf026931349e1ac4bULL;
-  static const uint64_t static_value2 = 0xdfdd321ca25f41b9ULL;
+  static const uint64_t static_value1 = 0xfea4b07d293d1980ULL;
+  static const uint64_t static_value2 = 0xdc796dc53353ba55ULL;
 };
 
 template<class ContainerAllocator>
@@ -94,7 +94,7 @@ struct Definition< ::kinect_msgs::Skeletons_<ContainerAllocator> > {
   static const char* value() 
   {
     return "Header header\n\
-Skeleton[] skeleton\n\
+Skeleton[] skeletons\n\
 \n\
 int8 SKELETON_COUNT = 6\n\
 \n\
@@ -201,7 +201,7 @@ template<class ContainerAllocator> struct Serializer< ::kinect_msgs::Skeletons_<
   template<typename Stream, typename T> inline static void allInOne(Stream& stream, T m)
   {
     stream.next(m.header);
-    stream.next(m.skeleton);
+    stream.next(m.skeletons);
   }
 
   ROS_DECLARE_ALLINONE_SERIALIZER;
@@ -222,13 +222,13 @@ struct Printer< ::kinect_msgs::Skeletons_<ContainerAllocator> >
     s << indent << "header: ";
 s << std::endl;
     Printer< ::std_msgs::Header_<ContainerAllocator> >::stream(s, indent + "  ", v.header);
-    s << indent << "skeleton[]" << std::endl;
-    for (size_t i = 0; i < v.skeleton.size(); ++i)
+    s << indent << "skeletons[]" << std::endl;
+    for (size_t i = 0; i < v.skeletons.size(); ++i)
     {
-      s << indent << "  skeleton[" << i << "]: ";
+      s << indent << "  skeletons[" << i << "]: ";
       s << std::endl;
       s << indent;
-      Printer< ::kinect_msgs::Skeleton_<ContainerAllocator> >::stream(s, indent + "    ", v.skeleton[i]);
+      Printer< ::kinect_msgs::Skeleton_<ContainerAllocator> >::stream(s, indent + "    ", v.skeletons[i]);
     }
   }
 };
