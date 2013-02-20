@@ -598,6 +598,7 @@ bool kinect_server::nuiGotSkeletonAlert()
 
   nuiGotDepthAlert();
 
+
   // no skeletons!
   if( !foundSkeleton )
   {    
@@ -621,12 +622,23 @@ bool kinect_server::nuiGotSkeletonAlert()
   int width = skeleton_image.width();
   int height = skeleton_image.height();
   QPainter painter(&skeleton_image);
+  kinect_msgs::Skeletons skelentons_message;
   for ( int i = 0 ; i < NUI_SKELETON_COUNT; i++ )
   {
     NUI_SKELETON_TRACKING_STATE trackingState = SkeletonFrame.SkeletonData[i].eTrackingState;
-
+    kinect_msgs::Skeleton skeleton;
+    
     if ( trackingState == NUI_SKELETON_TRACKED )
     {
+      skeleton.skeleton_tracking_state = kinect_msgs::SkeletonTrackingState::SKELETON_TRACKED;
+
+      //skeleton.
+
+
+
+
+
+      /*
       QString gesture;
 
       GestureDetector::Positions positions0;
@@ -666,6 +678,7 @@ bool kinect_server::nuiGotSkeletonAlert()
         ROS_INFO_STREAM_THROTTLE(1.0, msg.data);
         gesture_pub_.publish(msg); 
       }
+      */
       // We're tracking the skeleton, draw it
       nuiDrawSkeleton(painter, SkeletonFrame.SkeletonData[i], width, height );
     }
