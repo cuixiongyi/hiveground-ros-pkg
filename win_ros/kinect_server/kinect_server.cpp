@@ -622,15 +622,52 @@ bool kinect_server::nuiGotSkeletonAlert()
   int width = skeleton_image.width();
   int height = skeleton_image.height();
   QPainter painter(&skeleton_image);
+
+
   kinect_msgs::Skeletons skelentons_message;
+  skelentons_message.header.stamp = ros::Time::now();
+  skelentons_message.header.seq = SkeletonFrame.dwFrameNumber;
+  skelentons_message.header.frame_id = "kinect_server";
   for ( int i = 0 ; i < NUI_SKELETON_COUNT; i++ )
   {
     NUI_SKELETON_TRACKING_STATE trackingState = SkeletonFrame.SkeletonData[i].eTrackingState;
     kinect_msgs::Skeleton skeleton;
+
+    skeleton.tracking_id = SkeletonFrame.SkeletonData[i].dwTrackingID;
+    skeleton.enrollment_index = SkeletonFrame.SkeletonData[i].dwEnrollmentIndex;
+    skeleton.user_index = SkeletonFrame.SkeletonData[i].dwUserIndex;
+    skeleton.skeleton_tracking_state = SkeletonFrame.SkeletonData[i].eTrackingState;
+    skeleton.quality_flag = SkeletonFrame.SkeletonData[i].dwQualityFlags;
+
+    skeleton.position.translation.x = SkeletonFrame.SkeletonData[i].Position.x;
+    skeleton.position.translation.y = SkeletonFrame.SkeletonData[i].Position.y;
+    skeleton.position.translation.z = SkeletonFrame.SkeletonData[i].Position.z;        
+    skeleton.position.rotation.x = 0;
+    skeleton.position.rotation.y = 0;
+    skeleton.position.rotation.z = 0;
+    skeleton.position.rotation.w = 1;
+      
+    skeleton.skeleton_positions.resize(NUI_SKELETON_POSITION_COUNT);
+    skeleton.skeleton_position_tracking_state.resize(NUI_SKELETON_POSITION_COUNT);
+    for(int j = 0; j < NUI_SKELETON_POSITION_COUNT; j++)
+    {
+      skeleton.skeleton_position_tracking_state[j] = SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[j];
+      skeleton.skeleton_positions[j].translation.x = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].x;
+      skeleton.skeleton_positions[j].translation.y = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].y;
+      skeleton.skeleton_positions[j].translation.z = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].z;        
+      skeleton.skeleton_positions[j].rotation.x = 0;
+      skeleton.skeleton_positions[j].rotation.y = 0;
+      skeleton.skeleton_positions[j].rotation.z = 0;
+      skeleton.skeleton_positions[j].rotation.w = 1;
+
+    }
+
     
+
+
     if ( trackingState == NUI_SKELETON_TRACKED )
     {
-      skeleton.skeleton_tracking_state = kinect_msgs::SkeletonTrackingState::SKELETON_TRACKED;
+      
 
       //skeleton.
 
