@@ -13,6 +13,10 @@
   <depend package="tf"/>
   <depend package="kinect_msgs"/>
   <depend package="std_msgs"/>
+  <depend package="pcl_ros"/>
+  <depend package="opencv2"/>
+  <depend package="interactive_markers"/>
+  
 
 </package>
 
