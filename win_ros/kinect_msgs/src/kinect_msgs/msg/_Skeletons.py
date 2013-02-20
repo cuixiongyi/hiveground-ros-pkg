@@ -9,7 +9,7 @@ import kinect_msgs.msg
 import std_msgs.msg
 
 class Skeletons(genpy.Message):
-  _md5sum = "fea4b07d293d1980dc796dc53353ba55"
+  _md5sum = "9e80c7bc055dd83ecbddb85e2bafcc8c"
   _type = "kinect_msgs/Skeletons"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -38,13 +38,13 @@ string frame_id
 ================================================================================
 MSG: kinect_msgs/Skeleton
 int8 skeleton_tracking_state
-uint64 tracking_id
-uint64 enrollment_index
-uint64 user_index
+uint32 tracking_id
+uint32 enrollment_index
+uint32 user_index
 geometry_msgs/Transform position
 geometry_msgs/Transform[] skeleton_positions
 int8[] skeleton_position_tracking_state
-uint64 quality_flag
+uint32 quality_flag
 
 int8 SKELETON_NOT_TRACKED = 0
 int8 SKELETON_POSITION_ONLY = 1
@@ -75,6 +75,11 @@ int8 SKELETON_POSITION_KNEE_RIGHT = 17
 int8 SKELETON_POSITION_ANKLE_RIGHT = 18
 int8 SKELETON_POSITION_FOOT_RIGHT = 19
 int8 SKELETON_POSITION_COUNT = 20
+
+uint32 SKELETON_QUALITY_CLIPPED_RIGHT = 1
+uint32 SKELETON_QUALITY_CLIPPED_LEFT = 2 
+uint32 SKELETON_QUALITY_CLIPPED_TOP = 4 
+uint32 SKELETON_QUALITY_CLIPPED_BOTTOM = 8  
 
 ================================================================================
 MSG: geometry_msgs/Transform
@@ -155,7 +160,7 @@ float64 w
       buff.write(_struct_I.pack(length))
       for val1 in self.skeletons:
         _x = val1
-        buff.write(_struct_b3Q.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
+        buff.write(_struct_b3I.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
         _v1 = val1.position
         _v2 = _v1.translation
         _x = _v2
@@ -176,7 +181,7 @@ float64 w
         buff.write(_struct_I.pack(length))
         pattern = '<%sb'%length
         buff.write(struct.pack(pattern, *val1.skeleton_position_tracking_state))
-        buff.write(_struct_Q.pack(val1.quality_flag))
+        buff.write(_struct_I.pack(val1.quality_flag))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -212,8 +217,8 @@ float64 w
         val1 = kinect_msgs.msg.Skeleton()
         _x = val1
         start = end
-        end += 25
-        (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_b3Q.unpack(str[start:end])
+        end += 13
+        (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_b3I.unpack(str[start:end])
         _v6 = val1.position
         _v7 = _v6.translation
         _x = _v7
@@ -250,8 +255,8 @@ float64 w
         end += struct.calcsize(pattern)
         val1.skeleton_position_tracking_state = struct.unpack(pattern, str[start:end])
         start = end
-        end += 8
-        (val1.quality_flag,) = _struct_Q.unpack(str[start:end])
+        end += 4
+        (val1.quality_flag,) = _struct_I.unpack(str[start:end])
         self.skeletons.append(val1)
       return self
     except struct.error as e:
@@ -277,7 +282,7 @@ float64 w
       buff.write(_struct_I.pack(length))
       for val1 in self.skeletons:
         _x = val1
-        buff.write(_struct_b3Q.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
+        buff.write(_struct_b3I.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
         _v11 = val1.position
         _v12 = _v11.translation
         _x = _v12
@@ -298,7 +303,7 @@ float64 w
         buff.write(_struct_I.pack(length))
         pattern = '<%sb'%length
         buff.write(val1.skeleton_position_tracking_state.tostring())
-        buff.write(_struct_Q.pack(val1.quality_flag))
+        buff.write(_struct_I.pack(val1.quality_flag))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -335,8 +340,8 @@ float64 w
         val1 = kinect_msgs.msg.Skeleton()
         _x = val1
         start = end
-        end += 25
-        (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_b3Q.unpack(str[start:end])
+        end += 13
+        (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_b3I.unpack(str[start:end])
         _v16 = val1.position
         _v17 = _v16.translation
         _x = _v17
@@ -373,16 +378,15 @@ float64 w
         end += struct.calcsize(pattern)
         val1.skeleton_position_tracking_state = numpy.frombuffer(str[start:end], dtype=numpy.int8, count=length)
         start = end
-        end += 8
-        (val1.quality_flag,) = _struct_Q.unpack(str[start:end])
+        end += 4
+        (val1.quality_flag,) = _struct_I.unpack(str[start:end])
         self.skeletons.append(val1)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
-_struct_Q = struct.Struct("<Q")
 _struct_4d = struct.Struct("<4d")
 _struct_3I = struct.Struct("<3I")
-_struct_b3Q = struct.Struct("<b3Q")
+_struct_b3I = struct.Struct("<b3I")
 _struct_3d = struct.Struct("<3d")
