@@ -71,12 +71,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeletons_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "d21159ab0ce87ac42a5854d288a9f5e2";
+    return "f026931349e1ac4bdfdd321ca25f41b9";
   }
 
   static const char* value(const  ::kinect_msgs::Skeletons_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xd21159ab0ce87ac4ULL;
-  static const uint64_t static_value2 = 0x2a5854d288a9f5e2ULL;
+  static const uint64_t static_value1 = 0xf026931349e1ac4bULL;
+  static const uint64_t static_value2 = 0xdfdd321ca25f41b9ULL;
 };
 
 template<class ContainerAllocator>
@@ -118,14 +118,22 @@ string frame_id\n\
 \n\
 ================================================================================\n\
 MSG: kinect_msgs/Skeleton\n\
-SkeletonTrackingState skeleton_tracking_state\n\
+int8 skeleton_tracking_state\n\
 uint64 tracking_id\n\
 uint64 enrollment_index\n\
 uint64 user_index\n\
 geometry_msgs/Transform position\n\
 geometry_msgs/Transform[] skeleton_positions\n\
-SkeletonPositionTrackingState[] skeleton_position_tracking_state\n\
+int8[] skeleton_position_tracking_state\n\
 uint64 quality_flag\n\
+\n\
+int8 SKELETON_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_ONLY = 1\n\
+int8 SKELETON_TRACKED = 2\n\
+\n\
+int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_INFERRED = 1\n\
+int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 int8 SKELETON_POSITION_HIP_CENTER = 0\n\
 int8 SKELETON_POSITION_SPINE = 1\n\
@@ -150,12 +158,6 @@ int8 SKELETON_POSITION_FOOT_RIGHT = 19\n\
 int8 SKELETON_POSITION_COUNT = 20\n\
 \n\
 ================================================================================\n\
-MSG: kinect_msgs/SkeletonTrackingState\n\
-int8 SKELETON_NOT_TRACKED = 0\n\
-int8 SKELETON_POSITION_ONLY = 1\n\
-int8 SKELETON_TRACKED = 2\n\
-\n\
-================================================================================\n\
 MSG: geometry_msgs/Transform\n\
 # This represents the transform between two coordinate frames in free space.\n\
 \n\
@@ -177,12 +179,6 @@ float64 x\n\
 float64 y\n\
 float64 z\n\
 float64 w\n\
-\n\
-================================================================================\n\
-MSG: kinect_msgs/SkeletonPositionTrackingState\n\
-int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
-int8 SKELETON_POSITION_INFERRED = 1\n\
-int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 ";
   }

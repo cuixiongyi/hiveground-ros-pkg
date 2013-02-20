@@ -5,20 +5,27 @@ import genpy
 import struct
 
 import geometry_msgs.msg
-import kinect_msgs.msg
 
 class Skeleton(genpy.Message):
-  _md5sum = "01435aa048fa87541ff72201f8f5c5f6"
+  _md5sum = "770d2e5dd9a84bd5c245898f8188e954"
   _type = "kinect_msgs/Skeleton"
   _has_header = False #flag to mark the presence of a Header object
-  _full_text = """SkeletonTrackingState skeleton_tracking_state
+  _full_text = """int8 skeleton_tracking_state
 uint64 tracking_id
 uint64 enrollment_index
 uint64 user_index
 geometry_msgs/Transform position
 geometry_msgs/Transform[] skeleton_positions
-SkeletonPositionTrackingState[] skeleton_position_tracking_state
+int8[] skeleton_position_tracking_state
 uint64 quality_flag
+
+int8 SKELETON_NOT_TRACKED = 0
+int8 SKELETON_POSITION_ONLY = 1
+int8 SKELETON_TRACKED = 2
+
+int8 SKELETON_POSITION_NOT_TRACKED = 0
+int8 SKELETON_POSITION_INFERRED = 1
+int8 SKELETON_POSITION_TRACKED = 2
 
 int8 SKELETON_POSITION_HIP_CENTER = 0
 int8 SKELETON_POSITION_SPINE = 1
@@ -43,12 +50,6 @@ int8 SKELETON_POSITION_FOOT_RIGHT = 19
 int8 SKELETON_POSITION_COUNT = 20
 
 ================================================================================
-MSG: kinect_msgs/SkeletonTrackingState
-int8 SKELETON_NOT_TRACKED = 0
-int8 SKELETON_POSITION_ONLY = 1
-int8 SKELETON_TRACKED = 2
-
-================================================================================
 MSG: geometry_msgs/Transform
 # This represents the transform between two coordinate frames in free space.
 
@@ -71,14 +72,14 @@ float64 y
 float64 z
 float64 w
 
-================================================================================
-MSG: kinect_msgs/SkeletonPositionTrackingState
-int8 SKELETON_POSITION_NOT_TRACKED = 0
-int8 SKELETON_POSITION_INFERRED = 1
-int8 SKELETON_POSITION_TRACKED = 2
-
 """
   # Pseudo-constants
+  SKELETON_NOT_TRACKED = 0
+  SKELETON_POSITION_ONLY = 1
+  SKELETON_TRACKED = 2
+  SKELETON_POSITION_NOT_TRACKED = 0
+  SKELETON_POSITION_INFERRED = 1
+  SKELETON_POSITION_TRACKED = 2
   SKELETON_POSITION_HIP_CENTER = 0
   SKELETON_POSITION_SPINE = 1
   SKELETON_POSITION_SHOULDER_CENTER = 2
@@ -102,7 +103,7 @@ int8 SKELETON_POSITION_TRACKED = 2
   SKELETON_POSITION_COUNT = 20
 
   __slots__ = ['skeleton_tracking_state','tracking_id','enrollment_index','user_index','position','skeleton_positions','skeleton_position_tracking_state','quality_flag']
-  _slot_types = ['kinect_msgs/SkeletonTrackingState','uint64','uint64','uint64','geometry_msgs/Transform','geometry_msgs/Transform[]','kinect_msgs/SkeletonPositionTrackingState[]','uint64']
+  _slot_types = ['int8','uint64','uint64','uint64','geometry_msgs/Transform','geometry_msgs/Transform[]','int8[]','uint64']
 
   def __init__(self, *args, **kwds):
     """
@@ -122,7 +123,7 @@ int8 SKELETON_POSITION_TRACKED = 2
       super(Skeleton, self).__init__(*args, **kwds)
       #message fields cannot be None, assign default values for those that are
       if self.skeleton_tracking_state is None:
-        self.skeleton_tracking_state = kinect_msgs.msg.SkeletonTrackingState()
+        self.skeleton_tracking_state = 0
       if self.tracking_id is None:
         self.tracking_id = 0
       if self.enrollment_index is None:
@@ -138,7 +139,7 @@ int8 SKELETON_POSITION_TRACKED = 2
       if self.quality_flag is None:
         self.quality_flag = 0
     else:
-      self.skeleton_tracking_state = kinect_msgs.msg.SkeletonTrackingState()
+      self.skeleton_tracking_state = 0
       self.tracking_id = 0
       self.enrollment_index = 0
       self.user_index = 0
@@ -160,7 +161,7 @@ int8 SKELETON_POSITION_TRACKED = 2
     """
     try:
       _x = self
-      buff.write(_struct_3Q7d.pack(_x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w))
+      buff.write(_struct_b3Q7d.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w))
       length = len(self.skeleton_positions)
       buff.write(_struct_I.pack(length))
       for val1 in self.skeleton_positions:
@@ -172,8 +173,8 @@ int8 SKELETON_POSITION_TRACKED = 2
         buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
       length = len(self.skeleton_position_tracking_state)
       buff.write(_struct_I.pack(length))
-      for val1 in self.skeleton_position_tracking_state:
-        pass
+      pattern = '<%sb'%length
+      buff.write(struct.pack(pattern, *self.skeleton_position_tracking_state))
       buff.write(_struct_Q.pack(self.quality_flag))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
@@ -184,19 +185,15 @@ int8 SKELETON_POSITION_TRACKED = 2
     :param str: byte array of serialized message, ``str``
     """
     try:
-      if self.skeleton_tracking_state is None:
-        self.skeleton_tracking_state = kinect_msgs.msg.SkeletonTrackingState()
       if self.position is None:
         self.position = geometry_msgs.msg.Transform()
       if self.skeleton_positions is None:
         self.skeleton_positions = None
-      if self.skeleton_position_tracking_state is None:
-        self.skeleton_position_tracking_state = None
       end = 0
       _x = self
       start = end
-      end += 80
-      (_x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w,) = _struct_3Q7d.unpack(str[start:end])
+      end += 81
+      (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w,) = _struct_b3Q7d.unpack(str[start:end])
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -217,10 +214,10 @@ int8 SKELETON_POSITION_TRACKED = 2
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
-      self.skeleton_position_tracking_state = []
-      for i in range(0, length):
-        val1 = kinect_msgs.msg.SkeletonPositionTrackingState()
-        self.skeleton_position_tracking_state.append(val1)
+      pattern = '<%sb'%length
+      start = end
+      end += struct.calcsize(pattern)
+      self.skeleton_position_tracking_state = struct.unpack(pattern, str[start:end])
       start = end
       end += 8
       (self.quality_flag,) = _struct_Q.unpack(str[start:end])
@@ -237,7 +234,7 @@ int8 SKELETON_POSITION_TRACKED = 2
     """
     try:
       _x = self
-      buff.write(_struct_3Q7d.pack(_x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w))
+      buff.write(_struct_b3Q7d.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w))
       length = len(self.skeleton_positions)
       buff.write(_struct_I.pack(length))
       for val1 in self.skeleton_positions:
@@ -249,8 +246,8 @@ int8 SKELETON_POSITION_TRACKED = 2
         buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
       length = len(self.skeleton_position_tracking_state)
       buff.write(_struct_I.pack(length))
-      for val1 in self.skeleton_position_tracking_state:
-        pass
+      pattern = '<%sb'%length
+      buff.write(self.skeleton_position_tracking_state.tostring())
       buff.write(_struct_Q.pack(self.quality_flag))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
@@ -262,19 +259,15 @@ int8 SKELETON_POSITION_TRACKED = 2
     :param numpy: numpy python module
     """
     try:
-      if self.skeleton_tracking_state is None:
-        self.skeleton_tracking_state = kinect_msgs.msg.SkeletonTrackingState()
       if self.position is None:
         self.position = geometry_msgs.msg.Transform()
       if self.skeleton_positions is None:
         self.skeleton_positions = None
-      if self.skeleton_position_tracking_state is None:
-        self.skeleton_position_tracking_state = None
       end = 0
       _x = self
       start = end
-      end += 80
-      (_x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w,) = _struct_3Q7d.unpack(str[start:end])
+      end += 81
+      (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index, _x.position.translation.x, _x.position.translation.y, _x.position.translation.z, _x.position.rotation.x, _x.position.rotation.y, _x.position.rotation.z, _x.position.rotation.w,) = _struct_b3Q7d.unpack(str[start:end])
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
@@ -295,10 +288,10 @@ int8 SKELETON_POSITION_TRACKED = 2
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
-      self.skeleton_position_tracking_state = []
-      for i in range(0, length):
-        val1 = kinect_msgs.msg.SkeletonPositionTrackingState()
-        self.skeleton_position_tracking_state.append(val1)
+      pattern = '<%sb'%length
+      start = end
+      end += struct.calcsize(pattern)
+      self.skeleton_position_tracking_state = numpy.frombuffer(str[start:end], dtype=numpy.int8, count=length)
       start = end
       end += 8
       (self.quality_flag,) = _struct_Q.unpack(str[start:end])
@@ -309,5 +302,5 @@ int8 SKELETON_POSITION_TRACKED = 2
 _struct_I = genpy.struct_I
 _struct_Q = struct.Struct("<Q")
 _struct_4d = struct.Struct("<4d")
-_struct_3Q7d = struct.Struct("<3Q7d")
+_struct_b3Q7d = struct.Struct("<b3Q7d")
 _struct_3d = struct.Struct("<3d")
