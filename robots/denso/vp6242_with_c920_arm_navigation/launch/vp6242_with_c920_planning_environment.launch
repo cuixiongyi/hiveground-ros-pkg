@@ -1,0 +1,5 @@
+<launch>
+    <!--param name="robot_description" textfile="$(find vp6242_description)/robot/vp6242_with_c920.urdf" /-->
+    <param name="robot_description" command="$(find xacro)/xacro.py '$(find vp6242_description)/robot/vp6242_with_c920.urdf.xacro'"/>
+    <rosparam command="load" ns="robot_description_planning" file="$(find vp6242_with_c920_arm_navigation)/config/vp6242_with_c920_planning_description.yaml" />
+</launch>
