@@ -1,0 +1,5 @@
+<launch>
+  <include file="$(find hg_demo)/launch/vp6242_with_c920/kinect_center.launch"/>
+  <include file="$(find hg_demo)/launch/vp6242_with_c920/vp6242_with_c920_self_filter.launch"/>        
+  <include file="$(find vp6242_with_c920_arm_navigation)/launch/rviz.launch"/>
+</launch>
