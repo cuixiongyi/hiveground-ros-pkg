@@ -9,7 +9,7 @@ import kinect_msgs.msg
 import std_msgs.msg
 
 class Skeletons(genpy.Message):
-  _md5sum = "d21159ab0ce87ac42a5854d288a9f5e2"
+  _md5sum = "f026931349e1ac4bdfdd321ca25f41b9"
   _type = "kinect_msgs/Skeletons"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -37,14 +37,22 @@ string frame_id
 
 ================================================================================
 MSG: kinect_msgs/Skeleton
-SkeletonTrackingState skeleton_tracking_state
+int8 skeleton_tracking_state
 uint64 tracking_id
 uint64 enrollment_index
 uint64 user_index
 geometry_msgs/Transform position
 geometry_msgs/Transform[] skeleton_positions
-SkeletonPositionTrackingState[] skeleton_position_tracking_state
+int8[] skeleton_position_tracking_state
 uint64 quality_flag
+
+int8 SKELETON_NOT_TRACKED = 0
+int8 SKELETON_POSITION_ONLY = 1
+int8 SKELETON_TRACKED = 2
+
+int8 SKELETON_POSITION_NOT_TRACKED = 0
+int8 SKELETON_POSITION_INFERRED = 1
+int8 SKELETON_POSITION_TRACKED = 2
 
 int8 SKELETON_POSITION_HIP_CENTER = 0
 int8 SKELETON_POSITION_SPINE = 1
@@ -69,12 +77,6 @@ int8 SKELETON_POSITION_FOOT_RIGHT = 19
 int8 SKELETON_POSITION_COUNT = 20
 
 ================================================================================
-MSG: kinect_msgs/SkeletonTrackingState
-int8 SKELETON_NOT_TRACKED = 0
-int8 SKELETON_POSITION_ONLY = 1
-int8 SKELETON_TRACKED = 2
-
-================================================================================
 MSG: geometry_msgs/Transform
 # This represents the transform between two coordinate frames in free space.
 
@@ -96,12 +98,6 @@ float64 x
 float64 y
 float64 z
 float64 w
-
-================================================================================
-MSG: kinect_msgs/SkeletonPositionTrackingState
-int8 SKELETON_POSITION_NOT_TRACKED = 0
-int8 SKELETON_POSITION_INFERRED = 1
-int8 SKELETON_POSITION_TRACKED = 2
 
 """
   # Pseudo-constants
@@ -158,30 +154,28 @@ int8 SKELETON_POSITION_TRACKED = 2
       length = len(self.skeleton)
       buff.write(_struct_I.pack(length))
       for val1 in self.skeleton:
-        _v1 = val1.skeleton_tracking_state
-        pass
         _x = val1
-        buff.write(_struct_3Q.pack(_x.tracking_id, _x.enrollment_index, _x.user_index))
-        _v2 = val1.position
-        _v3 = _v2.translation
-        _x = _v3
+        buff.write(_struct_b3Q.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
+        _v1 = val1.position
+        _v2 = _v1.translation
+        _x = _v2
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v4 = _v2.rotation
-        _x = _v4
+        _v3 = _v1.rotation
+        _x = _v3
         buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
         length = len(val1.skeleton_positions)
         buff.write(_struct_I.pack(length))
         for val2 in val1.skeleton_positions:
-          _v5 = val2.translation
-          _x = _v5
+          _v4 = val2.translation
+          _x = _v4
           buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-          _v6 = val2.rotation
-          _x = _v6
+          _v5 = val2.rotation
+          _x = _v5
           buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
         length = len(val1.skeleton_position_tracking_state)
         buff.write(_struct_I.pack(length))
-        for val2 in val1.skeleton_position_tracking_state:
-          pass
+        pattern = '<%sb'%length
+        buff.write(struct.pack(pattern, *val1.skeleton_position_tracking_state))
         buff.write(_struct_Q.pack(val1.quality_flag))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
@@ -216,19 +210,18 @@ int8 SKELETON_POSITION_TRACKED = 2
       self.skeleton = []
       for i in range(0, length):
         val1 = kinect_msgs.msg.Skeleton()
-        _v7 = val1.skeleton_tracking_state
         _x = val1
         start = end
-        end += 24
-        (_x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_3Q.unpack(str[start:end])
-        _v8 = val1.position
-        _v9 = _v8.translation
-        _x = _v9
+        end += 25
+        (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_b3Q.unpack(str[start:end])
+        _v6 = val1.position
+        _v7 = _v6.translation
+        _x = _v7
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v10 = _v8.rotation
-        _x = _v10
+        _v8 = _v6.rotation
+        _x = _v8
         start = end
         end += 32
         (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
@@ -238,13 +231,13 @@ int8 SKELETON_POSITION_TRACKED = 2
         val1.skeleton_positions = []
         for i in range(0, length):
           val2 = geometry_msgs.msg.Transform()
-          _v11 = val2.translation
-          _x = _v11
+          _v9 = val2.translation
+          _x = _v9
           start = end
           end += 24
           (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-          _v12 = val2.rotation
-          _x = _v12
+          _v10 = val2.rotation
+          _x = _v10
           start = end
           end += 32
           (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
@@ -252,10 +245,10 @@ int8 SKELETON_POSITION_TRACKED = 2
         start = end
         end += 4
         (length,) = _struct_I.unpack(str[start:end])
-        val1.skeleton_position_tracking_state = []
-        for i in range(0, length):
-          val2 = kinect_msgs.msg.SkeletonPositionTrackingState()
-          val1.skeleton_position_tracking_state.append(val2)
+        pattern = '<%sb'%length
+        start = end
+        end += struct.calcsize(pattern)
+        val1.skeleton_position_tracking_state = struct.unpack(pattern, str[start:end])
         start = end
         end += 8
         (val1.quality_flag,) = _struct_Q.unpack(str[start:end])
@@ -283,30 +276,28 @@ int8 SKELETON_POSITION_TRACKED = 2
       length = len(self.skeleton)
       buff.write(_struct_I.pack(length))
       for val1 in self.skeleton:
-        _v13 = val1.skeleton_tracking_state
-        pass
         _x = val1
-        buff.write(_struct_3Q.pack(_x.tracking_id, _x.enrollment_index, _x.user_index))
-        _v14 = val1.position
-        _v15 = _v14.translation
-        _x = _v15
+        buff.write(_struct_b3Q.pack(_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index))
+        _v11 = val1.position
+        _v12 = _v11.translation
+        _x = _v12
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v16 = _v14.rotation
-        _x = _v16
+        _v13 = _v11.rotation
+        _x = _v13
         buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
         length = len(val1.skeleton_positions)
         buff.write(_struct_I.pack(length))
         for val2 in val1.skeleton_positions:
-          _v17 = val2.translation
-          _x = _v17
+          _v14 = val2.translation
+          _x = _v14
           buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-          _v18 = val2.rotation
-          _x = _v18
+          _v15 = val2.rotation
+          _x = _v15
           buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
         length = len(val1.skeleton_position_tracking_state)
         buff.write(_struct_I.pack(length))
-        for val2 in val1.skeleton_position_tracking_state:
-          pass
+        pattern = '<%sb'%length
+        buff.write(val1.skeleton_position_tracking_state.tostring())
         buff.write(_struct_Q.pack(val1.quality_flag))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
@@ -342,19 +333,18 @@ int8 SKELETON_POSITION_TRACKED = 2
       self.skeleton = []
       for i in range(0, length):
         val1 = kinect_msgs.msg.Skeleton()
-        _v19 = val1.skeleton_tracking_state
         _x = val1
         start = end
-        end += 24
-        (_x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_3Q.unpack(str[start:end])
-        _v20 = val1.position
-        _v21 = _v20.translation
-        _x = _v21
+        end += 25
+        (_x.skeleton_tracking_state, _x.tracking_id, _x.enrollment_index, _x.user_index,) = _struct_b3Q.unpack(str[start:end])
+        _v16 = val1.position
+        _v17 = _v16.translation
+        _x = _v17
         start = end
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v22 = _v20.rotation
-        _x = _v22
+        _v18 = _v16.rotation
+        _x = _v18
         start = end
         end += 32
         (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
@@ -364,13 +354,13 @@ int8 SKELETON_POSITION_TRACKED = 2
         val1.skeleton_positions = []
         for i in range(0, length):
           val2 = geometry_msgs.msg.Transform()
-          _v23 = val2.translation
-          _x = _v23
+          _v19 = val2.translation
+          _x = _v19
           start = end
           end += 24
           (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-          _v24 = val2.rotation
-          _x = _v24
+          _v20 = val2.rotation
+          _x = _v20
           start = end
           end += 32
           (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
@@ -378,10 +368,10 @@ int8 SKELETON_POSITION_TRACKED = 2
         start = end
         end += 4
         (length,) = _struct_I.unpack(str[start:end])
-        val1.skeleton_position_tracking_state = []
-        for i in range(0, length):
-          val2 = kinect_msgs.msg.SkeletonPositionTrackingState()
-          val1.skeleton_position_tracking_state.append(val2)
+        pattern = '<%sb'%length
+        start = end
+        end += struct.calcsize(pattern)
+        val1.skeleton_position_tracking_state = numpy.frombuffer(str[start:end], dtype=numpy.int8, count=length)
         start = end
         end += 8
         (val1.quality_flag,) = _struct_Q.unpack(str[start:end])
@@ -394,5 +384,5 @@ _struct_I = genpy.struct_I
 _struct_Q = struct.Struct("<Q")
 _struct_4d = struct.Struct("<4d")
 _struct_3I = struct.Struct("<3I")
-_struct_3Q = struct.Struct("<3Q")
+_struct_b3Q = struct.Struct("<b3Q")
 _struct_3d = struct.Struct("<3d")

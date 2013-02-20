@@ -10,8 +10,8 @@
   ((skeleton_tracking_state
     :reader skeleton_tracking_state
     :initarg :skeleton_tracking_state
-    :type kinect_msgs-msg:SkeletonTrackingState
-    :initform (cl:make-instance 'kinect_msgs-msg:SkeletonTrackingState))
+    :type cl:fixnum
+    :initform 0)
    (tracking_id
     :reader tracking_id
     :initarg :tracking_id
@@ -40,8 +40,8 @@
    (skeleton_position_tracking_state
     :reader skeleton_position_tracking_state
     :initarg :skeleton_position_tracking_state
-    :type (cl:vector kinect_msgs-msg:SkeletonPositionTrackingState)
-   :initform (cl:make-array 0 :element-type 'kinect_msgs-msg:SkeletonPositionTrackingState :initial-element (cl:make-instance 'kinect_msgs-msg:SkeletonPositionTrackingState)))
+    :type (cl:vector cl:fixnum)
+   :initform (cl:make-array 0 :element-type 'cl:fixnum :initial-element 0))
    (quality_flag
     :reader quality_flag
     :initarg :quality_flag
@@ -98,7 +98,13 @@
   (quality_flag m))
 (cl:defmethod roslisp-msg-protocol:symbol-codes ((msg-type (cl:eql '<Skeleton>)))
     "Constants for message type '<Skeleton>"
-  '((:SKELETON_POSITION_HIP_CENTER . 0)
+  '((:SKELETON_NOT_TRACKED . 0)
+    (:SKELETON_POSITION_ONLY . 1)
+    (:SKELETON_TRACKED . 2)
+    (:SKELETON_POSITION_NOT_TRACKED . 0)
+    (:SKELETON_POSITION_INFERRED . 1)
+    (:SKELETON_POSITION_TRACKED . 2)
+    (:SKELETON_POSITION_HIP_CENTER . 0)
     (:SKELETON_POSITION_SPINE . 1)
     (:SKELETON_POSITION_SHOULDER_CENTER . 2)
     (:SKELETON_POSITION_HEAD . 3)
@@ -122,7 +128,13 @@
 )
 (cl:defmethod roslisp-msg-protocol:symbol-codes ((msg-type (cl:eql 'Skeleton)))
     "Constants for message type 'Skeleton"
-  '((:SKELETON_POSITION_HIP_CENTER . 0)
+  '((:SKELETON_NOT_TRACKED . 0)
+    (:SKELETON_POSITION_ONLY . 1)
+    (:SKELETON_TRACKED . 2)
+    (:SKELETON_POSITION_NOT_TRACKED . 0)
+    (:SKELETON_POSITION_INFERRED . 1)
+    (:SKELETON_POSITION_TRACKED . 2)
+    (:SKELETON_POSITION_HIP_CENTER . 0)
     (:SKELETON_POSITION_SPINE . 1)
     (:SKELETON_POSITION_SHOULDER_CENTER . 2)
     (:SKELETON_POSITION_HEAD . 3)
@@ -146,7 +158,9 @@
 )
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <Skeleton>) ostream)
   "Serializes a message object of type '<Skeleton>"
-  (roslisp-msg-protocol:serialize (cl:slot-value msg 'skeleton_tracking_state) ostream)
+  (cl:let* ((signed (cl:slot-value msg 'skeleton_tracking_state)) (unsigned (cl:if (cl:< signed 0) (cl:+ signed 256) signed)))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) unsigned) ostream)
+    )
   (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:slot-value msg 'tracking_id)) ostream)
   (cl:write-byte (cl:ldb (cl:byte 8 8) (cl:slot-value msg 'tracking_id)) ostream)
   (cl:write-byte (cl:ldb (cl:byte 8 16) (cl:slot-value msg 'tracking_id)) ostream)
@@ -184,7 +198,9 @@
     (cl:write-byte (cl:ldb (cl:byte 8 8) __ros_arr_len) ostream)
     (cl:write-byte (cl:ldb (cl:byte 8 16) __ros_arr_len) ostream)
     (cl:write-byte (cl:ldb (cl:byte 8 24) __ros_arr_len) ostream))
-  (cl:map cl:nil #'(cl:lambda (ele) (roslisp-msg-protocol:serialize ele ostream))
+  (cl:map cl:nil #'(cl:lambda (ele) (cl:let* ((signed ele) (unsigned (cl:if (cl:< signed 0) (cl:+ signed 256) signed)))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) unsigned) ostream)
+    ))
    (cl:slot-value msg 'skeleton_position_tracking_state))
   (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:slot-value msg 'quality_flag)) ostream)
   (cl:write-byte (cl:ldb (cl:byte 8 8) (cl:slot-value msg 'quality_flag)) ostream)
@@ -197,7 +213,9 @@
 )
 (cl:defmethod roslisp-msg-protocol:deserialize ((msg <Skeleton>) istream)
   "Deserializes a message object of type '<Skeleton>"
-  (roslisp-msg-protocol:deserialize (cl:slot-value msg 'skeleton_tracking_state) istream)
+    (cl:let ((unsigned 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) unsigned) (cl:read-byte istream))
+      (cl:setf (cl:slot-value msg 'skeleton_tracking_state) (cl:if (cl:< unsigned 128) unsigned (cl:- unsigned 256))))
     (cl:setf (cl:ldb (cl:byte 8 0) (cl:slot-value msg 'tracking_id)) (cl:read-byte istream))
     (cl:setf (cl:ldb (cl:byte 8 8) (cl:slot-value msg 'tracking_id)) (cl:read-byte istream))
     (cl:setf (cl:ldb (cl:byte 8 16) (cl:slot-value msg 'tracking_id)) (cl:read-byte istream))
@@ -241,8 +259,9 @@
   (cl:setf (cl:slot-value msg 'skeleton_position_tracking_state) (cl:make-array __ros_arr_len))
   (cl:let ((vals (cl:slot-value msg 'skeleton_position_tracking_state)))
     (cl:dotimes (i __ros_arr_len)
-    (cl:setf (cl:aref vals i) (cl:make-instance 'kinect_msgs-msg:SkeletonPositionTrackingState))
-  (roslisp-msg-protocol:deserialize (cl:aref vals i) istream))))
+    (cl:let ((unsigned 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) unsigned) (cl:read-byte istream))
+      (cl:setf (cl:aref vals i) (cl:if (cl:< unsigned 128) unsigned (cl:- unsigned 256)))))))
     (cl:setf (cl:ldb (cl:byte 8 0) (cl:slot-value msg 'quality_flag)) (cl:read-byte istream))
     (cl:setf (cl:ldb (cl:byte 8 8) (cl:slot-value msg 'quality_flag)) (cl:read-byte istream))
     (cl:setf (cl:ldb (cl:byte 8 16) (cl:slot-value msg 'quality_flag)) (cl:read-byte istream))
@@ -261,25 +280,25 @@
   "kinect_msgs/Skeleton")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<Skeleton>)))
   "Returns md5sum for a message object of type '<Skeleton>"
-  "01435aa048fa87541ff72201f8f5c5f6")
+  "770d2e5dd9a84bd5c245898f8188e954")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'Skeleton)))
   "Returns md5sum for a message object of type 'Skeleton"
-  "01435aa048fa87541ff72201f8f5c5f6")
+  "770d2e5dd9a84bd5c245898f8188e954")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<Skeleton>)))
   "Returns full string definition for message of type '<Skeleton>"
-  (cl:format cl:nil "SkeletonTrackingState skeleton_tracking_state~%uint64 tracking_id~%uint64 enrollment_index~%uint64 user_index~%geometry_msgs/Transform position~%geometry_msgs/Transform[] skeleton_positions~%SkeletonPositionTrackingState[] skeleton_position_tracking_state~%uint64 quality_flag~%~%int8 SKELETON_POSITION_HIP_CENTER = 0~%int8 SKELETON_POSITION_SPINE = 1~%int8 SKELETON_POSITION_SHOULDER_CENTER = 2~%int8 SKELETON_POSITION_HEAD = 3~%int8 SKELETON_POSITION_SHOULDER_LEFT = 4~%int8 SKELETON_POSITION_ELBOW_LEFT = 5~%int8 SKELETON_POSITION_WRIST_LEFT = 6~%int8 SKELETON_POSITION_HAND_LEFT = 7~%int8 SKELETON_POSITION_SHOULDER_RIGHT = 8~%int8 SKELETON_POSITION_ELBOW_RIGHT = 9~%int8 SKELETON_POSITION_WRIST_RIGHT = 10~%int8 SKELETON_POSITION_HAND_RIGHT = 11~%int8 SKELETON_POSITION_HIP_LEFT = 12~%int8 SKELETON_POSITION_KNEE_LEFT = 13~%int8 SKELETON_POSITION_ANKLE_LEFT = 14~%int8 SKELETON_POSITION_FOOT_LEFT = 15~%int8 SKELETON_POSITION_HIP_RIGHT = 16~%int8 SKELETON_POSITION_KNEE_RIGHT = 17~%int8 SKELETON_POSITION_ANKLE_RIGHT = 18~%int8 SKELETON_POSITION_FOOT_RIGHT = 19~%int8 SKELETON_POSITION_COUNT = 20~%~%================================================================================~%MSG: kinect_msgs/SkeletonTrackingState~%int8 SKELETON_NOT_TRACKED = 0~%int8 SKELETON_POSITION_ONLY = 1~%int8 SKELETON_TRACKED = 2~%~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%================================================================================~%MSG: kinect_msgs/SkeletonPositionTrackingState~%int8 SKELETON_POSITION_NOT_TRACKED = 0~%int8 SKELETON_POSITION_INFERRED = 1~%int8 SKELETON_POSITION_TRACKED = 2~%~%~%"))
+  (cl:format cl:nil "int8 skeleton_tracking_state~%uint64 tracking_id~%uint64 enrollment_index~%uint64 user_index~%geometry_msgs/Transform position~%geometry_msgs/Transform[] skeleton_positions~%int8[] skeleton_position_tracking_state~%uint64 quality_flag~%~%int8 SKELETON_NOT_TRACKED = 0~%int8 SKELETON_POSITION_ONLY = 1~%int8 SKELETON_TRACKED = 2~%~%int8 SKELETON_POSITION_NOT_TRACKED = 0~%int8 SKELETON_POSITION_INFERRED = 1~%int8 SKELETON_POSITION_TRACKED = 2~%~%int8 SKELETON_POSITION_HIP_CENTER = 0~%int8 SKELETON_POSITION_SPINE = 1~%int8 SKELETON_POSITION_SHOULDER_CENTER = 2~%int8 SKELETON_POSITION_HEAD = 3~%int8 SKELETON_POSITION_SHOULDER_LEFT = 4~%int8 SKELETON_POSITION_ELBOW_LEFT = 5~%int8 SKELETON_POSITION_WRIST_LEFT = 6~%int8 SKELETON_POSITION_HAND_LEFT = 7~%int8 SKELETON_POSITION_SHOULDER_RIGHT = 8~%int8 SKELETON_POSITION_ELBOW_RIGHT = 9~%int8 SKELETON_POSITION_WRIST_RIGHT = 10~%int8 SKELETON_POSITION_HAND_RIGHT = 11~%int8 SKELETON_POSITION_HIP_LEFT = 12~%int8 SKELETON_POSITION_KNEE_LEFT = 13~%int8 SKELETON_POSITION_ANKLE_LEFT = 14~%int8 SKELETON_POSITION_FOOT_LEFT = 15~%int8 SKELETON_POSITION_HIP_RIGHT = 16~%int8 SKELETON_POSITION_KNEE_RIGHT = 17~%int8 SKELETON_POSITION_ANKLE_RIGHT = 18~%int8 SKELETON_POSITION_FOOT_RIGHT = 19~%int8 SKELETON_POSITION_COUNT = 20~%~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'Skeleton)))
   "Returns full string definition for message of type 'Skeleton"
-  (cl:format cl:nil "SkeletonTrackingState skeleton_tracking_state~%uint64 tracking_id~%uint64 enrollment_index~%uint64 user_index~%geometry_msgs/Transform position~%geometry_msgs/Transform[] skeleton_positions~%SkeletonPositionTrackingState[] skeleton_position_tracking_state~%uint64 quality_flag~%~%int8 SKELETON_POSITION_HIP_CENTER = 0~%int8 SKELETON_POSITION_SPINE = 1~%int8 SKELETON_POSITION_SHOULDER_CENTER = 2~%int8 SKELETON_POSITION_HEAD = 3~%int8 SKELETON_POSITION_SHOULDER_LEFT = 4~%int8 SKELETON_POSITION_ELBOW_LEFT = 5~%int8 SKELETON_POSITION_WRIST_LEFT = 6~%int8 SKELETON_POSITION_HAND_LEFT = 7~%int8 SKELETON_POSITION_SHOULDER_RIGHT = 8~%int8 SKELETON_POSITION_ELBOW_RIGHT = 9~%int8 SKELETON_POSITION_WRIST_RIGHT = 10~%int8 SKELETON_POSITION_HAND_RIGHT = 11~%int8 SKELETON_POSITION_HIP_LEFT = 12~%int8 SKELETON_POSITION_KNEE_LEFT = 13~%int8 SKELETON_POSITION_ANKLE_LEFT = 14~%int8 SKELETON_POSITION_FOOT_LEFT = 15~%int8 SKELETON_POSITION_HIP_RIGHT = 16~%int8 SKELETON_POSITION_KNEE_RIGHT = 17~%int8 SKELETON_POSITION_ANKLE_RIGHT = 18~%int8 SKELETON_POSITION_FOOT_RIGHT = 19~%int8 SKELETON_POSITION_COUNT = 20~%~%================================================================================~%MSG: kinect_msgs/SkeletonTrackingState~%int8 SKELETON_NOT_TRACKED = 0~%int8 SKELETON_POSITION_ONLY = 1~%int8 SKELETON_TRACKED = 2~%~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%================================================================================~%MSG: kinect_msgs/SkeletonPositionTrackingState~%int8 SKELETON_POSITION_NOT_TRACKED = 0~%int8 SKELETON_POSITION_INFERRED = 1~%int8 SKELETON_POSITION_TRACKED = 2~%~%~%"))
+  (cl:format cl:nil "int8 skeleton_tracking_state~%uint64 tracking_id~%uint64 enrollment_index~%uint64 user_index~%geometry_msgs/Transform position~%geometry_msgs/Transform[] skeleton_positions~%int8[] skeleton_position_tracking_state~%uint64 quality_flag~%~%int8 SKELETON_NOT_TRACKED = 0~%int8 SKELETON_POSITION_ONLY = 1~%int8 SKELETON_TRACKED = 2~%~%int8 SKELETON_POSITION_NOT_TRACKED = 0~%int8 SKELETON_POSITION_INFERRED = 1~%int8 SKELETON_POSITION_TRACKED = 2~%~%int8 SKELETON_POSITION_HIP_CENTER = 0~%int8 SKELETON_POSITION_SPINE = 1~%int8 SKELETON_POSITION_SHOULDER_CENTER = 2~%int8 SKELETON_POSITION_HEAD = 3~%int8 SKELETON_POSITION_SHOULDER_LEFT = 4~%int8 SKELETON_POSITION_ELBOW_LEFT = 5~%int8 SKELETON_POSITION_WRIST_LEFT = 6~%int8 SKELETON_POSITION_HAND_LEFT = 7~%int8 SKELETON_POSITION_SHOULDER_RIGHT = 8~%int8 SKELETON_POSITION_ELBOW_RIGHT = 9~%int8 SKELETON_POSITION_WRIST_RIGHT = 10~%int8 SKELETON_POSITION_HAND_RIGHT = 11~%int8 SKELETON_POSITION_HIP_LEFT = 12~%int8 SKELETON_POSITION_KNEE_LEFT = 13~%int8 SKELETON_POSITION_ANKLE_LEFT = 14~%int8 SKELETON_POSITION_FOOT_LEFT = 15~%int8 SKELETON_POSITION_HIP_RIGHT = 16~%int8 SKELETON_POSITION_KNEE_RIGHT = 17~%int8 SKELETON_POSITION_ANKLE_RIGHT = 18~%int8 SKELETON_POSITION_FOOT_RIGHT = 19~%int8 SKELETON_POSITION_COUNT = 20~%~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <Skeleton>))
   (cl:+ 0
-     (roslisp-msg-protocol:serialization-length (cl:slot-value msg 'skeleton_tracking_state))
+     1
      8
      8
      8
      (roslisp-msg-protocol:serialization-length (cl:slot-value msg 'position))
      4 (cl:reduce #'cl:+ (cl:slot-value msg 'skeleton_positions) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ (roslisp-msg-protocol:serialization-length ele))))
-     4 (cl:reduce #'cl:+ (cl:slot-value msg 'skeleton_position_tracking_state) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ (roslisp-msg-protocol:serialization-length ele))))
+     4 (cl:reduce #'cl:+ (cl:slot-value msg 'skeleton_position_tracking_state) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ 1)))
      8
 ))
 (cl:defmethod roslisp-msg-protocol:ros-message-to-list ((msg <Skeleton>))
