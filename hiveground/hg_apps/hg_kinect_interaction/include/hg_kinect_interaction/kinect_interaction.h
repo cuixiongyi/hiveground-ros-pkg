@@ -36,6 +36,9 @@
 
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
+
 
 #include <QtGui>
 #include "ui_kinect_interaction.h"
@@ -61,6 +64,11 @@ protected:
                            const geometry_msgs::Transform& position,
                            std::string const& frame_id,
                            std::string const& child_frame_id);
+  void getSkeletionMarker(const kinect_msgs::Skeleton& skeleton,
+                             const std::string& frame_id,
+                             const std_msgs::ColorRGBA& color_joint,
+                             const std_msgs::ColorRGBA& color_link,
+                             visualization_msgs::MarkerArray& marker_array);
 public:
   Ui::KinectInteraction ui;
   ros::NodeHandle nh_;
@@ -69,7 +77,17 @@ public:
 
 
   tf::TransformBroadcaster br_;
+  tf::TransformListener tf_listener_;
   ros::Subscriber skeleton_sub_;
+  ros::Publisher marker_array_publisher_;
+  visualization_msgs::MarkerArray marker_array_;
+  int marker_id_;
+
+  std_msgs::ColorRGBA color_joint_;
+  std_msgs::ColorRGBA color_link_;
+
+
+
 
 };
 
