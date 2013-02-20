@@ -87,8 +87,8 @@ kinect_server::kinect_server(ros::NodeHandle& nh, QWidget *parent, Qt::WFlags fl
   connect(this, SIGNAL(showImage(const QImage &)), draw_image_, SLOT(updateImage(const QImage&)));
 
 
-  gesture_pub_ = nh_.advertise<std_msgs::String>("kinect_gesture", 10);
-  skeleton_pub_ = nh_.advertise<kinect_msgs::Skeletons>("kinect_skeletons", 10);
+  gesture_pub_ = nh_.advertise<std_msgs::String>("gesture", 10);
+  skeleton_pub_ = nh_.advertise<kinect_msgs::Skeletons>("skeletons", 10);
   
   nuiInit();
 }
