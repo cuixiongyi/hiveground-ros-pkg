@@ -68,8 +68,8 @@ public:
   bool initialize();
 
 protected:
-  void handsCallBack(const hg_object_tracking::HandsConstPtr message);
-  int closestHand(const tf::Vector3& point, const hg_object_tracking::HandsConstPtr message);
+  void handsCallBack(const hg_object_tracking::HandsConstPtr& message);
+  int closestHand(const tf::Vector3& point, const hg_object_tracking::HandsConstPtr& message);
 
 public:
   Ui::HandInteraction ui;

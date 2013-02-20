@@ -17,7 +17,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #uncomment if you have defined messages
-rosbuild_genmsg()
+#rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
@@ -29,25 +29,20 @@ set( QT_USE_QTGUI TRUE )
 #set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 
-ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
 set(qt_srcs
-      src/hand_interaction.cpp
-      src/gesture.cpp
-      src/gesture_hand_sweep.cpp
-      src/gesture_push_pull.cpp)
+      src/kinect_interaction.cpp)
+      
 set(qt_hdrs
-      include/hg_hand_interaction/hand_interaction.h
-      include/hg_hand_interaction/gesture.h
-      include/hg_hand_interaction/gesture_hand_sweep.h
-      include/hg_hand_interaction/gesture_push_pull.h)
+      include/hg_kinect_interaction/kinect_interaction.h)
+      
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
-QT4_WRAP_UI(uis_h src/hand_interaction.ui)
+QT4_WRAP_UI(uis_h src/kinect_interaction.ui)
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
@@ -58,12 +53,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #target_link_libraries(example ${PROJECT_NAME})
 
 set(srcs
-      src/hand_interaction.cpp
-      src/gesture.cpp
-      src/gesture_hand_sweep.cpp
-      src/gesture_push_pull.cpp)
+      src/kinect_interaction.cpp)
 
-rosbuild_add_executable(hand_interaction ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
-target_link_libraries(hand_interaction ${QT_LIBRARIES})
-
+rosbuild_add_executable(kinect_interaction ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
+target_link_libraries(kinect_interaction ${QT_LIBRARIES})
 

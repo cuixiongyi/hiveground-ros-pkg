@@ -197,7 +197,7 @@ bool HandInteraction::initialize()
 }
 
 
-void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr message)
+void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr& message)
 {
 
   hg_object_tracking::HandsPtr hands(new hg_object_tracking::Hands());
@@ -421,7 +421,7 @@ void HandInteraction::handsCallBack(const hg_object_tracking::HandsConstPtr mess
 }
 
 
-int HandInteraction::closestHand(const tf::Vector3& point, const hg_object_tracking::HandsConstPtr message)
+int HandInteraction::closestHand(const tf::Vector3& point, const hg_object_tracking::HandsConstPtr& message)
 {
   double dist, min_distant = 1e6;
   size_t index = 0;

@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="hg_kinect_interaction" type="kinect_interaction" name="kinect_interaction" output="screen">
+    <remap from="~skeletons_in" to="/kinect_server/skeletons" />        
+  </node>
+</launch>  
+  
+
+  
