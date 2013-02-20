@@ -71,12 +71,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeletons_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "fea4b07d293d1980dc796dc53353ba55";
+    return "9e80c7bc055dd83ecbddb85e2bafcc8c";
   }
 
   static const char* value(const  ::kinect_msgs::Skeletons_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xfea4b07d293d1980ULL;
-  static const uint64_t static_value2 = 0xdc796dc53353ba55ULL;
+  static const uint64_t static_value1 = 0x9e80c7bc055dd83eULL;
+  static const uint64_t static_value2 = 0xcbddb85e2bafcc8cULL;
 };
 
 template<class ContainerAllocator>
@@ -119,13 +119,13 @@ string frame_id\n\
 ================================================================================\n\
 MSG: kinect_msgs/Skeleton\n\
 int8 skeleton_tracking_state\n\
-uint64 tracking_id\n\
-uint64 enrollment_index\n\
-uint64 user_index\n\
+uint32 tracking_id\n\
+uint32 enrollment_index\n\
+uint32 user_index\n\
 geometry_msgs/Transform position\n\
 geometry_msgs/Transform[] skeleton_positions\n\
 int8[] skeleton_position_tracking_state\n\
-uint64 quality_flag\n\
+uint32 quality_flag\n\
 \n\
 int8 SKELETON_NOT_TRACKED = 0\n\
 int8 SKELETON_POSITION_ONLY = 1\n\
@@ -156,6 +156,11 @@ int8 SKELETON_POSITION_KNEE_RIGHT = 17\n\
 int8 SKELETON_POSITION_ANKLE_RIGHT = 18\n\
 int8 SKELETON_POSITION_FOOT_RIGHT = 19\n\
 int8 SKELETON_POSITION_COUNT = 20\n\
+\n\
+uint32 SKELETON_QUALITY_CLIPPED_RIGHT = 1\n\
+uint32 SKELETON_QUALITY_CLIPPED_LEFT = 2 \n\
+uint32 SKELETON_QUALITY_CLIPPED_TOP = 4 \n\
+uint32 SKELETON_QUALITY_CLIPPED_BOTTOM = 8  \n\
 \n\
 ================================================================================\n\
 MSG: geometry_msgs/Transform\n\
