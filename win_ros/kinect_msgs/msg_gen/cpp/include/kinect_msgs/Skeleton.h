@@ -50,14 +50,14 @@ struct Skeleton_ {
   typedef int8_t _skeleton_tracking_state_type;
   int8_t skeleton_tracking_state;
 
-  typedef uint64_t _tracking_id_type;
-  uint64_t tracking_id;
+  typedef uint32_t _tracking_id_type;
+  uint32_t tracking_id;
 
-  typedef uint64_t _enrollment_index_type;
-  uint64_t enrollment_index;
+  typedef uint32_t _enrollment_index_type;
+  uint32_t enrollment_index;
 
-  typedef uint64_t _user_index_type;
-  uint64_t user_index;
+  typedef uint32_t _user_index_type;
+  uint32_t user_index;
 
   typedef  ::geometry_msgs::Transform_<ContainerAllocator>  _position_type;
    ::geometry_msgs::Transform_<ContainerAllocator>  position;
@@ -68,8 +68,8 @@ struct Skeleton_ {
   typedef std::vector<int8_t, typename ContainerAllocator::template rebind<int8_t>::other >  _skeleton_position_tracking_state_type;
   std::vector<int8_t, typename ContainerAllocator::template rebind<int8_t>::other >  skeleton_position_tracking_state;
 
-  typedef uint64_t _quality_flag_type;
-  uint64_t quality_flag;
+  typedef uint32_t _quality_flag_type;
+  uint32_t quality_flag;
 
   enum { SKELETON_NOT_TRACKED = 0 };
   enum { SKELETON_POSITION_ONLY = 1 };
@@ -98,6 +98,10 @@ struct Skeleton_ {
   enum { SKELETON_POSITION_ANKLE_RIGHT = 18 };
   enum { SKELETON_POSITION_FOOT_RIGHT = 19 };
   enum { SKELETON_POSITION_COUNT = 20 };
+  enum { SKELETON_QUALITY_CLIPPED_RIGHT = 1 };
+  enum { SKELETON_QUALITY_CLIPPED_LEFT = 2 };
+  enum { SKELETON_QUALITY_CLIPPED_TOP = 4 };
+  enum { SKELETON_QUALITY_CLIPPED_BOTTOM = 8 };
 
   typedef boost::shared_ptr< ::kinect_msgs::Skeleton_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::kinect_msgs::Skeleton_<ContainerAllocator>  const> ConstPtr;
@@ -127,12 +131,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeleton_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "770d2e5dd9a84bd5c245898f8188e954";
+    return "53f31172ad726f0663f636784717b4b9";
   }
 
   static const char* value(const  ::kinect_msgs::Skeleton_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x770d2e5dd9a84bd5ULL;
-  static const uint64_t static_value2 = 0xc245898f8188e954ULL;
+  static const uint64_t static_value1 = 0x53f31172ad726f06ULL;
+  static const uint64_t static_value2 = 0x63f636784717b4b9ULL;
 };
 
 template<class ContainerAllocator>
@@ -150,13 +154,13 @@ struct Definition< ::kinect_msgs::Skeleton_<ContainerAllocator> > {
   static const char* value() 
   {
     return "int8 skeleton_tracking_state\n\
-uint64 tracking_id\n\
-uint64 enrollment_index\n\
-uint64 user_index\n\
+uint32 tracking_id\n\
+uint32 enrollment_index\n\
+uint32 user_index\n\
 geometry_msgs/Transform position\n\
 geometry_msgs/Transform[] skeleton_positions\n\
 int8[] skeleton_position_tracking_state\n\
-uint64 quality_flag\n\
+uint32 quality_flag\n\
 \n\
 int8 SKELETON_NOT_TRACKED = 0\n\
 int8 SKELETON_POSITION_ONLY = 1\n\
@@ -187,6 +191,11 @@ int8 SKELETON_POSITION_KNEE_RIGHT = 17\n\
 int8 SKELETON_POSITION_ANKLE_RIGHT = 18\n\
 int8 SKELETON_POSITION_FOOT_RIGHT = 19\n\
 int8 SKELETON_POSITION_COUNT = 20\n\
+\n\
+uint32 SKELETON_QUALITY_CLIPPED_RIGHT = 1\n\
+uint32 SKELETON_QUALITY_CLIPPED_LEFT = 2 \n\
+uint32 SKELETON_QUALITY_CLIPPED_TOP = 4 \n\
+uint32 SKELETON_QUALITY_CLIPPED_BOTTOM = 8  \n\
 \n\
 ================================================================================\n\
 MSG: geometry_msgs/Transform\n\
@@ -257,11 +266,11 @@ struct Printer< ::kinect_msgs::Skeleton_<ContainerAllocator> >
     s << indent << "skeleton_tracking_state: ";
     Printer<int8_t>::stream(s, indent + "  ", v.skeleton_tracking_state);
     s << indent << "tracking_id: ";
-    Printer<uint64_t>::stream(s, indent + "  ", v.tracking_id);
+    Printer<uint32_t>::stream(s, indent + "  ", v.tracking_id);
     s << indent << "enrollment_index: ";
-    Printer<uint64_t>::stream(s, indent + "  ", v.enrollment_index);
+    Printer<uint32_t>::stream(s, indent + "  ", v.enrollment_index);
     s << indent << "user_index: ";
-    Printer<uint64_t>::stream(s, indent + "  ", v.user_index);
+    Printer<uint32_t>::stream(s, indent + "  ", v.user_index);
     s << indent << "position: ";
 s << std::endl;
     Printer< ::geometry_msgs::Transform_<ContainerAllocator> >::stream(s, indent + "  ", v.position);
@@ -280,7 +289,7 @@ s << std::endl;
       Printer<int8_t>::stream(s, indent + "  ", v.skeleton_position_tracking_state[i]);
     }
     s << indent << "quality_flag: ";
-    Printer<uint64_t>::stream(s, indent + "  ", v.quality_flag);
+    Printer<uint32_t>::stream(s, indent + "  ", v.quality_flag);
   }
 };
 
