@@ -1,4 +1,4 @@
 Header header
-Skeleton[] skeleton
+Skeleton[] skeletons
 
 int8 SKELETON_COUNT = 6
