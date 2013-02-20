@@ -14,10 +14,8 @@
 
 #include "ros/assert.h"
 
-#include "kinect_msgs/SkeletonTrackingState.h"
 #include "geometry_msgs/Transform.h"
 #include "geometry_msgs/Transform.h"
-#include "kinect_msgs/SkeletonPositionTrackingState.h"
 
 namespace kinect_msgs
 {
@@ -26,7 +24,7 @@ struct Skeleton_ {
   typedef Skeleton_<ContainerAllocator> Type;
 
   Skeleton_()
-  : skeleton_tracking_state()
+  : skeleton_tracking_state(0)
   , tracking_id(0)
   , enrollment_index(0)
   , user_index(0)
@@ -38,7 +36,7 @@ struct Skeleton_ {
   }
 
   Skeleton_(const ContainerAllocator& _alloc)
-  : skeleton_tracking_state(_alloc)
+  : skeleton_tracking_state(0)
   , tracking_id(0)
   , enrollment_index(0)
   , user_index(0)
@@ -49,8 +47,8 @@ struct Skeleton_ {
   {
   }
 
-  typedef  ::kinect_msgs::SkeletonTrackingState_<ContainerAllocator>  _skeleton_tracking_state_type;
-   ::kinect_msgs::SkeletonTrackingState_<ContainerAllocator>  skeleton_tracking_state;
+  typedef int8_t _skeleton_tracking_state_type;
+  int8_t skeleton_tracking_state;
 
   typedef uint64_t _tracking_id_type;
   uint64_t tracking_id;
@@ -67,12 +65,18 @@ struct Skeleton_ {
   typedef std::vector< ::geometry_msgs::Transform_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Transform_<ContainerAllocator> >::other >  _skeleton_positions_type;
   std::vector< ::geometry_msgs::Transform_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Transform_<ContainerAllocator> >::other >  skeleton_positions;
 
-  typedef std::vector< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> >::other >  _skeleton_position_tracking_state_type;
-  std::vector< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> >::other >  skeleton_position_tracking_state;
+  typedef std::vector<int8_t, typename ContainerAllocator::template rebind<int8_t>::other >  _skeleton_position_tracking_state_type;
+  std::vector<int8_t, typename ContainerAllocator::template rebind<int8_t>::other >  skeleton_position_tracking_state;
 
   typedef uint64_t _quality_flag_type;
   uint64_t quality_flag;
 
+  enum { SKELETON_NOT_TRACKED = 0 };
+  enum { SKELETON_POSITION_ONLY = 1 };
+  enum { SKELETON_TRACKED = 2 };
+  enum { SKELETON_POSITION_NOT_TRACKED = 0 };
+  enum { SKELETON_POSITION_INFERRED = 1 };
+  enum { SKELETON_POSITION_TRACKED = 2 };
   enum { SKELETON_POSITION_HIP_CENTER = 0 };
   enum { SKELETON_POSITION_SPINE = 1 };
   enum { SKELETON_POSITION_SHOULDER_CENTER = 2 };
@@ -123,12 +127,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::kinect_msgs::Skeleton_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "01435aa048fa87541ff72201f8f5c5f6";
+    return "770d2e5dd9a84bd5c245898f8188e954";
   }
 
   static const char* value(const  ::kinect_msgs::Skeleton_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x01435aa048fa8754ULL;
-  static const uint64_t static_value2 = 0x1ff72201f8f5c5f6ULL;
+  static const uint64_t static_value1 = 0x770d2e5dd9a84bd5ULL;
+  static const uint64_t static_value2 = 0xc245898f8188e954ULL;
 };
 
 template<class ContainerAllocator>
@@ -145,14 +149,22 @@ template<class ContainerAllocator>
 struct Definition< ::kinect_msgs::Skeleton_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "SkeletonTrackingState skeleton_tracking_state\n\
+    return "int8 skeleton_tracking_state\n\
 uint64 tracking_id\n\
 uint64 enrollment_index\n\
 uint64 user_index\n\
 geometry_msgs/Transform position\n\
 geometry_msgs/Transform[] skeleton_positions\n\
-SkeletonPositionTrackingState[] skeleton_position_tracking_state\n\
+int8[] skeleton_position_tracking_state\n\
 uint64 quality_flag\n\
+\n\
+int8 SKELETON_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_ONLY = 1\n\
+int8 SKELETON_TRACKED = 2\n\
+\n\
+int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
+int8 SKELETON_POSITION_INFERRED = 1\n\
+int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 int8 SKELETON_POSITION_HIP_CENTER = 0\n\
 int8 SKELETON_POSITION_SPINE = 1\n\
@@ -177,12 +189,6 @@ int8 SKELETON_POSITION_FOOT_RIGHT = 19\n\
 int8 SKELETON_POSITION_COUNT = 20\n\
 \n\
 ================================================================================\n\
-MSG: kinect_msgs/SkeletonTrackingState\n\
-int8 SKELETON_NOT_TRACKED = 0\n\
-int8 SKELETON_POSITION_ONLY = 1\n\
-int8 SKELETON_TRACKED = 2\n\
-\n\
-================================================================================\n\
 MSG: geometry_msgs/Transform\n\
 # This represents the transform between two coordinate frames in free space.\n\
 \n\
@@ -204,12 +210,6 @@ float64 x\n\
 float64 y\n\
 float64 z\n\
 float64 w\n\
-\n\
-================================================================================\n\
-MSG: kinect_msgs/SkeletonPositionTrackingState\n\
-int8 SKELETON_POSITION_NOT_TRACKED = 0\n\
-int8 SKELETON_POSITION_INFERRED = 1\n\
-int8 SKELETON_POSITION_TRACKED = 2\n\
 \n\
 ";
   }
@@ -255,8 +255,7 @@ struct Printer< ::kinect_msgs::Skeleton_<ContainerAllocator> >
   template<typename Stream> static void stream(Stream& s, const std::string& indent, const  ::kinect_msgs::Skeleton_<ContainerAllocator> & v) 
   {
     s << indent << "skeleton_tracking_state: ";
-s << std::endl;
-    Printer< ::kinect_msgs::SkeletonTrackingState_<ContainerAllocator> >::stream(s, indent + "  ", v.skeleton_tracking_state);
+    Printer<int8_t>::stream(s, indent + "  ", v.skeleton_tracking_state);
     s << indent << "tracking_id: ";
     Printer<uint64_t>::stream(s, indent + "  ", v.tracking_id);
     s << indent << "enrollment_index: ";
@@ -278,9 +277,7 @@ s << std::endl;
     for (size_t i = 0; i < v.skeleton_position_tracking_state.size(); ++i)
     {
       s << indent << "  skeleton_position_tracking_state[" << i << "]: ";
-      s << std::endl;
-      s << indent;
-      Printer< ::kinect_msgs::SkeletonPositionTrackingState_<ContainerAllocator> >::stream(s, indent + "    ", v.skeleton_position_tracking_state[i]);
+      Printer<int8_t>::stream(s, indent + "  ", v.skeleton_position_tracking_state[i]);
     }
     s << indent << "quality_flag: ";
     Printer<uint64_t>::stream(s, indent + "  ", v.quality_flag);

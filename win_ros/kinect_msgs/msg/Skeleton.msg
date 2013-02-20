@@ -1,11 +1,19 @@
-SkeletonTrackingState skeleton_tracking_state
+int8 skeleton_tracking_state
 uint64 tracking_id
 uint64 enrollment_index
 uint64 user_index
 geometry_msgs/Transform position
 geometry_msgs/Transform[] skeleton_positions
-SkeletonPositionTrackingState[] skeleton_position_tracking_state
+int8[] skeleton_position_tracking_state
 uint64 quality_flag
+
+int8 SKELETON_NOT_TRACKED = 0
+int8 SKELETON_POSITION_ONLY = 1
+int8 SKELETON_TRACKED = 2
+
+int8 SKELETON_POSITION_NOT_TRACKED = 0
+int8 SKELETON_POSITION_INFERRED = 1
+int8 SKELETON_POSITION_TRACKED = 2
 
 int8 SKELETON_POSITION_HIP_CENTER = 0
 int8 SKELETON_POSITION_SPINE = 1
