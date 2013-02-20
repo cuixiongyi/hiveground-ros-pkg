@@ -1,8 +1,6 @@
 <launch>     
   <node name="camera_setup" pkg="camera_setup" type="camera_setup" output="screen"> 
     <param name="camera_n" value="1"/>  	
-    <param name="camera_0" value="Center 0.637117 -0.021175 1.265933 -0.696552 0.711558 0.064578 -0.065807 world kinect_center_rgb_optical_frame"/>
-    <param name="camera_1" value="Left -0.59849 0.0892981 0.329507 -0.0175871 0.191994 0.0363446 0.980565 kinect_center_rgb_optical_frame kinect_left_rgb_optical_frame"/>
-    <param name="camera_2" value="Right 0.677419 0.0506582 0.382054 -0.0275411 -0.24917 -0.0288404 0.967638 kinect_center_rgb_optical_frame kinect_right_rgb_optical_frame"/>
+    <param name="camera_0" value="kinect_server 0.0 0.0 0.0 0 0 0 1 base_link kinect_server"/>    
    </node>     
 </launch>
