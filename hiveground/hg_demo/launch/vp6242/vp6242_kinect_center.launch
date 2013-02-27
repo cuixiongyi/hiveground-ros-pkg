@@ -1,6 +1,6 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="kinect_center_tf" args="0.634019 -0.015773 1.24863 -0.692629 0.713241 0.0795708 -0.0722579 base_link kinect_center_rgb_optical_frame 100" /> 
-  
+  <!-- 20120227--> 
+  <node pkg="tf" type="static_transform_publisher" name="kinect_center_tf" args="0.489504 0.636829 1.31435 0.707921 0.705792 -0.0132719 -0.0229913 world kinect_center_rgb_optical_frame 100" />
 
   <include file="$(find openni_launch)/launch/openni.launch">    
     <arg name="camera" value="kinect_center" />
@@ -22,7 +22,7 @@
     <remap from="~input" to="/kinect_center/depth_registered/points" />
     <rosparam>
       filter_field_name: z
-      filter_limit_min: -0.1
+      filter_limit_min: 0
       filter_limit_max: 1.6
       filter_limit_negative: False
       leaf_size: 0.01
@@ -36,7 +36,7 @@
     <rosparam>
       filter_field_name: x
       filter_limit_min: -0.1
-      filter_limit_max: 0.69
+      filter_limit_max: 0.67
       filter_limit_negative: False
     </rosparam>
   </node>
@@ -46,8 +46,8 @@
     <remap from="~input" to="/passthrough_x/output" />
     <rosparam>
       filter_field_name: y
-      filter_limit_min: -0.65
-      filter_limit_max: 0.65
+      filter_limit_min: -1.1
+      filter_limit_max: 0.3
       filter_limit_negative: False
     </rosparam>
   </node>
