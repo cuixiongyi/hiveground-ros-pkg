@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="kinect_server_tf" args="-0.3 -0.5 0.85 0.489569 0.684466 0.43949 0.314258 base_link kinect_server 100" />
+  <node pkg="tf" type="static_transform_publisher" name="kinect_server_tf" args="-0.4 0.7 0.9 0.575173 0.575173 0.411311 0.411313 world kinect_server 100" />
 
   <node pkg="hg_kinect_interaction" type="kinect_interaction" name="kinect_interaction" output="screen">
     <remap from="~skeletons_in" to="/kinect_server/skeletons" />        

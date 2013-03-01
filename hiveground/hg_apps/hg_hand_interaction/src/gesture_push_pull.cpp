@@ -223,12 +223,9 @@ void PushPullHandGestureDetector::drawResultAuto(visualization_msgs::MarkerArray
 
   if(current_state_[0] == IDEL)
   {
-    marker.pose.position.x = spinbox_x_->value() ;
-    if(num_hands_ == 1)
-      marker.pose.position.y = left_hand_ ? -spinbox_y_->value() : spinbox_y_->value();
-    else
-      marker.pose.position.y = -spinbox_y_->value();
-    marker.pose.position.z = spinbox_z_->value();
+    marker.pose.position.x = center_positions_[0].x();
+    marker.pose.position.y = center_positions_[0].y();
+    marker.pose.position.z = center_positions_[0].z();
   }
   else
   {
@@ -272,9 +269,9 @@ void PushPullHandGestureDetector::drawResultAuto(visualization_msgs::MarkerArray
   {
     if(current_state_[1] == IDEL)
     {
-      marker.pose.position.x = spinbox_x_->value() ;
-      marker.pose.position.y = spinbox_y_->value();
-      marker.pose.position.z = spinbox_z_->value();
+      marker.pose.position.x = center_positions_[1].x();
+      marker.pose.position.y = center_positions_[1].y();
+      marker.pose.position.z = center_positions_[1].z();
     }
     else
     {
@@ -373,8 +370,11 @@ int PushPullHandGestureDetector::lookForGesture()
     current_state_[0] = current_state_[1] = IDEL;
     return HandGesture::NOT_DETECTED;
   }
-  center_positions_[0].setValue(spinbox_x_->value(), -spinbox_y_->value(), spinbox_z_->value());
-  center_positions_[1].setValue(spinbox_x_->value(), spinbox_y_->value(), spinbox_z_->value());
+
+
+  center_positions_[0] = last_hand_positions_[0].getOrigin();
+  if(num_hands_ > 1)
+    center_positions_[1] = last_hand_positions_[1].getOrigin();
 
   if(checkbox_fixed_activating_position_->isChecked())
     return lookForGestureFixed();
