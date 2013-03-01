@@ -95,6 +95,7 @@ bool ObjectTracking::initialize()
   cloud_subscriber_ = nh_private_.subscribe("cloud_in", 1, &ObjectTracking::cloudCallback, this);
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("tracked_object_array", 128);
   hands_publisher_ = nh_private_.advertise<Hands>("hands", 128);
+  filtered_hands_publisher_ = nh_private_.advertise<Hands>("filtered_hands", 128);
 
   return true;
 }
@@ -117,13 +118,190 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
 
   //Detect hand
   hg_object_tracking::Hands hands_message;
+  hg_object_tracking::Hands filtered_hands_message;
   detectHands(clustered_clouds, hands_message);
+  filtered_hands_message = hands_message;
 
-  if((hands_publisher_.getNumSubscribers() != 0))
+  if(hands_message.hands.size() != hand_trackers_.size())
   {
-    hands_message.header.stamp = message->header.stamp;
+    hand_trackers_.clear();
+    hand_history_.clear();
+    hand_history_.resize(hands_message.hands.size());
+    for (size_t i = 0; i < hands_message.hands.size(); i++)
+    {
+      KalmanFilter3d traker;
+      cv::Point3f point(hands_message.hands[i].hand_centroid.translation.x,
+                        hands_message.hands[i].hand_centroid.translation.y,
+                        hands_message.hands[i].hand_centroid.translation.z);
+      traker.initialize(1.0 / 30.0, point, 1e-2, 1e-1, 1e-1);
+      hand_trackers_.push_back(traker);
+      hand_history_[i].resize(3);
+    }
+  }
+
+  geometry_msgs::Point marker_point;
+  cv::Point3f measurement;
+  cv::Mat result;
+  int state;
+  for (size_t i = 0; i < hand_trackers_.size(); i++)
+  {
+    if (i + 1 <= hands_message.hands.size())
+    {
+      hand_trackers_[i].predict(result);
+      //ROS_INFO_STREAM("[" << i << "] predicted: " << result);
+      marker_point.x = result.at<float>(0);
+      marker_point.y = result.at<float>(1);
+      marker_point.z = result.at<float>(2);
+
+      hand_history_[i][KalmanFilter3d::PREDICTED].push_back(marker_point);
+      if (hand_history_[i][KalmanFilter3d::PREDICTED].size() > HAND_HISTORY_SIZE)
+      {
+        hand_history_[i][KalmanFilter3d::PREDICTED].pop_front();
+      }
+
+      tf::Vector3 point1(result.at<float>(0), result.at<float>(1), result.at<float>(2));
+      int index = closestHand(point1, hands_message);
+      state = hand_trackers_[i].getState();
+      switch (state)
+      {
+        case KalmanFilter3d::START:
+        case KalmanFilter3d::TRACK:
+        case KalmanFilter3d::LOST:
+        {
+          //ROS_INFO("%d TRACK", i);
+          measurement.x = hands_message.hands[index].hand_centroid.translation.x;
+          measurement.y = hands_message.hands[index].hand_centroid.translation.y;
+          measurement.z = hands_message.hands[index].hand_centroid.translation.z;
+          break;
+        }
+        case KalmanFilter3d::DIE:
+          //ROS_INFO("%d DIE", i);
+          cv::Point3f point(hands_message.hands[index].hand_centroid.translation.x,
+                            hands_message.hands[index].hand_centroid.translation.y,
+                            hands_message.hands[index].hand_centroid.translation.z);
+          //ROS_INFO_STREAM("[" << i << "] point: " << point);
+          hand_trackers_[i].initialize(1.0 / 30.0, point, 1e-2, 1e-1, 1e-1);
+          break;
+      }
+
+      if ((state == KalmanFilter3d::TRACK) || (state == KalmanFilter3d::START))
+      {
+        hand_trackers_[i].update(measurement, result);
+        marker_point.x = measurement.x;
+        marker_point.y = measurement.y;
+        marker_point.z = measurement.z;
+        hand_history_[i][KalmanFilter3d::MESUREMENT].push_back(marker_point);
+
+        marker_point.x = result.at<float>(0);
+        marker_point.y = result.at<float>(1);
+        marker_point.z = result.at<float>(2);
+        hand_history_[i][KalmanFilter3d::ESTIMATED].push_back(marker_point);
+
+        //ROS_INFO_STREAM("[" << i << "] measurement: " << measurement);
+        //ROS_INFO_STREAM("[" << i << "] estimated: " << result);
+
+        if (hand_history_[i][KalmanFilter3d::MESUREMENT].size() > HAND_HISTORY_SIZE)
+        {
+          hand_history_[i][KalmanFilter3d::MESUREMENT].pop_front();
+        }
+
+        if (hand_history_[i][KalmanFilter3d::ESTIMATED].size() > HAND_HISTORY_SIZE)
+        {
+          hand_history_[i][KalmanFilter3d::ESTIMATED].pop_front();
+        }
+
+        filtered_hands_message.hands[i].hand_centroid.translation.x = result.at<float>(0);
+        filtered_hands_message.hands[i].hand_centroid.translation.y = result.at<float>(1);
+        filtered_hands_message.hands[i].hand_centroid.translation.z = result.at<float>(2);
+      }
+    }
+
+    state = hand_trackers_[i].updateState();
+    if (state == KalmanFilter3d::DIE)
+    {
+      for (int j = 0; j < 3; j++)
+      {
+        hand_history_[i][j].clear();
+      }
+    }
+  }
+
+  if(ui.checkBoxShowClusterMarker->isChecked())
+  {
+    Marker marker;
+    marker.type = Marker::LINE_STRIP;
+    marker.lifetime = ros::Duration(0.1);
+    marker.header.frame_id = message->header.frame_id;
+    marker.scale.x = 0.005;
+    marker.pose.position.x = 0;
+    marker.pose.position.y = 0;
+    marker.pose.position.z = 0;
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0;
+    marker.pose.orientation.z = 0;
+    marker.pose.orientation.w = 1;
+
+    for (size_t i = 0; i < hand_history_.size(); i++)
+      for (int j = 0; j < 3; j++)
+      {
+        marker.points.clear();
+        if (hand_history_[i][j].size() != 0)
+        {
+          std::stringstream ss;
+          ss << "point_history" << i << j;
+          marker.ns = ss.str();
+          marker.id = 0;
+
+          std::list<geometry_msgs::Point>::iterator it;
+          for (it = hand_history_[i][j].begin(); it != hand_history_[i][j].end(); it++)
+          {
+            marker.points.push_back(*it);
+          }
+          switch (j)
+          {
+            case 0:
+              marker.color.r = 1;
+              marker.color.g = 0;
+              marker.color.b = 0;
+              break;
+            case 1:
+              marker.color.r = 1;
+              marker.color.g = 0;
+              marker.color.b = 1;
+              break;
+            case 2:
+              marker.color.r = 0;
+              marker.color.g = 1;
+              marker.color.b = 0;
+              break;
+            default:
+              marker.color.r = 0;
+              marker.color.g = 0;
+              marker.color.b = 0;
+              break;
+
+          }
+          marker.color.a = 1.0;
+        }
+          marker_array_.markers.push_back(marker);
+      }
+  }
+
+
+
+
+  if(hands_publisher_.getNumSubscribers() != 0)
+  {
+    hands_message.header.stamp = ros::Time::now();
     hands_message.header.frame_id = message->header.frame_id;
     hands_publisher_.publish(hands_message);
+  }
+
+  if(filtered_hands_publisher_.getNumSubscribers() != 0)
+  {
+    filtered_hands_message.header.stamp = ros::Time::now();
+    filtered_hands_message.header.frame_id = message->header.frame_id;
+    filtered_hands_publisher_.publish(filtered_hands_message);
   }
 
   if(cloud_publisher_.getNumSubscribers() != 0)
@@ -147,7 +325,7 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
       pcl::toROSMsg(*cloud, output_cloud);
     }
 
-    output_cloud.header.stamp = message->header.stamp;
+    output_cloud.header.stamp = ros::Time::now();
     output_cloud.header.frame_id = message->header.frame_id;
     cloud_publisher_.publish(output_cloud);
   }
@@ -265,7 +443,8 @@ void ObjectTracking::detectHands(std::vector<pcl::PointCloud<OBJECT_TRACKING_CLO
     Eigen::Vector3f main_axis(ev.coeff(0, 0), ev.coeff(1, 0), ev.coeff(2, 0));
     main_axis = ((-main_axis) * 0.3) + Eigen::Vector3f(mean.coeff(0), mean.coeff(1), mean.coeff(2));
     ROS_DEBUG_STREAM_THROTTLE(1.0, "axis_x:" << main_axis);
-    pushSimpleMarker(main_axis.coeff(0), main_axis.coeff(1), main_axis.coeff(2));
+    if(ui.checkBoxShowClusterMarker->isChecked())
+      pushSimpleMarker(main_axis.coeff(0), main_axis.coeff(1), main_axis.coeff(2));
     search_point.x = main_axis.coeff(0);
     search_point.y = main_axis.coeff(1);
     search_point.z = main_axis.coeff(2);
@@ -372,6 +551,25 @@ void ObjectTracking::detectFingers(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::
   v.z = ev.coeff(2, 2);
   hand.arm_eigen_vectors.push_back(v);
 
+}
+
+int ObjectTracking::closestHand(const tf::Vector3& point, const hg_object_tracking::Hands& message)
+{
+  double dist, min_distant = 1e6;
+  size_t index = 0;
+  for (size_t i = 0; i < message.hands.size(); i++)
+  {
+    tf::Vector3 point2(message.hands[i].hand_centroid.translation.x,
+                       message.hands[i].hand_centroid.translation.y,
+                       message.hands[i].hand_centroid.translation.z);
+    dist = point.distance(point2);
+    if (dist < min_distant)
+    {
+      min_distant = dist;
+      index = i;
+    }
+  }
+  return index;
 }
 
 void ObjectTracking::pushHandMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale)

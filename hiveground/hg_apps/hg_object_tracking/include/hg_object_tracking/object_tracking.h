@@ -60,6 +60,7 @@
 
 #include "ui_object_tracking.h"
 #include <hg_object_tracking/Hands.h>
+#include <hg_object_tracking/kalman_filter3d.h>
 
 #define OBJECT_TRACKING_CLOUD_TYPE pcl::PointXYZ
 
@@ -99,6 +100,8 @@ protected:
   void detectFingers(pcl::PointCloud<OBJECT_TRACKING_CLOUD_TYPE>::Ptr hand_cloud,
                        hg_object_tracking::Hand& hand);
 
+  int closestHand(const tf::Vector3& point, const hg_object_tracking::Hands& message);
+
   void pushHandMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale = 0.1);
   void pushEigenMarker(pcl::PCA<OBJECT_TRACKING_CLOUD_TYPE>& pca, double scale = 0.1);
   void pushSimpleMarker(double x, double y, double z,
@@ -131,6 +134,7 @@ public:
   ros::Subscriber cloud_subscriber_;
   ros::Publisher marker_array_publisher_;
   ros::Publisher hands_publisher_;
+  ros::Publisher filtered_hands_publisher_;
 
 
   QMutex mutex_cloud_;
@@ -150,7 +154,9 @@ public:
   visualization_msgs::MarkerArray marker_array_;
   int marker_id_;
 
-
+  static const int HAND_HISTORY_SIZE = 30;
+  std::vector<std::vector<std::list<geometry_msgs::Point> > > hand_history_;
+  std::vector<KalmanFilter3d> hand_trackers_;
 };
 
 }

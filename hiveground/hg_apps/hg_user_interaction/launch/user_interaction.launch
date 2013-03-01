@@ -1,0 +1,8 @@
+<launch>
+  <arg name="cloud"/>  
+  <node pkg="hg_user_interaction" type="hg_user_interaction" name="user_interaction" output="screen">
+  	<param name="skeletons_topic" value="/kinect_server/skeletons" />
+  	<param name="hands_topic" value="/object_tracking/filtered_hands" />    
+  </node>
+</launch>  
+ 
