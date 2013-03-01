@@ -1,0 +1,20 @@
+<package>
+  <description brief="hg_user_interaction">
+
+     hg_user_interaction
+
+  </description>
+  <author>Mahisorn Wongphati</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hg_user_interaction</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="kinect_msgs"/>
+  <depend package="std_msgs"/>
+  <depend package="hg_object_tracking"/>
+  <depend package="message_filters"/>
+</package>
+
+

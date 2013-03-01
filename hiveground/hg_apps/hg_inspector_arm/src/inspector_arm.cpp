@@ -45,7 +45,7 @@
 #include <spline_smoother/cubic_trajectory.h>
 
 using namespace visualization_msgs;
-using namespace hg_hand_interaction;
+//using namespace hg_hand_interaction;
 
 
 InspectorArm::InspectorArm(QWidget *parent, Qt::WFlags flags)
@@ -92,8 +92,8 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
 
 
 
-  hg_cartesian_trajectory::KinematicModelGroupConfigMap::const_iterator it;
-  const hg_cartesian_trajectory::KinematicModelGroupConfigMap &group_config_map =
+  KinematicModelGroupConfigMap::const_iterator it;
+  const KinematicModelGroupConfigMap &group_config_map =
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
   for (it = group_config_map.begin(); it != group_config_map.end(); it++)
   {
@@ -143,8 +143,8 @@ bool InspectorArm::initializeServiceClient()
   collision_color_.b = 0.0;
 
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
-  hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
-  hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
+  //hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
+  //hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
   space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);;
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
@@ -173,6 +173,7 @@ void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState
   arm_is_active_ = false;
 }
 
+#if 0
 void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message)
 {
   if(message->hands.empty()) return;
@@ -261,6 +262,9 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
     }
   }
 }
+
+#endif
+
 
 void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message)
 {

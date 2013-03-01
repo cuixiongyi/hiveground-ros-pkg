@@ -1,5 +1,5 @@
 <launch>
-  <arg name="cloud"/>  
+  <arg name="cloud" default="/vp6242/self_filtered_cloud" />  
   <node pkg="hg_object_tracking" type="object_tracking" name="object_tracking" output="screen">
     <!--remap from="~cloud_in" to="passthrough_y/output" /-->
     <remap from="~cloud_in" to="$(arg cloud)"/>

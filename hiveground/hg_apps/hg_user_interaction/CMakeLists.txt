@@ -29,32 +29,32 @@ set( QT_USE_QTGUI TRUE )
 #set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 
-ADD_DEFINITIONS(-DQT_NO_KEYWORDS) 
-#The reason is the define I added for QT_NO_KEYWORDS. Either remove that or replace slots with Q_SLOTS, etc.
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
 set(qt_srcs
-      src/object_tracking.cpp)
+      src/main.cpp)
+      
 set(qt_hdrs
-      include/hg_object_tracking/object_tracking.h)
+      include/${PROJECT_NAME}/main.h)
+      
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
-QT4_WRAP_UI(uis_h src/object_tracking.ui)
+QT4_WRAP_UI(uis_h src/main.ui)
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
+rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
 set(srcs
-      src/object_tracking.cpp
-      src/kalman_filter3d.cpp)
+      src/main.cpp)
 
-rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
-target_link_libraries(object_tracking ${QT_LIBRARIES})
+rosbuild_add_executable(${PROJECT_NAME} ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
+target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES})
+rosbuild_link_boost(${PROJECT_NAME} thread signals)
