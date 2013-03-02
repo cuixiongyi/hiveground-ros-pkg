@@ -45,6 +45,11 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
+
+
 namespace hg_user_interaction
 {
 
@@ -59,7 +64,18 @@ public:
 
 
 protected:
-  void handSkeletonCallback(const kinect_msgs::SkeletonsConstPtr& skeletons, const hg_object_tracking::HandsConstPtr& hands);
+  void skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPtr& skeletons, const hg_object_tracking::HandsConstPtr& hands);
+  void skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& skelentons);
+  void publishTransforms(const kinect_msgs::SkeletonsConstPtr& skelentons);
+  void publishTransform(int user,
+                           const geometry_msgs::Transform& position,
+                           std::string const& frame_id,
+                           std::string const& child_frame_id);
+  void getSkeletionMarker(const kinect_msgs::Skeleton& skeleton,
+                             const std::string& frame_id,
+                             const std_msgs::ColorRGBA& color_joint,
+                             const std_msgs::ColorRGBA& color_link,
+                             visualization_msgs::MarkerArray& marker_array);
 
 
 public:
@@ -74,6 +90,17 @@ public:
   boost::shared_ptr<message_filters::Subscriber<hg_object_tracking::Hands> > hands_sub_;
   typedef message_filters::sync_policies::ApproximateTime<kinect_msgs::Skeletons, hg_object_tracking::Hands> SkeltonsHandsSyncPolicy;
   boost::shared_ptr<message_filters::Synchronizer<SkeltonsHandsSyncPolicy> > skeltons_hands_sync_;
+
+
+  tf::TransformBroadcaster br_;
+  tf::TransformListener tf_listener_;
+  ros::Subscriber skeleton_sub_;
+  ros::Publisher skeletons_markers_publisher_;
+  int skeleton_marker_id_;
+
+  std_msgs::ColorRGBA color_joint_;
+  std_msgs::ColorRGBA color_link_;
+
 
 
 

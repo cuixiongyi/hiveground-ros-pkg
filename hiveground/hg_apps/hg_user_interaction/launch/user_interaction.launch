@@ -1,4 +1,6 @@
 <launch>
+  <node pkg="tf" type="static_transform_publisher" name="kinect_server_tf" args="-0.4 0.7 0.9 0.575173 0.575173 0.411311 0.411313 world kinect_server 100" />
+
   <arg name="cloud"/>  
   <node pkg="hg_user_interaction" type="hg_user_interaction" name="user_interaction" output="screen">
   	<param name="skeletons_topic" value="/kinect_server/skeletons" />
