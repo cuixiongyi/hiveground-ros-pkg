@@ -28,13 +28,7 @@
   <depend package="kinematics_msgs"/>
   <depend package="arm_navigation_msgs"/>
   
-    
-  <depend package="hg_hand_interaction"/>
-  
-  
-  <export>  
-  	<cpp cflags="-I${prefix}/include -I${prefix}/qtpropertybrowser/src" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib"/>  	
-  </export>
+  <depend package="qt_property_browser"/>
 
 </package>
 
