@@ -46,7 +46,7 @@ UserInteraction::UserInteraction(QWidget *parent, Qt::WFlags flags)
     nh_(), nh_private_("~"),
     quit_threads_(false)
 {
-
+  ui.setupUi(this);
 }
 
 UserInteraction::~UserInteraction()
@@ -63,19 +63,76 @@ bool UserInteraction::initialize()
   color_joint_.r = 1.0; color_joint_.g = 0.0; color_joint_.b = 0.0; color_joint_.a = 0.5;
   color_link_.r = 0.0; color_link_.g = 1.0; color_link_.b = 0.0; color_link_.a = 0.5;
 
-  //skeleton_sub_ = nh_private_.subscribe(skeletons_topic_, 1, &UserInteraction::skeletonsCallback, this);
+
+  skeletons_sub_raw_ = nh_private_.subscribe(skeletons_topic_, 1, &UserInteraction::skeletonsCallback, this);
   skeletons_markers_publisher_ = nh_private_.advertise<MarkerArray>("skeletons_makers", 128);
 
+  hands_sub_raw_ = nh_private_.subscribe(hands_topic_, 1, &UserInteraction::handsCallback, this);
+  hands_markers_publisher_ = nh_private_.advertise<MarkerArray>("hands_makers", 128);
 
+  /*
   nh_private_.getParam("skeletons_topic", skeletons_topic_);
   nh_private_.getParam("hands_topic", hands_topic_);
   ROS_INFO_STREAM(skeletons_topic_ << ":" << hands_topic_);
 
-  skeletons_sub_ = boost::shared_ptr<message_filters::Subscriber<kinect_msgs::Skeletons> >(new message_filters::Subscriber<kinect_msgs::Skeletons>(nh_, skeletons_topic_, 1));
-  hands_sub_ = boost::shared_ptr<message_filters::Subscriber<hg_object_tracking::Hands> >(new message_filters::Subscriber<hg_object_tracking::Hands>(nh_, hands_topic_, 1));
+  skeletons_sub_ = boost::shared_ptr<message_filters::Subscriber<kinect_msgs::Skeletons> >(new message_filters::Subscriber<kinect_msgs::Skeletons>(nh_, skeletons_topic_, 10));
+  hands_sub_ = boost::shared_ptr<message_filters::Subscriber<hg_object_tracking::Hands> >(new message_filters::Subscriber<hg_object_tracking::Hands>(nh_, hands_topic_, 10));
 
-  skeltons_hands_sync_ = boost::shared_ptr<message_filters::Synchronizer<SkeltonsHandsSyncPolicy> >(new message_filters::Synchronizer<SkeltonsHandsSyncPolicy>(SkeltonsHandsSyncPolicy(50), *skeletons_sub_, *hands_sub_));
+  skeltons_hands_sync_ = boost::shared_ptr<message_filters::Synchronizer<SkeltonsHandsSyncPolicy> >(new message_filters::Synchronizer<SkeltonsHandsSyncPolicy>(SkeltonsHandsSyncPolicy(10), *skeletons_sub_, *hands_sub_));
   skeltons_hands_sync_->registerCallback(boost::bind(&UserInteraction::skeletonsHandsCallback, this, _1, _2));
+  */
+
+  double_manager_ = new QtDoublePropertyManager(this);
+  string_manager_ = new QtStringPropertyManager(this);
+  integer_manager_ = new QtIntPropertyManager(this);
+  bool_manager_ = new QtBoolPropertyManager(this);
+  group_manager_ = new QtGroupPropertyManager(this);
+
+  connect(double_manager_, SIGNAL(valueChanged(QtProperty *, double)),
+           this, SLOT(valueChanged(QtProperty *, double)));
+  connect(integer_manager_, SIGNAL(valueChanged(QtProperty *, int)),
+           this, SLOT(valueChanged(QtProperty *, int)));
+  connect(bool_manager_, SIGNAL(valueChanged(QtProperty *, bool)),
+           this, SLOT(valueChanged(QtProperty *, bool)));
+  connect(string_manager_, SIGNAL(valueChanged(QtProperty *, const QString &)),
+           this, SLOT(valueChanged(QtProperty *, const QString &)));
+
+  QtDoubleSpinBoxFactory *doubleSpinBoxFactory = new QtDoubleSpinBoxFactory(this);
+  QtCheckBoxFactory *checkBoxFactory = new QtCheckBoxFactory(this);
+  QtSpinBoxFactory *spinBoxFactory = new QtSpinBoxFactory(this);
+  QtLineEditFactory *lineEditFactory = new QtLineEditFactory(this);
+  //QtEnumEditorFactory *comboBoxFactory = new QtEnumEditorFactory(this);
+
+
+  property_editor_ = new QtTreePropertyBrowser(ui.dockWidgetPropertyEditor);
+  property_editor_->setFactoryForManager(double_manager_, doubleSpinBoxFactory);
+  property_editor_->setFactoryForManager(integer_manager_, spinBoxFactory);
+  property_editor_->setFactoryForManager(bool_manager_, checkBoxFactory);
+  property_editor_->setFactoryForManager(string_manager_, lineEditFactory);
+  ui.dockWidgetPropertyEditor->setWidget(property_editor_);
+
+
+  current_item_ = 0;
+
+  view_ = new ve::View(this);
+  ui.gridLayoutView->addWidget(view_);
+
+  scene_ = new ve::Scene(view_);
+  scene_->setSceneRect(0, 0, 800, 600);
+  view_->setScene(scene_);
+  scene_->set_mode(ve::Scene::MODE_CURSOR);
+  view_->ensureVisible(scene_->itemsBoundingRect());
+
+  connect(scene_, SIGNAL(signal_object_selected(QObject*)),
+           this, SLOT(gestureDetectorItemClicked(QObject*)));
+
+  GestureDetectorItem* item1 = new GestureDetectorItem(QRect(50, 50, 50, 50));
+  GestureDetectorItem* item2 = new GestureDetectorItem(QRect(100, 100, 50, 50));
+  item1->setObjectName("A");
+  item2->setObjectName("B");
+  scene_->addItem(item1);
+  scene_->addItem(item2);
+
 
   return true;
 }
@@ -181,8 +238,8 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
           - skeleton[Skeleton::SKELETON_POSITION_WRIST_RIGHT].getOrigin();
       tf::Vector3 hand_left_to_right = skeleton[Skeleton::SKELETON_POSITION_HAND_LEFT].getOrigin()
           - skeleton[Skeleton::SKELETON_POSITION_HAND_RIGHT].getOrigin();
-      //ROS_INFO("wrist_distance: %f", wrist_left_to_right.length());
-      //ROS_INFO("hand_distance: %f", hand_left_to_right.length());
+      //ROS_INFO("skeleton_wrist_distance: %f", wrist_left_to_right.length());
+      ROS_INFO("skeleton_hand_distance: %f", hand_left_to_right.length());
 
     }
   }
@@ -196,6 +253,29 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
   }
 }
 
+void UserInteraction::handsCallback(const hg_object_tracking::HandsConstPtr& hands)
+{
+  //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+  if (hands->hands.size() == 2)
+  {
+    tf::Transform left_hand;
+    tf::Transform right_hand;
+    if (hands->hands[0].hand_centroid.translation.x <= hands->hands[1].hand_centroid.translation.x)
+    {
+      tf::transformMsgToTF(hands->hands[0].hand_centroid, left_hand);
+      tf::transformMsgToTF(hands->hands[1].hand_centroid, right_hand);
+    }
+    else
+    {
+      tf::transformMsgToTF(hands->hands[1].hand_centroid, left_hand);
+      tf::transformMsgToTF(hands->hands[0].hand_centroid, right_hand);
+    }
+
+    tf::Vector3 hand_left_to_right = left_hand.getOrigin() - right_hand.getOrigin();
+    ROS_INFO("hand_distance: %f", hand_left_to_right.length());
+
+  }
+}
 
 void UserInteraction::publishTransforms(const SkeletonsConstPtr& skelentons)
 {
@@ -330,6 +410,76 @@ void UserInteraction::getSkeletionMarker(const Skeleton& skeleton,
 
   marker_array.markers.push_back(links);
 }
+
+void UserInteraction::updateExpandState()
+{
+    QList<QtBrowserItem *> list = property_editor_->topLevelItems();
+    QListIterator<QtBrowserItem *> it(list);
+    while (it.hasNext()) {
+        QtBrowserItem *item = it.next();
+        QtProperty *prop = item->property();
+        id_to_expanded_[property_to_id_[prop]] = property_editor_->isExpanded(item);
+    }
+}
+
+void UserInteraction::addProperty(QtProperty *property, const QString &id)
+{
+  property_to_id_[property] = id;
+  id_to_property_[id] = property;
+  QtBrowserItem *item = property_editor_->addProperty(property);
+  if (id_to_expanded_.contains(id))
+    property_editor_->setExpanded(item, id_to_expanded_[id]);
+}
+
+void UserInteraction::gestureDetectorItemClicked(QObject* item)
+{
+  updateExpandState();
+
+  QMap<QtProperty *, QString>::ConstIterator it_prop = property_to_id_.constBegin();
+  while (it_prop != property_to_id_.constEnd())
+  {
+    delete it_prop.key();
+    it_prop++;
+  }
+
+  property_to_id_.clear();
+  id_to_property_.clear();
+
+  current_item_ = dynamic_cast<GestureDetectorItem*>(item);
+  if (!current_item_)
+  {
+    return;
+  }
+
+  QtProperty *property;
+  property = string_manager_->addProperty(tr("Name"));
+  string_manager_->setValue(property, current_item_->objectName());
+  addProperty(property, QLatin1String("name"));
+
+
+}
+
+
+void UserInteraction::valueChanged(QtProperty *property, double value)
+{
+
+}
+
+void UserInteraction::valueChanged(QtProperty *property, int value)
+{
+
+}
+
+void UserInteraction::valueChanged(QtProperty *property, bool value)
+{
+
+}
+
+void UserInteraction::valueChanged(QtProperty *property, const QString &value)
+{
+
+}
+
 
 
 

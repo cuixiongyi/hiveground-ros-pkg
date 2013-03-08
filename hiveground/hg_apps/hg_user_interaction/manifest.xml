@@ -15,6 +15,8 @@
   <depend package="std_msgs"/>
   <depend package="hg_object_tracking"/>
   <depend package="message_filters"/>
+  <depend package="qt_property_browser"/>
+  <depend package="visual_editor"/>
 </package>
 
 
