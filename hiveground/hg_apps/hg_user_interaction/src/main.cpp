@@ -63,12 +63,10 @@ bool UserInteraction::initialize()
   color_joint_.r = 1.0; color_joint_.g = 0.0; color_joint_.b = 0.0; color_joint_.a = 0.5;
   color_link_.r = 0.0; color_link_.g = 1.0; color_link_.b = 0.0; color_link_.a = 0.5;
 
-  skeleton_sub_ = nh_private_.subscribe(skeletons_topic_, 1, &UserInteraction::skeletonsCallback, this);
+  //skeleton_sub_ = nh_private_.subscribe(skeletons_topic_, 1, &UserInteraction::skeletonsCallback, this);
   skeletons_markers_publisher_ = nh_private_.advertise<MarkerArray>("skeletons_makers", 128);
 
 
-
-/*
   nh_private_.getParam("skeletons_topic", skeletons_topic_);
   nh_private_.getParam("hands_topic", hands_topic_);
   ROS_INFO_STREAM(skeletons_topic_ << ":" << hands_topic_);
@@ -76,9 +74,9 @@ bool UserInteraction::initialize()
   skeletons_sub_ = boost::shared_ptr<message_filters::Subscriber<kinect_msgs::Skeletons> >(new message_filters::Subscriber<kinect_msgs::Skeletons>(nh_, skeletons_topic_, 1));
   hands_sub_ = boost::shared_ptr<message_filters::Subscriber<hg_object_tracking::Hands> >(new message_filters::Subscriber<hg_object_tracking::Hands>(nh_, hands_topic_, 1));
 
-  skeltons_hands_sync_ = boost::shared_ptr<message_filters::Synchronizer<SkeltonsHandsSyncPolicy> >(new message_filters::Synchronizer<SkeltonsHandsSyncPolicy>(SkeltonsHandsSyncPolicy(100), *skeletons_sub_, *hands_sub_));
+  skeltons_hands_sync_ = boost::shared_ptr<message_filters::Synchronizer<SkeltonsHandsSyncPolicy> >(new message_filters::Synchronizer<SkeltonsHandsSyncPolicy>(SkeltonsHandsSyncPolicy(50), *skeletons_sub_, *hands_sub_));
   skeltons_hands_sync_->registerCallback(boost::bind(&UserInteraction::skeletonsHandsCallback, this, _1, _2));
-*/
+
   return true;
 }
 
@@ -89,6 +87,60 @@ void UserInteraction::skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPt
   //ROS_INFO_STREAM(skeletons->header.stamp);
   //ROS_INFO_STREAM(hands->header.stamp);
 
+  tf::StampedTransform tf;
+  tf_listener_.lookupTransform("base_link", "kinect_server", ros::Time(0), tf);
+
+
+  visualization_msgs::MarkerArray marker_array;
+  skeleton_marker_id_ = 0;
+
+
+  for (int i = 0; i < Skeletons::SKELETON_COUNT; i++)
+  {
+    if (skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
+    {
+      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, marker_array);
+
+      ROS_DEBUG_STREAM(
+          "[" << i << "]: " << skeletons->skeletons[i].tracking_id << " : "<< skeletons->skeletons[i].user_index);
+      tf::Transform skeleton[Skeleton::SKELETON_POSITION_COUNT];
+      for (int j = 0; j < Skeleton::SKELETON_POSITION_COUNT; j++)
+      {
+        tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[j], skeleton[j]);
+        skeleton[j] = tf * skeleton[j];
+      }
+
+      tf::Vector3 wrist_left_to_right = skeleton[Skeleton::SKELETON_POSITION_WRIST_LEFT].getOrigin()
+          - skeleton[Skeleton::SKELETON_POSITION_WRIST_RIGHT].getOrigin();
+      tf::Vector3 hand_left_to_right = skeleton[Skeleton::SKELETON_POSITION_HAND_LEFT].getOrigin()
+          - skeleton[Skeleton::SKELETON_POSITION_HAND_RIGHT].getOrigin();
+      ROS_INFO("skeleton_wrist_distance: %f", wrist_left_to_right.length());
+      ROS_INFO("skeleton_hand_distance: %f", hand_left_to_right.length());
+    }
+  }
+
+  if(hands->hands.size() == 2)
+  {
+    tf::Transform left_hand;
+    tf::Transform right_hand;
+    if(hands->hands[0].hand_centroid.translation.x <= hands->hands[1].hand_centroid.translation.x)
+    {
+      tf::transformMsgToTF(hands->hands[0].hand_centroid, left_hand);
+      tf::transformMsgToTF(hands->hands[1].hand_centroid, right_hand);
+    }
+    else
+    {
+      tf::transformMsgToTF(hands->hands[1].hand_centroid, left_hand);
+      tf::transformMsgToTF(hands->hands[0].hand_centroid, right_hand);
+    }
+
+    tf::Vector3 hand_left_to_right = left_hand.getOrigin() - right_hand.getOrigin();
+    ROS_INFO("hand_distance: %f", hand_left_to_right.length());
+
+
+  }
+
+
 
 
 
@@ -96,12 +148,12 @@ void UserInteraction::skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPt
 
 }
 
-void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& skelentons)
+void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& skeletons)
 {
   //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
   //ROS_INFO_STREAM(skelentons->header);
 
-  publishTransforms (skelentons);
+  publishTransforms (skeletons);
 
   tf::StampedTransform tf;
   tf_listener_.lookupTransform("base_link", "kinect_server", ros::Time(0), tf);
@@ -112,16 +164,16 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
 
   for (int i = 0; i < Skeletons::SKELETON_COUNT; i++)
   {
-    if (skelentons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
+    if (skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
     {
-      getSkeletionMarker(skelentons->skeletons[i], "kinect_server", color_joint_, color_link_, marker_array);
+      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, marker_array);
 
       ROS_DEBUG_STREAM(
-          "[" << i << "]: " << skelentons->skeletons[i].tracking_id << " : "<< skelentons->skeletons[i].user_index);
+          "[" << i << "]: " << skeletons->skeletons[i].tracking_id << " : "<< skeletons->skeletons[i].user_index);
       tf::Transform skeleton[Skeleton::SKELETON_POSITION_COUNT];
       for (int j = 0; j < Skeleton::SKELETON_POSITION_COUNT; j++)
       {
-        tf::transformMsgToTF(skelentons->skeletons[i].skeleton_positions[j], skeleton[j]);
+        tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[j], skeleton[j]);
         skeleton[j] = tf * skeleton[j];
       }
 
