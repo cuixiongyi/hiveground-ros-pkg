@@ -153,11 +153,11 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
       marker_point.y = result.at<float>(1);
       marker_point.z = result.at<float>(2);
 
-      hand_history_[i][KalmanFilter3d::PREDICTED].push_back(marker_point);
-      if (hand_history_[i][KalmanFilter3d::PREDICTED].size() > HAND_HISTORY_SIZE)
-      {
-        hand_history_[i][KalmanFilter3d::PREDICTED].pop_front();
-      }
+      //hand_history_[i][KalmanFilter3d::PREDICTED].push_back(marker_point);
+      //if (hand_history_[i][KalmanFilter3d::PREDICTED].size() > HAND_HISTORY_SIZE)
+      //{
+        //hand_history_[i][KalmanFilter3d::PREDICTED].pop_front();
+      //}
 
       tf::Vector3 point1(result.at<float>(0), result.at<float>(1), result.at<float>(2));
       int index = closestHand(point1, hands_message);
@@ -190,7 +190,7 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
         marker_point.x = measurement.x;
         marker_point.y = measurement.y;
         marker_point.z = measurement.z;
-        hand_history_[i][KalmanFilter3d::MESUREMENT].push_back(marker_point);
+        //hand_history_[i][KalmanFilter3d::MESUREMENT].push_back(marker_point);
 
         marker_point.x = result.at<float>(0);
         marker_point.y = result.at<float>(1);
@@ -200,10 +200,10 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
         //ROS_INFO_STREAM("[" << i << "] measurement: " << measurement);
         //ROS_INFO_STREAM("[" << i << "] estimated: " << result);
 
-        if (hand_history_[i][KalmanFilter3d::MESUREMENT].size() > HAND_HISTORY_SIZE)
-        {
-          hand_history_[i][KalmanFilter3d::MESUREMENT].pop_front();
-        }
+        //if (hand_history_[i][KalmanFilter3d::MESUREMENT].size() > HAND_HISTORY_SIZE)
+        //{
+          //hand_history_[i][KalmanFilter3d::MESUREMENT].pop_front();
+        //}
 
         if (hand_history_[i][KalmanFilter3d::ESTIMATED].size() > HAND_HISTORY_SIZE)
         {
@@ -240,17 +240,17 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
     marker.pose.orientation.y = 0;
     marker.pose.orientation.z = 0;
     marker.pose.orientation.w = 1;
+    marker.ns = "point_history";
+    marker.id = 0;
 
     for (size_t i = 0; i < hand_history_.size(); i++)
+    {
       for (int j = 0; j < 3; j++)
       {
         marker.points.clear();
         if (hand_history_[i][j].size() != 0)
         {
-          std::stringstream ss;
-          ss << "point_history" << i << j;
-          marker.ns = ss.str();
-          marker.id = 0;
+          marker.id++;
 
           std::list<geometry_msgs::Point>::iterator it;
           for (it = hand_history_[i][j].begin(); it != hand_history_[i][j].end(); it++)
@@ -282,9 +282,10 @@ void ObjectTracking::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& messa
 
           }
           marker.color.a = 1.0;
-        }
           marker_array_.markers.push_back(marker);
+        }
       }
+    }
   }
 
 
