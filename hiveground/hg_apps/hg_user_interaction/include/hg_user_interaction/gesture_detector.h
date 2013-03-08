@@ -31,13 +31,53 @@
  * Author: Mahisorn Wongphati
  */
 
-#ifndef GESTURE_H_
-#define GESTURE_H_
+#ifndef GESTURE_DETECTOR_H_
+#define GESTURE_DETECTOR_H_
+
+#include <qtpropertymanager.h>
+#include <qteditorfactory.h>
+#include <qttreepropertybrowser.h>
+#include <ve_node.h>
+
 
 namespace hg_user_interaction
 {
 
+class GestureDetectorItem;
+
+typedef QList<GestureDetectorItem*> GestureDetectorItemList;
+
+class GestureDetectorItem : public ve::Node
+{
+  Q_OBJECT
+public:
+  GestureDetectorItem();
+  GestureDetectorItem(const QRectF& rect);
+  ~GestureDetectorItem();
+
+  enum RttiValue
+  {
+    Rtti_Item = 0,
+    Rtti_HandPushPull = 1
+  };
+
+  enum
+  {
+    TYPE = Node::TYPE + Rtti_Item
+  };
+
+  int type() const
+  {
+    return TYPE;
+  }
+
+  virtual int rtti() const { return RTTI; };
+  static int RTTI;
+
+protected:
+};
+
 }
 
 
-#endif /* GESTURE_H_ */
+#endif /* GESTURE_DETECTOR_H_ */

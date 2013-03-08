@@ -49,6 +49,10 @@
 #include <tf/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <hg_user_interaction/gesture_detector.h>
+#include <ve_view.h>
+#include <ve_scene.h>
+
 
 namespace hg_user_interaction
 {
@@ -66,6 +70,7 @@ public:
 protected:
   void skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPtr& skeletons, const hg_object_tracking::HandsConstPtr& hands);
   void skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& skelentons);
+  void handsCallback(const hg_object_tracking::HandsConstPtr& hands);
   void publishTransforms(const kinect_msgs::SkeletonsConstPtr& skelentons);
   void publishTransform(int user,
                            const geometry_msgs::Transform& position,
@@ -76,6 +81,18 @@ protected:
                              const std_msgs::ColorRGBA& color_joint,
                              const std_msgs::ColorRGBA& color_link,
                              visualization_msgs::MarkerArray& marker_array);
+private:
+  void updateExpandState();
+  void addProperty(QtProperty *property, const QString &id);
+
+
+private Q_SLOTS:
+  void gestureDetectorItemClicked(QObject* item);
+  void valueChanged(QtProperty *property, double value);
+  void valueChanged(QtProperty *property, int value);
+  void valueChanged(QtProperty *property, bool value);
+  void valueChanged(QtProperty *property, const QString &value);
+
 
 
 public:
@@ -83,6 +100,25 @@ public:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   bool quit_threads_;
+
+  QtTreePropertyBrowser *property_editor_;
+  QtDoublePropertyManager *double_manager_;
+  QtIntPropertyManager * integer_manager_;
+  QtBoolPropertyManager* bool_manager_;
+  QtStringPropertyManager *string_manager_;
+  QtGroupPropertyManager *group_manager_;
+
+  GestureDetectorItem* current_item_;
+  QMap<QtProperty *, QString> property_to_id_;
+  QMap<QString, QtProperty *> id_to_property_;
+  QMap<QString, bool> id_to_expanded_;
+
+  ve::View* view_;
+  ve::Scene* scene_;
+
+
+
+
 
   std::string skeletons_topic_;
   std::string hands_topic_;
@@ -94,13 +130,15 @@ public:
 
   tf::TransformBroadcaster br_;
   tf::TransformListener tf_listener_;
-  ros::Subscriber skeleton_sub_;
+  ros::Subscriber skeletons_sub_raw_;
   ros::Publisher skeletons_markers_publisher_;
   int skeleton_marker_id_;
 
   std_msgs::ColorRGBA color_joint_;
   std_msgs::ColorRGBA color_link_;
 
+  ros::Subscriber hands_sub_raw_;
+  ros::Publisher hands_markers_publisher_;
 
 
 
