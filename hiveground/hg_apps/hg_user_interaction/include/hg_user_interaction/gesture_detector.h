@@ -34,11 +34,14 @@
 #ifndef GESTURE_DETECTOR_H_
 #define GESTURE_DETECTOR_H_
 
+#include <ros/ros.h>
 #include <qtpropertymanager.h>
 #include <qteditorfactory.h>
 #include <qttreepropertybrowser.h>
 #include <ve_node.h>
-
+#include <kinect_msgs/Skeletons.h>
+#include <hg_object_tracking/Hands.h>
+#include <visualization_msgs/MarkerArray.h>
 
 namespace hg_user_interaction
 {
@@ -51,9 +54,19 @@ class GestureDetectorItem : public ve::Node
 {
   Q_OBJECT
 public:
-  GestureDetectorItem();
-  GestureDetectorItem(const QRectF& rect);
+  GestureDetectorItem(ros::NodeHandle& nh_private);
+  GestureDetectorItem(ros::NodeHandle& nh_private, const QRectF& rect);
   ~GestureDetectorItem();
+
+  virtual bool initialize() { return true; }
+
+  virtual void addSkeletonsMessage(const kinect_msgs::SkeletonsConstPtr& skeletons) { }
+  virtual void addHandsMessage(const hg_object_tracking::HandsConstPtr& hands) { }
+
+  virtual void drawHistory(visualization_msgs::MarkerArray& marker_array) { }
+  virtual void drawResult(visualization_msgs::MarkerArray& marker_array) { }
+
+  virtual int lookForGesture() { return 0; }
 
   enum RttiValue
   {
@@ -61,23 +74,21 @@ public:
     Rtti_HandPushPull = 1
   };
 
-  enum
+  virtual int rtti() const
   {
-    TYPE = Node::TYPE + Rtti_Item
-  };
-
-  int type() const
-  {
-    return TYPE;
+    return RTTI;
   }
 
-  virtual int rtti() const { return RTTI; };
-  static int RTTI;
 
 protected:
+  ros::NodeHandle& nh_private_;
+  bool draw_history_;
+  bool draw_result_;
+
+private:
+  static int RTTI;
 };
 
 }
-
 
 #endif /* GESTURE_DETECTOR_H_ */

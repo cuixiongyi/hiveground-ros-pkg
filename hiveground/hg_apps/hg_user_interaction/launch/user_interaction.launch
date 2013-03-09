@@ -4,7 +4,16 @@
   <arg name="cloud"/>  
   <node pkg="hg_user_interaction" type="hg_user_interaction" name="user_interaction" output="screen">
   	<param name="skeletons_topic" value="/kinect_server/skeletons" />
-  	<param name="hands_topic" value="/object_tracking/filtered_hands" />    
+  	<param name="hands_topic" value="/object_tracking/filtered_hands" />  	
+    <rosparam>           
+      push_pull_gesture_draw_history: true
+      push_pull_gesture_draw_result: true
+      push_pull_gesture_r1: 0.1
+      push_pull_gesture_r2: 0.2
+      push_pull_gesture_r3: 0.25
+      push_pull_gesture_timeout: 0.1
+      push_pull_gesture_activating_time: 1.0     
+   </rosparam> 	  	    
   </node>
 </launch>  
  

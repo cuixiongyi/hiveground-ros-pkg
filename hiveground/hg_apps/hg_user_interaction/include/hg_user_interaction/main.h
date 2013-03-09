@@ -50,6 +50,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include <hg_user_interaction/gesture_detector.h>
+#include <hg_user_interaction/gesture_hand_pushpull.h>
 #include <ve_view.h>
 #include <ve_scene.h>
 
@@ -88,6 +89,8 @@ private:
 
 private Q_SLOTS:
   void gestureDetectorItemClicked(QObject* item);
+  void gestureDetectorItemDeleted(QObject* item);
+
   void valueChanged(QtProperty *property, double value);
   void valueChanged(QtProperty *property, int value);
   void valueChanged(QtProperty *property, bool value);

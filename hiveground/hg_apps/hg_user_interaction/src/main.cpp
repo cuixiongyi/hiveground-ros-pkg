@@ -110,7 +110,7 @@ bool UserInteraction::initialize()
   property_editor_->setFactoryForManager(bool_manager_, checkBoxFactory);
   property_editor_->setFactoryForManager(string_manager_, lineEditFactory);
   ui.dockWidgetPropertyEditor->setWidget(property_editor_);
-
+  ui.dockWidgetPropertyEditor->setMinimumWidth(150);
 
   current_item_ = 0;
 
@@ -126,8 +126,13 @@ bool UserInteraction::initialize()
   connect(scene_, SIGNAL(signal_object_selected(QObject*)),
            this, SLOT(gestureDetectorItemClicked(QObject*)));
 
-  GestureDetectorItem* item1 = new GestureDetectorItem(QRect(50, 50, 50, 50));
-  GestureDetectorItem* item2 = new GestureDetectorItem(QRect(100, 100, 50, 50));
+  connect(scene_, SIGNAL(signal_node_deleted(QObject*)),
+          this, SLOT(gestureDetectorItemDeleted(QObject*)));
+
+  GestureDetectorItem* item1 = new GestureDetectorItem(nh_private_, QRect(50, 50, 50, 50));
+  GestureDetectorHandPushPull* item2 = new GestureDetectorHandPushPull(nh_private_, QRect(100, 100, 50, 50));
+  item1->initialize();
+  item2->initialize();
   item1->setObjectName("A");
   item2->setObjectName("B");
   scene_->addItem(item1);
@@ -456,13 +461,75 @@ void UserInteraction::gestureDetectorItemClicked(QObject* item)
   string_manager_->setValue(property, current_item_->objectName());
   addProperty(property, QLatin1String("name"));
 
+  if(current_item_->rtti() == GestureDetectorItem::Rtti_HandPushPull)
+  {
+    GestureDetectorHandPushPull* i = dynamic_cast<GestureDetectorHandPushPull*>(current_item_);
 
+    property = double_manager_->addProperty("R1");
+    double_manager_->setRange(property, 0.01, 1.0);
+    double_manager_->setSingleStep(property, 0.01);
+    double_manager_->setValue(property, i->getR1());
+    addProperty(property, QLatin1String("r1"));
+
+    property = double_manager_->addProperty("R2");
+    double_manager_->setRange(property, 0.01, 1.0);
+    double_manager_->setSingleStep(property, 0.01);
+    double_manager_->setValue(property, i->getR2());
+    addProperty(property, QLatin1String("r2"));
+
+    property = double_manager_->addProperty("R3");
+    double_manager_->setRange(property, 0.01, 1.0);
+    double_manager_->setSingleStep(property, 0.01);
+    double_manager_->setValue(property, i->getR3());
+    addProperty(property, QLatin1String("r3"));
+
+    property = double_manager_->addProperty("Time out");
+    double_manager_->setRange(property, 0.01, 5.0);
+    double_manager_->setSingleStep(property, 0.01);
+    double_manager_->setValue(property, i->getTimeOut());
+    addProperty(property, QLatin1String("time_out"));
+
+    property = double_manager_->addProperty("Activating time");
+    double_manager_->setRange(property, 0.01, 5.0);
+    double_manager_->setSingleStep(property, 0.01);
+    double_manager_->setValue(property, i->getActivatingTime());
+    addProperty(property, QLatin1String("activating_time"));
+  }
+
+
+}
+
+void UserInteraction::gestureDetectorItemDeleted(QObject* item)
+{
+  QGraphicsItem* i = dynamic_cast<QGraphicsItem*>(item);
+  if(i)
+  {
+    ROS_DEBUG("removed: %s", item->objectName().toStdString().c_str());
+    scene_->removeItem(i);
+    delete item;
+  }
 }
 
 
 void UserInteraction::valueChanged(QtProperty *property, double value)
 {
+  if (!property_to_id_.contains(property))
+    return;
 
+  if (!current_item_)
+    return;
+
+  QString id = property_to_id_[property];
+  ROS_INFO("%s", id.toStdString().c_str());
+  if(current_item_->rtti() == GestureDetectorItem::Rtti_HandPushPull)
+  {
+    GestureDetectorHandPushPull* i = dynamic_cast<GestureDetectorHandPushPull*>(current_item_);
+    if(id == QLatin1String("r1")) i->setR1(value);
+    else if(id == QLatin1String("r2")) i->setR2(value);
+    else if(id == QLatin1String("r3")) i->setR3(value);
+    else if(id == QLatin1String("time_out")) i->setTimeOut(value);
+    else if(id == QLatin1String("activating_time")) i->setActivatingTime(value);
+  }
 }
 
 void UserInteraction::valueChanged(QtProperty *property, int value)
