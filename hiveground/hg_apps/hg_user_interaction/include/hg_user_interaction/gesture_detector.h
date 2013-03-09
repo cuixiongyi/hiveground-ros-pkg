@@ -42,6 +42,7 @@
 #include <kinect_msgs/Skeletons.h>
 #include <hg_object_tracking/Hands.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <hg_user_interaction/Gestures.h>
 
 namespace hg_user_interaction
 {
@@ -58,15 +59,15 @@ public:
   GestureDetectorItem(ros::NodeHandle& nh_private, const QRectF& rect);
   ~GestureDetectorItem();
 
-  virtual bool initialize() { return true; }
+  virtual bool initialize() = 0;
 
-  virtual void addSkeletonsMessage(const kinect_msgs::SkeletonsConstPtr& skeletons) { }
-  virtual void addHandsMessage(const hg_object_tracking::HandsConstPtr& hands) { }
+  virtual void addSkeletonsMessage(const kinect_msgs::SkeletonsConstPtr& skeletons) = 0;
+  virtual void addHandsMessage(const hg_object_tracking::HandsConstPtr& hands) = 0;
 
-  virtual void drawHistory(visualization_msgs::MarkerArray& marker_array) { }
-  virtual void drawResult(visualization_msgs::MarkerArray& marker_array) { }
+  virtual void drawHistory(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id) = 0;
+  virtual void drawResult(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id) = 0;
 
-  virtual int lookForGesture() { return 0; }
+  virtual int lookForGesture(hg_user_interaction::Gesture& gesture) = 0;
 
   enum RttiValue
   {
@@ -79,6 +80,8 @@ public:
     return RTTI;
   }
 
+  VE_GETSETG(bool, draw_history_, DrawHistory);
+  VE_GETSETG(bool, draw_result_, DrawResult);
 
 protected:
   ros::NodeHandle& nh_private_;
@@ -86,6 +89,7 @@ protected:
   bool draw_result_;
 
 private:
+  Q_DISABLE_COPY(GestureDetectorItem);
   static int RTTI;
 };
 

@@ -39,77 +39,77 @@
 
 //from https://gist.github.com/aminzai/2706798
 #define VE_GETSET(Type, MemberName, FaceName) \
-          Type get##FaceName() const { \
+          inline Type get##FaceName() const { \
             return MemberName; \
           }; \
-          void get##FaceName(Type value) { \
+          inline void get##FaceName(Type value) { \
             MemberName = value; \
           }
 
 #define VE_GETSETR(Type, MemberName, FaceName) \
-          const Type &set##FaceName() const { \
+          inline const Type &set##FaceName() const { \
             return MemberName; \
           }; \
-          void set##FaceName(const Type &value) { \
+          inline void set##FaceName(const Type &value) { \
             MemberName = value; \
           }
 
 #define VE_GET(Type, MemberName, FaceName) \
-          Type get##FaceName() const { \
+          inline Type get##FaceName() const { \
             return MemberName; \
           }
 
 #define VE_GETR(Type, MemberName, FaceName) \
-          const Type &get##FaceName() const { \
+          inline const Type &get##FaceName() const { \
             return MemberName; \
           }
 
 #define VE_GETRNC(Type, MemberName, FaceName) \
-          Type &get##FaceName() { \
+          inline Type &get##FaceName() { \
             return MemberName; \
           }
 
 #define VE_SET(Type, MemberName, FaceName) \
-          void set##FaceName(const Type &value) { \
+          inline void set##FaceName(const Type &value) { \
             MemberName = value; \
           }
 
 // guarded versions
 
 #define VE_GETSETG(Type, MemberName, FaceName) \
-          Type get##FaceName() { \
+          inline Type get##FaceName() { \
             QMutexLocker locker(&mutex_); \
             return MemberName; \
           }; \
-          void set##FaceName(Type value) { \
+          inline void set##FaceName(Type value) { \
             QMutexLocker locker(&mutex_);\
             MemberName = value; \
           }
 
 #define VE_GETSETGR(Type, MemberName, FaceName) \
-          const Type &get##FaceName() { \
+          inline const Type &get##FaceName() { \
             MutexLocker locker(&mutex_); \
             return MemberName; \
           }; \
-          void set##FaceName(const Type &value) { \
+          inline void set##FaceName(const Type &value) { \
             QMutexLocker locker(&mutex_);\
             MemberName = value; \
           }
 
 #define VE_GETG(Type, MemberName, FaceName) \
-          Type get##FaceName() { \
+          inline Type get##FaceName() { \
             QMutexLocker locker(&mutex_); \
             return MemberName; \
           }
 
 #define VE_GETGR(Type, MemberName, FaceName) \
-          const Type &get##FaceName() { \
+          inline const Type &get##FaceName() { \
             QMutexLocker locker(&mutex_); \
             return MemberName; \
           }
 
 #define VE_SETG(Type, MemberName, FaceName) \
-          void set##FaceName(const Type &value) { \
+          inline void set##FaceName(const Type &value) { \
             QMutexLocker locker(&mutex_); \
             MemberName = value; \
           }

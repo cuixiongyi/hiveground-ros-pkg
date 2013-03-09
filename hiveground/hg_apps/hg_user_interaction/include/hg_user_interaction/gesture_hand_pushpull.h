@@ -59,12 +59,12 @@ public:
   ~GestureDetectorHandPushPull();
 
   bool initialize();
-
+  void addSkeletonsMessage(const kinect_msgs::SkeletonsConstPtr& skeletons) { }
   void addHandsMessage(const hg_object_tracking::HandsConstPtr& hands);
 
-  void drawHistory(visualization_msgs::MarkerArray& marker_array);
-  void drawResult(visualization_msgs::MarkerArray& marker_array);
-  int lookForGesture();
+  void drawHistory(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id);
+  void drawResult(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id);
+  int lookForGesture(hg_user_interaction::Gesture& gesture);
 
   virtual int rtti() const
   {
@@ -76,6 +76,9 @@ public:
   VE_GETSETG(double, r3_, R3);
   VE_GETSETG(double, time_out_, TimeOut);
   VE_GETSETG(double, activating_time_, ActivatingTime);
+
+protected:
+  int getStateAuto(int hand, const tf::Vector3& vec_to_hand);
 
 
 protected:

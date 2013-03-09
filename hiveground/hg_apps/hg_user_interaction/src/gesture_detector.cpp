@@ -38,15 +38,17 @@ using namespace hg_user_interaction;
 int GestureDetectorItem::RTTI = Rtti_Item;
 
 GestureDetectorItem::GestureDetectorItem(ros::NodeHandle& nh_private)
- : nh_private_(nh_private),
-   ve::Node()
+ : ve::Node(),
+   nh_private_(nh_private)
+
 {
 
 }
 
 GestureDetectorItem::GestureDetectorItem(ros::NodeHandle& nh_private, const QRectF& rect)
- : nh_private_(nh_private),
-   ve::Node(rect)
+ : ve::Node(rect),
+   nh_private_(nh_private)
+
 {
 
 }

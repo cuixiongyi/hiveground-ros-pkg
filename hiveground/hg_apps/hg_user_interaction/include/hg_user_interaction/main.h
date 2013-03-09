@@ -119,8 +119,7 @@ public:
   ve::View* view_;
   ve::Scene* scene_;
 
-
-
+  QMap<QString, GestureDetectorItem*> gesture_detector_items_;
 
 
   std::string skeletons_topic_;
