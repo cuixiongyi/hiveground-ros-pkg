@@ -28,30 +28,72 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * Author: Mahisorn Wongphati
+ *       File: gesture_hand_pushpull.cpp
+ * Created on: Mar 9, 2013
+ *     Author: Mahisorn Wongphati
  */
 
-#include <hg_user_interaction/gesture_detector.h>
+#include <hg_user_interaction/gesture_hand_pushpull.h>
 
 using namespace hg_user_interaction;
 
-int GestureDetectorItem::RTTI = Rtti_Item;
+int GestureDetectorHandPushPull::RTTI = Rtti_HandPushPull;
 
-GestureDetectorItem::GestureDetectorItem(ros::NodeHandle& nh_private)
- : nh_private_(nh_private),
-   ve::Node()
+GestureDetectorHandPushPull::GestureDetectorHandPushPull(ros::NodeHandle& nh_private)
+ : GestureDetectorItem(nh_private)
 {
 
 }
 
-GestureDetectorItem::GestureDetectorItem(ros::NodeHandle& nh_private, const QRectF& rect)
- : nh_private_(nh_private),
-   ve::Node(rect)
+GestureDetectorHandPushPull::GestureDetectorHandPushPull(ros::NodeHandle& nh_private, const QRectF& rect)
+ : GestureDetectorItem(nh_private, rect)
 {
 
 }
 
-GestureDetectorItem::~GestureDetectorItem()
+GestureDetectorHandPushPull::~GestureDetectorHandPushPull()
 {
   //ROS_INFO("haha");
 }
+
+bool GestureDetectorHandPushPull::initialize()
+{
+  current_state_[0] = current_state_[1] = IDEL;
+  three_axes_[0] = tf::Vector3(1, 0, 0); //X
+  three_axes_[1] = tf::Vector3(0, 1, 0); //Y
+  three_axes_[2] = tf::Vector3(0, 0, 1); //Z
+
+  nh_private_.getParam("push_pull_gesture_draw_history", draw_history_);
+  nh_private_.getParam("push_pull_gesture_draw_result", draw_result_);
+
+  nh_private_.getParam("push_pull_gesture_r1", r1_);
+  nh_private_.getParam("push_pull_gesture_r2", r2_);
+  nh_private_.getParam("push_pull_gesture_r3", r3_);
+
+  nh_private_.getParam("push_pull_gesture_timeout", time_out_);
+  nh_private_.getParam("push_pull_gesture_activating_time", activating_time_);
+
+
+  return true;
+}
+
+void GestureDetectorHandPushPull::addHandsMessage(const hg_object_tracking::HandsConstPtr& hands)
+{
+
+}
+
+void GestureDetectorHandPushPull::drawHistory(visualization_msgs::MarkerArray& marker_array)
+{
+
+}
+
+void GestureDetectorHandPushPull::drawResult(visualization_msgs::MarkerArray& marker_array)
+{
+
+}
+
+int GestureDetectorHandPushPull::lookForGesture()
+{
+  return 0;
+}
+
