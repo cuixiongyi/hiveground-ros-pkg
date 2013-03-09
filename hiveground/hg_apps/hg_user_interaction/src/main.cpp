@@ -129,14 +129,15 @@ bool UserInteraction::initialize()
   connect(scene_, SIGNAL(signal_node_deleted(QObject*)),
           this, SLOT(gestureDetectorItemDeleted(QObject*)));
 
-  GestureDetectorItem* item1 = new GestureDetectorItem(nh_private_, QRect(50, 50, 50, 50));
-  GestureDetectorHandPushPull* item2 = new GestureDetectorHandPushPull(nh_private_, QRect(100, 100, 50, 50));
-  item1->initialize();
-  item2->initialize();
-  item1->setObjectName("A");
-  item2->setObjectName("B");
-  scene_->addItem(item1);
-  scene_->addItem(item2);
+  GestureDetectorItem* item = new GestureDetectorHandPushPull(nh_private_, QRect(50, 50, 50, 50));
+  item->setObjectName("HandPushPull");
+  if(item->initialize())
+  {
+    scene_->addItem(item);
+    gesture_detector_items_[item->objectName()] = item;
+  }
+
+
 
 
   return true;
@@ -260,7 +261,29 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
 
 void UserInteraction::handsCallback(const hg_object_tracking::HandsConstPtr& hands)
 {
+  ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+  MarkerArray markers;
+  GestureDetectorItem* item;
+  Q_FOREACH(item, gesture_detector_items_)
+  {
+    Gesture gesture;
+    item->addHandsMessage(hands);
+    item->lookForGesture(gesture);
+    item->drawHistory(markers, hands->header.frame_id);
+    item->drawResult(markers, hands->header.frame_id);
+  }
+
+  if(hands_markers_publisher_.getNumSubscribers() != 0)
+  {
+    if(markers.markers.size() != 0)
+    {
+      hands_markers_publisher_.publish(markers);
+    }
+  }
+
+
   //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+#if 0
   if (hands->hands.size() == 2)
   {
     tf::Transform left_hand;
@@ -280,6 +303,7 @@ void UserInteraction::handsCallback(const hg_object_tracking::HandsConstPtr& han
     ROS_INFO("hand_distance: %f", hand_left_to_right.length());
 
   }
+#endif
 }
 
 void UserInteraction::publishTransforms(const SkeletonsConstPtr& skelentons)
@@ -461,6 +485,17 @@ void UserInteraction::gestureDetectorItemClicked(QObject* item)
   string_manager_->setValue(property, current_item_->objectName());
   addProperty(property, QLatin1String("name"));
 
+  property = bool_manager_->addProperty(tr("Draw history"));
+  bool_manager_->setValue(property, current_item_->getDrawHistory());
+  addProperty(property, QLatin1String("draw_history"));
+
+  property = bool_manager_->addProperty(tr("Draw result"));
+  bool_manager_->setValue(property, current_item_->getDrawResult());
+  addProperty(property, QLatin1String("draw_result"));
+
+
+
+
   if(current_item_->rtti() == GestureDetectorItem::Rtti_HandPushPull)
   {
     GestureDetectorHandPushPull* i = dynamic_cast<GestureDetectorHandPushPull*>(current_item_);
@@ -506,7 +541,9 @@ void UserInteraction::gestureDetectorItemDeleted(QObject* item)
   {
     ROS_DEBUG("removed: %s", item->objectName().toStdString().c_str());
     scene_->removeItem(i);
+    gesture_detector_items_.remove(item->objectName());
     delete item;
+    gestureDetectorItemClicked(0);
   }
 }
 
@@ -539,6 +576,15 @@ void UserInteraction::valueChanged(QtProperty *property, int value)
 
 void UserInteraction::valueChanged(QtProperty *property, bool value)
 {
+  if (!property_to_id_.contains(property))
+    return;
+
+  if (!current_item_)
+    return;
+
+  QString id = property_to_id_[property];
+  ROS_INFO("%s", id.toStdString().c_str());
+
 
 }
 

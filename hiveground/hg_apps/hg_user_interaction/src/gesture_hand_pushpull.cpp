@@ -36,6 +36,7 @@
 #include <hg_user_interaction/gesture_hand_pushpull.h>
 
 using namespace hg_user_interaction;
+using namespace visualization_msgs;
 
 int GestureDetectorHandPushPull::RTTI = Rtti_HandPushPull;
 
@@ -53,7 +54,7 @@ GestureDetectorHandPushPull::GestureDetectorHandPushPull(ros::NodeHandle& nh_pri
 
 GestureDetectorHandPushPull::~GestureDetectorHandPushPull()
 {
-  //ROS_INFO("haha");
+
 }
 
 bool GestureDetectorHandPushPull::initialize()
@@ -79,21 +80,391 @@ bool GestureDetectorHandPushPull::initialize()
 
 void GestureDetectorHandPushPull::addHandsMessage(const hg_object_tracking::HandsConstPtr& hands)
 {
+  if(hands->hands.empty())
+  {
+    num_hands_ = 0;
+    return;
+  }
+
+  if(hands->hands.size() > 2)
+  {
+    num_hands_ = 0;
+    return;
+  }
+
+  if(num_hands_ != (int)hands->hands.size())
+  {
+    current_state_[0] = current_state_[1] = IDEL;
+  }
+
+  if(hands->hands.size() == 2)
+  {
+    if(hands->hands[0].hand_centroid.translation.y > hands->hands[1].hand_centroid.translation.y)
+    {
+      tf::transformMsgToTF(hands->hands[0].hand_centroid, last_hand_positions_[1]);
+      tf::transformMsgToTF(hands->hands[1].hand_centroid, last_hand_positions_[0]);
+    }
+    else
+    {
+      tf::transformMsgToTF(hands->hands[0].hand_centroid, last_hand_positions_[0]);
+      tf::transformMsgToTF(hands->hands[1].hand_centroid, last_hand_positions_[1]);
+    }
+    num_hands_ = 2;
+  }
+  else
+  {
+    if(hands->hands[0].hand_centroid.translation.y > 0)
+    {
+      left_hand_ = false;
+    }
+    else
+    {
+      left_hand_ = true;
+    }
+    tf::transformMsgToTF(hands->hands[0].hand_centroid, last_hand_positions_[0]);
+    num_hands_ = 1;
+  }
+  ROS_INFO_THROTTLE(1.0, "%s %d", __FUNCTION__, num_hands_);
+}
+
+void GestureDetectorHandPushPull::drawHistory(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id)
+{
+  if(!getDrawHistory()) return;
+}
+
+void GestureDetectorHandPushPull::drawResult(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id)
+{
+  if(!getDrawResult()) return;
+  if(num_hands_ == 0) return;
+
+  Marker marker;
+  marker.lifetime = ros::Duration(0.1);
+  marker.header.frame_id = frame_id;
+  marker.ns = "GestureDetectorHandPushPull_result";
+  marker.type = Marker::SPHERE;
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0;
+  marker.pose.orientation.z = 0;
+  marker.pose.orientation.w = 1;
+  marker.id = 0;
+
+  if (current_state_[0] == IDEL)
+  {
+    marker.pose.position.x = center_positions_[0].x();
+    marker.pose.position.y = center_positions_[0].y();
+    marker.pose.position.z = center_positions_[0].z();
+  }
+  else
+  {
+    marker.pose.position.x = activated_hand_positions_[0].getOrigin().x();
+    marker.pose.position.y = activated_hand_positions_[0].getOrigin().y();
+    marker.pose.position.z = activated_hand_positions_[0].getOrigin().z();
+  }
+
+  //if(current_state_[0] != IDEL)
+  {
+    marker.scale.x = marker.scale.y = marker.scale.z = getR1() * (current_state_[0] == ACTIVATED ? 1 : 2);
+    marker.color.r = (current_state_[0] == ACTIVATED ? 0.0 : (current_state_[0] == ACTIVATING ? 0.5 : 1.0));
+    marker.color.g = (current_state_[0] == ACTIVATED ? (is_moving_[0]) ? 0.5 : 1.0 : 0.0);
+    marker.color.b = 0.0;
+    marker.color.a = 0.5;
+    marker.id++;
+    marker_array.markers.push_back(marker);
+    ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+  }
+
+  //R2
+  marker.scale.x = marker.scale.y = marker.scale.z = getR2() * 2;
+  marker.color.r = 0.0;
+  marker.color.g = 1.0;
+  marker.color.b = 0.0;
+  marker.color.a = 0.2;
+  marker.id++;
+  marker_array.markers.push_back(marker);
+
+  //R3
+  marker.scale.x = marker.scale.y = marker.scale.z = getR3() * 2;
+  marker.color.r = 0.0;
+  marker.color.g = 0.0;
+  marker.color.b = 1.0;
+  marker.color.a = 0.1;
+  marker.id++;
+  marker_array.markers.push_back(marker);
+
+  if (num_hands_ == 2)
+  {
+    if (current_state_[1] == IDEL)
+    {
+      marker.pose.position.x = center_positions_[1].x();
+      marker.pose.position.y = center_positions_[1].y();
+      marker.pose.position.z = center_positions_[1].z();
+    }
+    else
+    {
+      marker.pose.position.x = activated_hand_positions_[1].getOrigin().x();
+      marker.pose.position.y = activated_hand_positions_[1].getOrigin().y();
+      marker.pose.position.z = activated_hand_positions_[1].getOrigin().z();
+    }
+
+    if (current_state_[1] != IDEL)
+    {
+      marker.scale.x = marker.scale.y = marker.scale.z = getR1() * (current_state_[1] == ACTIVATED ? 1 : 2);
+      marker.color.r = (current_state_[1] == ACTIVATED ? 0.0 : (current_state_[1] == ACTIVATING ? 0.5 : 1.0));
+      marker.color.g = (current_state_[1] == ACTIVATED ? (is_moving_[1]) ? 0.5 : 1.0 : 0.0);
+      marker.color.b = 0.0;
+      marker.color.a = 0.5;
+      marker.id++;
+      marker_array.markers.push_back(marker);
+    }
+
+    //R2
+    marker.scale.x = marker.scale.y = marker.scale.z = getR2() * 2;
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
+    marker.color.a = 0.2;
+    marker.id++;
+    marker_array.markers.push_back(marker);
+
+    //R3
+    marker.scale.x = marker.scale.y = marker.scale.z = getR3() * 2;
+    marker.color.r = 0.0;
+    marker.color.g = 0.0;
+    marker.color.b = 1.0;
+    marker.color.a = 0.1;
+    marker.id++;
+    marker_array.markers.push_back(marker);
+  }
 
 }
 
-void GestureDetectorHandPushPull::drawHistory(visualization_msgs::MarkerArray& marker_array)
+int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& gesture)
 {
+  if (num_hands_ == 0)
+  {
+    current_state_[0] = current_state_[1] = IDEL;
+    return Gesture::GESTURE_NOT_DETECTED;
+  }
 
+  ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+
+  center_positions_[0] = last_hand_positions_[0].getOrigin();
+  if (num_hands_ > 1)
+    center_positions_[1] = last_hand_positions_[1].getOrigin();
+
+  int detected_gesture = Gesture::GESTURE_NOT_DETECTED;
+  if (num_hands_ == 1)
+  {
+    tf::Vector3 vec_to_hand;
+    if (current_state_[0] == IDEL)
+      vec_to_hand = last_hand_positions_[0].getOrigin() - center_positions_[left_hand_ ? 0 : 1];
+    else
+      vec_to_hand = last_hand_positions_[0].getOrigin() - activated_hand_positions_[0].getOrigin();
+    detected_gesture = getStateAuto(0, vec_to_hand);
+  }
+  else
+  {
+    tf::Vector3 vec_to_left;
+    if (current_state_[0] == IDEL)
+      vec_to_left = last_hand_positions_[0].getOrigin() - center_positions_[0];
+    else
+      vec_to_left = last_hand_positions_[0].getOrigin() - activated_hand_positions_[0].getOrigin();
+
+    tf::Vector3 vec_to_right;
+    if (current_state_[1] == IDEL)
+      vec_to_right = last_hand_positions_[1].getOrigin() - center_positions_[1];
+    else
+      vec_to_right = last_hand_positions_[1].getOrigin() - activated_hand_positions_[1].getOrigin();
+
+    int detected_gesture_l = getStateAuto(0, vec_to_left);
+    int detected_gesture_r = getStateAuto(1, vec_to_right);
+
+    /*
+    switch (detected_gesture_l)
+    {
+      case HandGesture::PUSH_PULL_ZP:
+        if (detected_gesture_r == HandGesture::PUSH_PULL_ZN)
+        {
+          ROS_INFO("Rotate X-");
+          detected_gesture = HandGesture::PUSH_PULL_RXN;
+        }
+        break;
+      case HandGesture::PUSH_PULL_ZN:
+        if (detected_gesture_r == HandGesture::PUSH_PULL_ZP)
+        {
+          ROS_INFO("Rotate X+");
+          detected_gesture = HandGesture::PUSH_PULL_RXP;
+        }
+        break;
+      case HandGesture::PUSH_PULL_XP:
+        if (detected_gesture_r == HandGesture::PUSH_PULL_XP)
+        {
+          ROS_INFO("Rotate Y+");
+          detected_gesture = HandGesture::PUSH_PULL_RYP;
+        }
+        else if (detected_gesture_r == HandGesture::PUSH_PULL_XN)
+        {
+          ROS_INFO("Rotate Z+");
+          detected_gesture = HandGesture::PUSH_PULL_RZP;
+        }
+        break;
+      case HandGesture::PUSH_PULL_XN:
+        if (detected_gesture_r == HandGesture::PUSH_PULL_XP)
+        {
+          ROS_INFO("Rotate Z-");
+          detected_gesture = HandGesture::PUSH_PULL_RZN;
+        }
+        else if (detected_gesture_r == HandGesture::PUSH_PULL_XN)
+        {
+          ROS_INFO("Rotate Y-");
+          detected_gesture = HandGesture::PUSH_PULL_RYN;
+        }
+        break;
+    }
+    */
+  }
+
+
+  return detected_gesture;
 }
 
-void GestureDetectorHandPushPull::drawResult(visualization_msgs::MarkerArray& marker_array)
+int GestureDetectorHandPushPull::getStateAuto(int hand, const tf::Vector3& vec_to_hand)
 {
+  int detected_gesture = Gesture::GESTURE_NOT_DETECTED;
+  double ds = vec_to_hand.length();
+  switch (current_state_[hand])
+  {
+    case IDEL:
+      //ROS_INFO("%d IDEL %f", hand, ds);
+      if (ds < getR2())
+      {
+        //set current hand position as center
+        start_activating_time_[hand] = ros::Time::now();
+        activated_hand_positions_[hand] = last_hand_positions_[hand];
+        current_state_[hand] = ENTERING;
+      }
+      break;
+    case ENTERING:
+      //ROS_INFO("%d ENTERING", hand);
+      if (ds < getR1())
+      {
+        double entering_time = (ros::Time::now() - start_activating_time_[hand]).toSec();
+        if (entering_time > (getActivatingTime() * 0.5))
+        {
+          start_activating_time_[hand] = ros::Time::now();
+          current_state_[hand] = ACTIVATING;
+        }
+      }
+      else
+      {
+        current_state_[hand] = IDEL;
+      }
+      break;
+    case ACTIVATING:
+      //ROS_INFO("%d ACTIVATING", hand);
+      if (ds < getR1() * 0.5)
+      {
+        double activating_time = (ros::Time::now() - start_activating_time_[hand]).toSec();
+        if (activating_time >= getActivatingTime())
+        {
+          //set current hand position as center
+          activated_hand_positions_[hand] = last_hand_positions_[hand];
+          current_state_[hand] = ACTIVATED;
+        }
+      }
+      else
+      {
+        current_state_[hand] = IDEL;
+      }
+      break;
+      break;
+    case ACTIVATED:
+      //ROS_INFO("%d ACTIVATED", hand);
+      if (ds < getR2())
+      {
+        if (ds < (getR1() / 2.0))
+        {
+          is_moving_[hand] = false;
+        }
+        else
+        {
+          is_moving_[hand] = true;
+          //check direction
+          double dot_products[3];
+          double min_error = 1e6;
+          int min_error_index = -1;
+          for (int i = 0; i < 3; i++)
+          {
+            dot_products[i] = vec_to_hand.dot(three_axes_[i]);
 
-}
+            if ((1 - fabs(dot_products[i])) < min_error)
+            {
+              min_error = 1 - fabs(dot_products[i]);
+              min_error_index = i;
+            }
+          }
 
-int GestureDetectorHandPushPull::lookForGesture()
-{
-  return 0;
+          switch (min_error_index)
+          {
+            case 0:
+              if (dot_products[min_error_index] > 0)
+              {
+                ROS_INFO("[%d] X+", hand);
+                //detected_gesture = HandGesture::PUSH_PULL_XP;
+              }
+              else
+              {
+                ROS_INFO("[%d] X-", hand);
+                //detected_gesture = HandGesture::PUSH_PULL_XN;
+              }
+              break;
+            case 1:
+              if (dot_products[min_error_index] > 0)
+              {
+                ROS_INFO("[%d] Y+", hand);
+                //detected_gesture = HandGesture::PUSH_PULL_YP;
+              }
+              else
+              {
+                ROS_INFO("[%d] Y-", hand);
+                //detected_gesture = HandGesture::PUSH_PULL_YN;
+              }
+              break;
+            case 2:
+              if (dot_products[min_error_index] > 0)
+              {
+                ROS_INFO("[%d] Z+", hand);
+                //detected_gesture = HandGesture::PUSH_PULL_ZP;
+              }
+              else
+              {
+                ROS_INFO("[%d] Z-", hand);
+                //detected_gesture = HandGesture::PUSH_PULL_ZN;
+              }
+              break;
+            default:
+              break;
+          }
+        }
+      }
+      else
+      {
+        last_state_[hand] = current_state_[hand];
+        current_state_[hand] = LEAVING;
+      }
+      break;
+    case LEAVING:
+      ROS_INFO("%d LEAVING", hand);
+      if (ds > getR3())
+      {
+        current_state_[hand] = IDEL;
+      }
+      else if (ds < getR2())
+      {
+        current_state_[hand] = last_state_[hand];
+      }
+      break;
+  }
+  return detected_gesture;
 }
 
