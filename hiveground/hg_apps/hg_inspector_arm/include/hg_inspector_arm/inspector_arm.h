@@ -52,11 +52,10 @@
 
 
 #include <hg_inspector_arm/inspection_point.h>
-#include <hg_cartesian_trajectory/planning_base.h>
-#include <hg_cartesian_trajectory/HgCartesianTrajectory.h>
+#include <hg_inspector_arm/planning_base.h>
 
 #include <hg_object_tracking/Hands.h>
-#include <hg_hand_interaction/HandGestures.h>
+#include <hg_user_interaction/Gestures.h>
 
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
@@ -66,7 +65,7 @@ typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 #define FILE_MAGIC_MARKER 0x6602AAAA
 #define FILE_VERSION_MARKER 100
 
-class InspectorArm : public QMainWindow, hg_cartesian_trajectory::PlanningBase
+class InspectorArm : public QMainWindow, PlanningBase
 {
   Q_OBJECT
 
@@ -134,7 +133,8 @@ protected:
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
   void handsCallBack(const hg_object_tracking::HandsConstPtr message);
-  void handGestureCallBack(const hg_hand_interaction::HandGesturesConstPtr message);
+  void handGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
+  void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
   void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
 
 
@@ -258,6 +258,7 @@ private:
   //gesture
   ros::Subscriber hands_subscriber_;
   ros::Subscriber hand_gestures_subscriber_;
+  ros::Subscriber body_gestures_subscriber_;
 
   //3d mouse
   ros::Subscriber space_navigator_subscriber_;

@@ -1,0 +1,14 @@
+<launch>
+  <arg name="camera" default="kinect_center/rgb"/> 
+  <arg name="width" default="1.352" />
+  <arg name="height" default="0.752" />    
+  <arg name="source" default="world" />
+  <arg name="target" default="kinect_center_rgb_optical_frame" />
+  <node name="four_corner" pkg="workspace_calibrator" type="four_corner" output="screen"> 
+    <param name="camera" value="$(arg camera)"/>  	
+  	<param name="width" value="$(arg width)"/>
+  	<param name="height" value="$(arg height)"/>
+  	<param name="source" value="$(arg source)" />    
+    <param name="target" value="$(arg target)" />
+  </node>  
+</launch>

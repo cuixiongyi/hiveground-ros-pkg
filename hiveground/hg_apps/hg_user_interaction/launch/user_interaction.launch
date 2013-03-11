@@ -1,0 +1,26 @@
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="kinect_server_tf" args="-0.4 0.7 0.9 0.575173 0.575173 0.411311 0.411313 world kinect_server 100" />
+
+  <arg name="cloud"/>  
+  <node pkg="hg_user_interaction" type="hg_user_interaction" name="user_interaction" output="screen">
+  	<param name="skeletons_topic" value="/kinect_server/skeletons" />
+  	<param name="hands_topic" value="/object_tracking/filtered_hands" />  	
+    <rosparam>           
+      push_pull_gesture_draw_history: false
+      push_pull_gesture_draw_result: true
+      push_pull_gesture_r1: 0.1
+      push_pull_gesture_r2: 0.2
+      push_pull_gesture_r3: 0.25
+      push_pull_gesture_timeout: 0.1
+      push_pull_gesture_activating_time: 1.0           
+      body_movement_gesture_draw_history: false
+      body_movement_gesture_draw_result: true
+      body_movement_gesture_r1: 0.03
+      body_movement_gesture_r2: 0.06
+      body_movement_gesture_r3: 0.08
+      body_movement_gesture_timeout: 0.1
+      body_movement_gesture_activating_time: 1.0      
+   </rosparam> 	  	    
+  </node>
+</launch>  
+ 

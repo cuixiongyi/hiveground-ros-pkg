@@ -54,7 +54,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(srcs
       src/object_tracking.cpp
-      src/hand_detector.cpp)
+      src/kalman_filter3d.cpp)
 
 rosbuild_add_executable(object_tracking ${srcs} ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 target_link_libraries(object_tracking ${QT_LIBRARIES})
