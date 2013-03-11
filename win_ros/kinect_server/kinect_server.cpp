@@ -601,13 +601,13 @@ bool kinect_server::nuiGotSkeletonAlert()
   }
 
   // smooth out the skeleton data
-  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_MORE);
+  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_DEFAULT);
   if ( FAILED(hr) )
   {
     return false;
   }
 
-  // we found a skeleton, re-start the skeletal timer
+  // we found a skeleton, re-start the skeletal timer  
   screen_blanked_ = false;
   last_skeleton_found_time_ = timeGetTime( );
 
@@ -634,7 +634,7 @@ bool kinect_server::nuiGotSkeletonAlert()
     skelentons_message.skeletons[i].skeleton_tracking_state = SkeletonFrame.SkeletonData[i].eTrackingState;
     skelentons_message.skeletons[i].quality_flag = SkeletonFrame.SkeletonData[i].dwQualityFlags;
 
-    skelentons_message.skeletons[i].position.translation.x = SkeletonFrame.SkeletonData[i].Position.x;
+    skelentons_message.skeletons[i].position.translation.x = SkeletonFrame.SkeletonData[i].Position.x; 
     skelentons_message.skeletons[i].position.translation.y = SkeletonFrame.SkeletonData[i].Position.y;
     skelentons_message.skeletons[i].position.translation.z = SkeletonFrame.SkeletonData[i].Position.z;        
     skelentons_message.skeletons[i].position.rotation.x = 0;
