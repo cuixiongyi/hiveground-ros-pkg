@@ -78,7 +78,7 @@ public:
   VE_GETSETG(double, activating_time_, ActivatingTime);
 
 protected:
-  int getStateAuto(int hand, const tf::Vector3& vec_to_hand);
+  int getState(int hand, const tf::Vector3& vec_to_hand);
 
 
 protected:
