@@ -8,9 +8,12 @@
 syntax: glob
 *~
 *.bak
+*moc_*
 .cproject
 .project
 .pydevproject
+*.o
+*.moc
 *.so
 *.orig
 *.cmake

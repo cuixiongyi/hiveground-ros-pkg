@@ -45,7 +45,7 @@
 #include <spline_smoother/cubic_trajectory.h>
 
 using namespace visualization_msgs;
-using namespace hg_hand_interaction;
+using namespace hg_user_interaction;
 
 
 InspectorArm::InspectorArm(QWidget *parent, Qt::WFlags flags)
@@ -92,8 +92,8 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
 
 
 
-  hg_cartesian_trajectory::KinematicModelGroupConfigMap::const_iterator it;
-  const hg_cartesian_trajectory::KinematicModelGroupConfigMap &group_config_map =
+  KinematicModelGroupConfigMap::const_iterator it;
+  const KinematicModelGroupConfigMap &group_config_map =
       collision_models_interface_->getKinematicModel()->getJointModelGroupConfigMap();
   for (it = group_config_map.begin(); it != group_config_map.end(); it++)
   {
@@ -145,7 +145,8 @@ bool InspectorArm::initializeServiceClient()
   joint_state_subscriber_ = nh_.subscribe("joint_states", 1, &InspectorArm::jointStateCallback, this);
   hands_subscriber_ = nh_.subscribe("hands_message", 1, &InspectorArm::handsCallBack, this);
   hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
-  space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);;
+  body_gestures_subscriber_ = nh_.subscribe("body_gestures_message", 1, &InspectorArm::bodyGestureCallBack, this);
+  space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
 
@@ -172,6 +173,7 @@ void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState
   //ROS_INFO("trajectory done");
   arm_is_active_ = false;
 }
+
 
 void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message)
 {
@@ -201,10 +203,11 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
   }
 }
 
-void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesConstPtr message)
+
+void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstPtr message)
 {
-  //ROS_INFO(__FUNCTION__);
-  if(ui.checkBoxEnableGestureControl->isChecked())
+  //ROS_INFO_THROTTLE(1, __FUNCTION__);
+  if(ui.checkBoxEnableHandGesture->isChecked())
   {
     if(ui.checkBoxEnablePushPullGesture->isChecked())
     {
@@ -212,41 +215,50 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
       {
         for(size_t i = 0; i < message->gestures.size(); i++)
         {
-          if((message->gestures[i].type >= HandGesture::PUSH_PULL_XP) &&
-             (message->gestures[i].type <= HandGesture::PUSH_PULL_RZN))
+          if(message->gestures[i].type == Gesture::GESTURE_HAND_PUSH_PULL)
           {
             tf::Transform pose;
             tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
             double rx, ry, rz;
             rx = ry = rz = 0;
-            double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value();
-            double rotation_scale = ui.doubleSpinBoxGestureRotationScale->value();
-            switch(message->gestures[i].type)
+
+            //message->gestures[i].hand_count
+            double hand_distance = 0.0;
+            for(int j = 0; j < message->gestures[i].hand_count; j++)
             {
-              case HandGesture::PUSH_PULL_XP:
+              hand_distance += message->gestures[i].vars[j];
+            }
+            hand_distance /= message->gestures[i].hand_count;
+
+
+            double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * hand_distance;
+            double rotation_scale = ui.doubleSpinBoxGestureRotationScale->value() * hand_distance;
+            switch(message->gestures[i].direction)
+            {
+              case Gesture::DIR_X_POS:
                 pose.getOrigin().m_floats[0] += translation_scale;
                 break;
-              case HandGesture::PUSH_PULL_XN:
+              case Gesture::DIR_X_NEG:
                 pose.getOrigin().m_floats[0] -= translation_scale;
                 break;
-              case HandGesture::PUSH_PULL_YP:
+              case Gesture::DIR_Y_POS:
                 pose.getOrigin().m_floats[1] += translation_scale;
                 break;
-              case HandGesture::PUSH_PULL_YN:
+              case Gesture::DIR_Y_NEG:
                 pose.getOrigin().m_floats[1] -= translation_scale;
                 break;
-              case HandGesture::PUSH_PULL_ZP:
+              case Gesture::DIR_Z_POS:
                 pose.getOrigin().m_floats[2] += translation_scale;
                 break;
-              case HandGesture::PUSH_PULL_ZN:
+              case Gesture::DIR_Z_NEG:
                 pose.getOrigin().m_floats[2] -= translation_scale;
                 break;
-              case HandGesture::PUSH_PULL_RXP: rx = rotation_scale; break;
-              case HandGesture::PUSH_PULL_RXN: rx = -rotation_scale; break;
-              case HandGesture::PUSH_PULL_RYP: ry = rotation_scale; break;
-              case HandGesture::PUSH_PULL_RYN: ry = -rotation_scale; break;
-              case HandGesture::PUSH_PULL_RZP: rz = rotation_scale; break;
-              case HandGesture::PUSH_PULL_RZN: rz = -rotation_scale; break;
+              case Gesture::ROT_X_POS: rx = rotation_scale; break;
+              case Gesture::ROT_X_NEG: rx = -rotation_scale; break;
+              case Gesture::ROT_Y_POS: ry = rotation_scale; break;
+              case Gesture::ROT_Y_NEG: ry = -rotation_scale; break;
+              case Gesture::ROT_Z_POS: rz = rotation_scale; break;
+              case Gesture::ROT_Z_NEG: rz = -rotation_scale; break;
                 break;
               default: break;
             }
@@ -261,6 +273,68 @@ void InspectorArm::handGestureCallBack(const hg_hand_interaction::HandGesturesCo
     }
   }
 }
+
+void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message)
+{
+  //ROS_INFO_THROTTLE(1, __FUNCTION__);
+  if (ui.checkBoxEnableBodyGesture->isChecked())
+  {
+    if(markers_.find(selected_markers_.back()) != markers_.end())
+    {
+      for(size_t i = 0; i < message->gestures.size(); i++)
+      {
+        if(message->gestures[i].type == Gesture::GESTURE_BODY_MOVE)
+        {
+          tf::Transform pose;
+          tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
+          double rx, ry, rz;
+          rx = ry = rz = 0;
+
+          //message->gestures[i].hand_count
+          double hand_distance = message->gestures[i].vars[0] * 0.1;
+
+          double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * hand_distance;
+          double rotation_scale = ui.doubleSpinBoxGestureRotationScale->value() * hand_distance;
+          switch(message->gestures[i].direction)
+          {
+            case Gesture::DIR_X_POS:
+              pose.getOrigin().m_floats[0] += translation_scale;
+              break;
+            case Gesture::DIR_X_NEG:
+              pose.getOrigin().m_floats[0] -= translation_scale;
+              break;
+            case Gesture::DIR_Y_POS:
+              pose.getOrigin().m_floats[1] += translation_scale;
+              break;
+            case Gesture::DIR_Y_NEG:
+              pose.getOrigin().m_floats[1] -= translation_scale;
+              break;
+            case Gesture::DIR_Z_POS:
+              pose.getOrigin().m_floats[2] += translation_scale;
+              break;
+            case Gesture::DIR_Z_NEG:
+              pose.getOrigin().m_floats[2] -= translation_scale;
+              break;
+            case Gesture::ROT_X_POS: rx = rotation_scale; break;
+            case Gesture::ROT_X_NEG: rx = -rotation_scale; break;
+            case Gesture::ROT_Y_POS: ry = rotation_scale; break;
+            case Gesture::ROT_Y_NEG: ry = -rotation_scale; break;
+            case Gesture::ROT_Z_POS: rz = rotation_scale; break;
+            case Gesture::ROT_Z_NEG: rz = -rotation_scale; break;
+              break;
+            default: break;
+          }
+
+          tf::Quaternion q;
+          q.setRPY(rx, ry, rz);
+          pose.setRotation(pose.getRotation() * q);
+          markers_[selected_markers_.back()]->setPose(pose, true);
+        }
+      }
+    }
+  }
+}
+
 
 void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message)
 {
