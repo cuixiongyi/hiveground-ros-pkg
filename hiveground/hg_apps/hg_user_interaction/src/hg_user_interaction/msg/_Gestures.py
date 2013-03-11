@@ -9,7 +9,7 @@ import hg_user_interaction.msg
 import std_msgs.msg
 
 class Gestures(genpy.Message):
-  _md5sum = "f60a2668c13069cbc1add1df14b4370a"
+  _md5sum = "24ca0655602b0a9814569dc0b56ad044"
   _type = "hg_user_interaction/Gestures"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -64,6 +64,12 @@ uint32 DIR_Y_POS = 3
 uint32 DIR_Y_NEG = 4
 uint32 DIR_Z_POS = 5
 uint32 DIR_Z_NEG = 6
+uint32 ROT_X_POS = 7
+uint32 ROT_X_NEG = 8
+uint32 ROT_Y_POS = 9
+uint32 ROT_Y_NEG = 10
+uint32 ROT_Z_POS = 11
+uint32 ROT_Z_NEG = 12
 
 
 uint32 type
@@ -77,7 +83,7 @@ float64[] vars
 geometry_msgs/Vector3[] vectors
 
 #Only used if the type specified has some use of them
-geometry_msgs/Transform transforms
+geometry_msgs/Transform[] transforms
 
 
 
@@ -167,13 +173,15 @@ float64 w
         for val2 in val1.vectors:
           _x = val2
           buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v1 = val1.transforms
-        _v2 = _v1.translation
-        _x = _v2
-        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v3 = _v1.rotation
-        _x = _v3
-        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
+        length = len(val1.transforms)
+        buff.write(_struct_I.pack(length))
+        for val2 in val1.transforms:
+          _v1 = val2.translation
+          _x = _v1
+          buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+          _v2 = val2.rotation
+          _x = _v2
+          buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -229,17 +237,23 @@ float64 w
           end += 24
           (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
           val1.vectors.append(val2)
-        _v4 = val1.transforms
-        _v5 = _v4.translation
-        _x = _v5
         start = end
-        end += 24
-        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v6 = _v4.rotation
-        _x = _v6
-        start = end
-        end += 32
-        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        end += 4
+        (length,) = _struct_I.unpack(str[start:end])
+        val1.transforms = []
+        for i in range(0, length):
+          val2 = geometry_msgs.msg.Transform()
+          _v3 = val2.translation
+          _x = _v3
+          start = end
+          end += 24
+          (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+          _v4 = val2.rotation
+          _x = _v4
+          start = end
+          end += 32
+          (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+          val1.transforms.append(val2)
         self.gestures.append(val1)
       return self
     except struct.error as e:
@@ -275,13 +289,15 @@ float64 w
         for val2 in val1.vectors:
           _x = val2
           buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v7 = val1.transforms
-        _v8 = _v7.translation
-        _x = _v8
-        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-        _v9 = _v7.rotation
-        _x = _v9
-        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
+        length = len(val1.transforms)
+        buff.write(_struct_I.pack(length))
+        for val2 in val1.transforms:
+          _v5 = val2.translation
+          _x = _v5
+          buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+          _v6 = val2.rotation
+          _x = _v6
+          buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -338,17 +354,23 @@ float64 w
           end += 24
           (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
           val1.vectors.append(val2)
-        _v10 = val1.transforms
-        _v11 = _v10.translation
-        _x = _v11
         start = end
-        end += 24
-        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
-        _v12 = _v10.rotation
-        _x = _v12
-        start = end
-        end += 32
-        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        end += 4
+        (length,) = _struct_I.unpack(str[start:end])
+        val1.transforms = []
+        for i in range(0, length):
+          val2 = geometry_msgs.msg.Transform()
+          _v7 = val2.translation
+          _x = _v7
+          start = end
+          end += 24
+          (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+          _v8 = val2.rotation
+          _x = _v8
+          start = end
+          end += 32
+          (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+          val1.transforms.append(val2)
         self.gestures.append(val1)
       return self
     except struct.error as e:
