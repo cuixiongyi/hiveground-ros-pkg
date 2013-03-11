@@ -137,14 +137,15 @@ public:
   tf::TransformListener tf_listener_;
   ros::Subscriber skeletons_sub_raw_;
   ros::Publisher skeletons_markers_publisher_;
+  ros::Publisher body_gestures_publisher_;
   int skeleton_marker_id_;
 
   std_msgs::ColorRGBA color_joint_;
   std_msgs::ColorRGBA color_link_;
 
   ros::Subscriber hands_sub_raw_;
-  ros::Publisher hands_markers_publisher_;
-  ros::Publisher hands_gesture_publisher_;
+  ros::Publisher hand_markers_publisher_;
+  ros::Publisher hand_gestures_publisher_;
 
 
 

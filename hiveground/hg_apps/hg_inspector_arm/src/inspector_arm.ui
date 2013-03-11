@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>763</width>
-    <height>595</height>
+    <width>756</width>
+    <height>614</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,7 +21,7 @@
        <attribute name="title">
         <string>Manual Control</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
          <widget class="QPushButton" name="pushButtonPlan">
           <property name="text">
@@ -236,11 +236,11 @@
         <item>
          <widget class="QGroupBox" name="groupBox">
           <property name="title">
-           <string>Gesture</string>
+           <string>Hand Gestures</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout">
            <item>
-            <widget class="QCheckBox" name="checkBoxEnableGestureControl">
+            <widget class="QCheckBox" name="checkBoxEnableHandGesture">
              <property name="text">
               <string>Enable</string>
              </property>
@@ -350,6 +350,22 @@
          </widget>
         </item>
         <item>
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>Body Gestures</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QCheckBox" name="checkBoxEnableBodyGesture">
+             <property name="text">
+              <string>Enable</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="checkBoxShowJointMarkers">
           <property name="text">
            <string>Show Joint Markers</string>
@@ -388,7 +404,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>763</width>
+     <width>756</width>
      <height>25</height>
     </rect>
    </property>
@@ -563,7 +579,7 @@
   <connection>
    <sender>checkBoxFollowHand</sender>
    <signal>toggled(bool)</signal>
-   <receiver>checkBoxEnableGestureControl</receiver>
+   <receiver>checkBoxEnableHandGesture</receiver>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -573,22 +589,6 @@
     <hint type="destinationlabel">
      <x>332</x>
      <y>234</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBox3DMouse</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>checkBox3DMouseRotation</receiver>
-   <slot>setChecked(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>307</x>
-     <y>314</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>325</x>
-     <y>344</y>
     </hint>
    </hints>
   </connection>
@@ -605,22 +605,6 @@
     <hint type="destinationlabel">
      <x>442</x>
      <y>344</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBoxEnableGestureControl</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>checkBoxEnablePushPullGesture</receiver>
-   <slot>setChecked(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>488</x>
-     <y>365</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>314</x>
-     <y>394</y>
     </hint>
    </hints>
   </connection>

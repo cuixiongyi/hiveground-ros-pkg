@@ -72,11 +72,33 @@ public:
     return RTTI;
   }
 
+  VE_GETSETG(double, r1_, R1);
+  VE_GETSETG(double, r2_, R2);
+  VE_GETSETG(double, r3_, R3);
+  VE_GETSETG(double, time_out_, TimeOut);
+  VE_GETSETG(double, activating_time_, ActivatingTime);
+
 protected:
+  int getState(const tf::Vector3& vec_to_body);
 
 
 
 protected:
+  double r1_, r2_, r3_;
+  double time_out_;
+  double activating_time_;
+
+  int current_state_;
+  int last_state_;
+  tf::Transform last_position_;
+  tf::Transform activated_position_;
+  tf::Vector3 center_position_;
+  ros::Time start_leaving_time_;
+  ros::Time start_activating_time_;
+  bool is_moving_;
+  tf::Vector3 three_axes_[3];
+
+
 
 
 private:

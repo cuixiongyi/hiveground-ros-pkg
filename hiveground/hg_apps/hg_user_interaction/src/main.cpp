@@ -66,10 +66,11 @@ bool UserInteraction::initialize()
 
   skeletons_sub_raw_ = nh_private_.subscribe(skeletons_topic_, 1, &UserInteraction::skeletonsCallback, this);
   skeletons_markers_publisher_ = nh_private_.advertise<MarkerArray>("skeletons_makers", 128);
+  body_gestures_publisher_ = nh_private_.advertise<Gestures>("body_gestures", 128);
 
   hands_sub_raw_ = nh_private_.subscribe(hands_topic_, 1, &UserInteraction::handsCallback, this);
-  hands_markers_publisher_ = nh_private_.advertise<MarkerArray>("hands_makers", 128);
-  hands_gesture_publisher_ = nh_private_.advertise<Gestures>("hand_gestures", 128);
+  hand_markers_publisher_ = nh_private_.advertise<MarkerArray>("hands_makers", 128);
+  hand_gestures_publisher_ = nh_private_.advertise<Gestures>("hand_gestures", 128);
 
   /*
   nh_private_.getParam("skeletons_topic", skeletons_topic_);
@@ -218,6 +219,7 @@ void UserInteraction::skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPt
 void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& skeletons)
 {
   MarkerArray markers;
+  skeleton_marker_id_ = 0;
 
   tf::StampedTransform tf;
   tf_listener_.lookupTransform("base_link", "kinect_server", ros::Time(0), tf);
@@ -235,7 +237,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
   {
     if (transformed_skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
     {
-      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
+      //getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
 
       for (int j = 0; j < Skeleton::SKELETON_POSITION_COUNT; j++)
       {
@@ -261,7 +263,17 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
       item->drawHistory(markers, transformed_skeletons->header.frame_id);
       item->drawResult(markers, transformed_skeletons->header.frame_id);
       if (detected_gesture != Gesture::GESTURE_NOT_DETECTED)
+      {
         gestures.gestures.push_back(gesture);
+      }
+    }
+  }
+
+  if (body_gestures_publisher_.getNumSubscribers() != 0)
+  {
+    if (!gestures.gestures.empty())
+    {
+      body_gestures_publisher_.publish(gestures);
     }
   }
 
@@ -298,19 +310,19 @@ void UserInteraction::handsCallback(const hg_object_tracking::HandsConstPtr& han
 
   gestures.header.stamp = ros::Time::now();
 
-  if(hands_gesture_publisher_.getNumSubscribers() != 0)
+  if(hand_gestures_publisher_.getNumSubscribers() != 0)
   {
     if(!gestures.gestures.empty())
     {
-      hands_gesture_publisher_.publish(gestures);
+      hand_gestures_publisher_.publish(gestures);
     }
   }
 
-  if(hands_markers_publisher_.getNumSubscribers() != 0)
+  if(hand_markers_publisher_.getNumSubscribers() != 0)
   {
     if(!markers.markers.empty())
     {
-      hands_markers_publisher_.publish(markers);
+      hand_markers_publisher_.publish(markers);
     }
   }
 
@@ -533,39 +545,78 @@ void UserInteraction::gestureDetectorItemClicked(QObject* item)
 
 
 
-  if(current_item_->rtti() == GestureDetectorItem::Rtti_HandPushPull)
+  switch(current_item_->rtti())
   {
-    GestureDetectorHandPushPull* i = dynamic_cast<GestureDetectorHandPushPull*>(current_item_);
+    case GestureDetectorItem::Rtti_HandPushPull:
+    {
+      GestureDetectorHandPushPull* i = dynamic_cast<GestureDetectorHandPushPull*>(current_item_);
+      property = double_manager_->addProperty("R1");
+      double_manager_->setRange(property, 0.01, 1.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getR1());
+      addProperty(property, QLatin1String("r1"));
 
-    property = double_manager_->addProperty("R1");
-    double_manager_->setRange(property, 0.01, 1.0);
-    double_manager_->setSingleStep(property, 0.01);
-    double_manager_->setValue(property, i->getR1());
-    addProperty(property, QLatin1String("r1"));
+      property = double_manager_->addProperty("R2");
+      double_manager_->setRange(property, 0.01, 1.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getR2());
+      addProperty(property, QLatin1String("r2"));
 
-    property = double_manager_->addProperty("R2");
-    double_manager_->setRange(property, 0.01, 1.0);
-    double_manager_->setSingleStep(property, 0.01);
-    double_manager_->setValue(property, i->getR2());
-    addProperty(property, QLatin1String("r2"));
+      property = double_manager_->addProperty("R3");
+      double_manager_->setRange(property, 0.01, 1.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getR3());
+      addProperty(property, QLatin1String("r3"));
 
-    property = double_manager_->addProperty("R3");
-    double_manager_->setRange(property, 0.01, 1.0);
-    double_manager_->setSingleStep(property, 0.01);
-    double_manager_->setValue(property, i->getR3());
-    addProperty(property, QLatin1String("r3"));
+      property = double_manager_->addProperty("Time out");
+      double_manager_->setRange(property, 0.01, 5.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getTimeOut());
+      addProperty(property, QLatin1String("time_out"));
 
-    property = double_manager_->addProperty("Time out");
-    double_manager_->setRange(property, 0.01, 5.0);
-    double_manager_->setSingleStep(property, 0.01);
-    double_manager_->setValue(property, i->getTimeOut());
-    addProperty(property, QLatin1String("time_out"));
+      property = double_manager_->addProperty("Activating time");
+      double_manager_->setRange(property, 0.01, 5.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getActivatingTime());
+      addProperty(property, QLatin1String("activating_time"));
+    }
+    break;
+    case GestureDetectorItem::Rtti_BodyMovement:
+    {
+      GestureBodyMovement* i = dynamic_cast<GestureBodyMovement*>(current_item_);
+      property = double_manager_->addProperty("R1");
+      double_manager_->setRange(property, 0.01, 1.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getR1());
+      addProperty(property, QLatin1String("r1"));
 
-    property = double_manager_->addProperty("Activating time");
-    double_manager_->setRange(property, 0.01, 5.0);
-    double_manager_->setSingleStep(property, 0.01);
-    double_manager_->setValue(property, i->getActivatingTime());
-    addProperty(property, QLatin1String("activating_time"));
+      property = double_manager_->addProperty("R2");
+      double_manager_->setRange(property, 0.01, 1.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getR2());
+      addProperty(property, QLatin1String("r2"));
+
+      property = double_manager_->addProperty("R3");
+      double_manager_->setRange(property, 0.01, 1.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getR3());
+      addProperty(property, QLatin1String("r3"));
+
+      property = double_manager_->addProperty("Time out");
+      double_manager_->setRange(property, 0.01, 5.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getTimeOut());
+      addProperty(property, QLatin1String("time_out"));
+
+      property = double_manager_->addProperty("Activating time");
+      double_manager_->setRange(property, 0.01, 5.0);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getActivatingTime());
+      addProperty(property, QLatin1String("activating_time"));
+    }
+    break;
+    default:
+      break;
   }
 
 
@@ -598,6 +649,15 @@ void UserInteraction::valueChanged(QtProperty *property, double value)
   if(current_item_->rtti() == GestureDetectorItem::Rtti_HandPushPull)
   {
     GestureDetectorHandPushPull* i = dynamic_cast<GestureDetectorHandPushPull*>(current_item_);
+    if(id == QLatin1String("r1")) i->setR1(value);
+    else if(id == QLatin1String("r2")) i->setR2(value);
+    else if(id == QLatin1String("r3")) i->setR3(value);
+    else if(id == QLatin1String("time_out")) i->setTimeOut(value);
+    else if(id == QLatin1String("activating_time")) i->setActivatingTime(value);
+  }
+  if(current_item_->rtti() == GestureDetectorItem::Rtti_BodyMovement)
+  {
+    GestureBodyMovement* i = dynamic_cast<GestureBodyMovement*>(current_item_);
     if(id == QLatin1String("r1")) i->setR1(value);
     else if(id == QLatin1String("r2")) i->setR2(value);
     else if(id == QLatin1String("r3")) i->setR3(value);

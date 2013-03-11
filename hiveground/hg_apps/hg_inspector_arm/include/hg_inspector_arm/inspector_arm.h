@@ -134,6 +134,7 @@ protected:
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
   void handsCallBack(const hg_object_tracking::HandsConstPtr message);
   void handGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
+  void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
   void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
 
 
@@ -257,6 +258,7 @@ private:
   //gesture
   ros::Subscriber hands_subscriber_;
   ros::Subscriber hand_gestures_subscriber_;
+  ros::Subscriber body_gestures_subscriber_;
 
   //3d mouse
   ros::Subscriber space_navigator_subscriber_;

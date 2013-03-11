@@ -59,6 +59,7 @@ GestureDetectorHandPushPull::~GestureDetectorHandPushPull()
 
 bool GestureDetectorHandPushPull::initialize()
 {
+  num_hands_ = 0;
   current_state_[0] = current_state_[1] = IDEL;
   three_axes_[0] = tf::Vector3(1, 0, 0); //X
   three_axes_[1] = tf::Vector3(0, 1, 0); //Y
@@ -256,16 +257,18 @@ int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& ge
       vec_to_hand = last_hand_positions_[0].getOrigin() - center_positions_[left_hand_ ? 0 : 1];
     else
       vec_to_hand = last_hand_positions_[0].getOrigin() - activated_hand_positions_[0].getOrigin();
-    detected_gesture = getStateAuto(0, vec_to_hand);
+    detected_gesture = getState(0, vec_to_hand);
 
-    gesture.direction = detected_gesture;
-    gesture.hand_count = 1;
-    gesture.type = Gesture::GESTURE_HAND_PUSH_PULL;
-    gesture.vectors.resize(1);
-    gesture.vars.resize(1);
-    tf::vector3TFToMsg(vec_to_hand, gesture.vectors[0]);
-    gesture.vars[0] = vec_to_hand.length() / getR3();
-    //return Gesture::GESTURE_HAND_PUSH_PULL;
+    if(detected_gesture != Gesture::GESTURE_NOT_DETECTED)
+    {
+      gesture.direction = detected_gesture;
+      gesture.hand_count = 1;
+      gesture.type = Gesture::GESTURE_HAND_PUSH_PULL;
+      gesture.vectors.resize(1);
+      gesture.vars.resize(1);
+      tf::vector3TFToMsg(vec_to_hand, gesture.vectors[0]);
+      gesture.vars[0] = vec_to_hand.length() / getR3();
+    }
   }
   else
   {
@@ -281,8 +284,8 @@ int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& ge
     else
       vec_to_right = last_hand_positions_[1].getOrigin() - activated_hand_positions_[1].getOrigin();
 
-    int detected_gesture_l = getStateAuto(0, vec_to_left);
-    int detected_gesture_r = getStateAuto(1, vec_to_right);
+    int detected_gesture_l = getState(0, vec_to_left);
+    int detected_gesture_r = getState(1, vec_to_right);
 
 
     switch (detected_gesture_l)
@@ -346,7 +349,7 @@ int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& ge
   return detected_gesture;
 }
 
-int GestureDetectorHandPushPull::getStateAuto(int hand, const tf::Vector3& vec_to_hand)
+int GestureDetectorHandPushPull::getState(int hand, const tf::Vector3& vec_to_hand)
 {
   int detected_gesture = Gesture::GESTURE_NOT_DETECTED;
   double ds = vec_to_hand.length();
