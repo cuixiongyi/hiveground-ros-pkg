@@ -58,8 +58,8 @@ struct Gesture_ {
   typedef std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  _vectors_type;
   std::vector< ::geometry_msgs::Vector3_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Vector3_<ContainerAllocator> >::other >  vectors;
 
-  typedef  ::geometry_msgs::Transform_<ContainerAllocator>  _transforms_type;
-   ::geometry_msgs::Transform_<ContainerAllocator>  transforms;
+  typedef std::vector< ::geometry_msgs::Transform_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Transform_<ContainerAllocator> >::other >  _transforms_type;
+  std::vector< ::geometry_msgs::Transform_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::geometry_msgs::Transform_<ContainerAllocator> >::other >  transforms;
 
   enum { GESTURE_NOT_DETECTED = 0 };
   enum { GESTURE_HAND_SWEEP = 1 };
@@ -75,6 +75,12 @@ struct Gesture_ {
   enum { DIR_Y_NEG = 4 };
   enum { DIR_Z_POS = 5 };
   enum { DIR_Z_NEG = 6 };
+  enum { ROT_X_POS = 7 };
+  enum { ROT_X_NEG = 8 };
+  enum { ROT_Y_POS = 9 };
+  enum { ROT_Y_NEG = 10 };
+  enum { ROT_Z_POS = 11 };
+  enum { ROT_Z_NEG = 12 };
 
   typedef boost::shared_ptr< ::hg_user_interaction::Gesture_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::hg_user_interaction::Gesture_<ContainerAllocator>  const> ConstPtr;
@@ -104,12 +110,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_user_interaction::Gesture_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "355d3ec6c605417c6e0a093dc3cfb48c";
+    return "5fc487b8bf6f2cf9190678cc3e1d5720";
   }
 
   static const char* value(const  ::hg_user_interaction::Gesture_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0x355d3ec6c605417cULL;
-  static const uint64_t static_value2 = 0x6e0a093dc3cfb48cULL;
+  static const uint64_t static_value1 = 0x5fc487b8bf6f2cf9ULL;
+  static const uint64_t static_value2 = 0x190678cc3e1d5720ULL;
 };
 
 template<class ContainerAllocator>
@@ -149,6 +155,12 @@ uint32 DIR_Y_POS = 3\n\
 uint32 DIR_Y_NEG = 4\n\
 uint32 DIR_Z_POS = 5\n\
 uint32 DIR_Z_NEG = 6\n\
+uint32 ROT_X_POS = 7\n\
+uint32 ROT_X_NEG = 8\n\
+uint32 ROT_Y_POS = 9\n\
+uint32 ROT_Y_NEG = 10\n\
+uint32 ROT_Z_POS = 11\n\
+uint32 ROT_Z_NEG = 12\n\
 \n\
 \n\
 uint32 type\n\
@@ -162,7 +174,7 @@ float64[] vars\n\
 geometry_msgs/Vector3[] vectors\n\
 \n\
 #Only used if the type specified has some use of them\n\
-geometry_msgs/Transform transforms\n\
+geometry_msgs/Transform[] transforms\n\
 \n\
 \n\
 \n\
@@ -250,9 +262,14 @@ struct Printer< ::hg_user_interaction::Gesture_<ContainerAllocator> >
       s << indent;
       Printer< ::geometry_msgs::Vector3_<ContainerAllocator> >::stream(s, indent + "    ", v.vectors[i]);
     }
-    s << indent << "transforms: ";
-s << std::endl;
-    Printer< ::geometry_msgs::Transform_<ContainerAllocator> >::stream(s, indent + "  ", v.transforms);
+    s << indent << "transforms[]" << std::endl;
+    for (size_t i = 0; i < v.transforms.size(); ++i)
+    {
+      s << indent << "  transforms[" << i << "]: ";
+      s << std::endl;
+      s << indent;
+      Printer< ::geometry_msgs::Transform_<ContainerAllocator> >::stream(s, indent + "    ", v.transforms[i]);
+    }
   }
 };
 

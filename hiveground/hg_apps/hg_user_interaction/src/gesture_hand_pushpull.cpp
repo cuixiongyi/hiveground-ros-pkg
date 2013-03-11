@@ -124,7 +124,6 @@ void GestureDetectorHandPushPull::addHandsMessage(const hg_object_tracking::Hand
     tf::transformMsgToTF(hands->hands[0].hand_centroid, last_hand_positions_[0]);
     num_hands_ = 1;
   }
-  ROS_INFO_THROTTLE(1.0, "%s %d", __FUNCTION__, num_hands_);
 }
 
 void GestureDetectorHandPushPull::drawHistory(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id)
@@ -170,7 +169,6 @@ void GestureDetectorHandPushPull::drawResult(visualization_msgs::MarkerArray& ma
     marker.color.a = 0.5;
     marker.id++;
     marker_array.markers.push_back(marker);
-    ROS_INFO_THROTTLE(1.0, __FUNCTION__);
   }
 
   //R2
@@ -246,8 +244,6 @@ int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& ge
     return Gesture::GESTURE_NOT_DETECTED;
   }
 
-  ROS_INFO_THROTTLE(1.0, __FUNCTION__);
-
   center_positions_[0] = last_hand_positions_[0].getOrigin();
   if (num_hands_ > 1)
     center_positions_[1] = last_hand_positions_[1].getOrigin();
@@ -261,6 +257,15 @@ int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& ge
     else
       vec_to_hand = last_hand_positions_[0].getOrigin() - activated_hand_positions_[0].getOrigin();
     detected_gesture = getStateAuto(0, vec_to_hand);
+
+    gesture.direction = detected_gesture;
+    gesture.hand_count = 1;
+    gesture.type = Gesture::GESTURE_HAND_PUSH_PULL;
+    gesture.vectors.resize(1);
+    gesture.vars.resize(1);
+    tf::vector3TFToMsg(vec_to_hand, gesture.vectors[0]);
+    gesture.vars[0] = vec_to_hand.length() / getR3();
+    //return Gesture::GESTURE_HAND_PUSH_PULL;
   }
   else
   {
@@ -279,49 +284,62 @@ int GestureDetectorHandPushPull::lookForGesture(hg_user_interaction::Gesture& ge
     int detected_gesture_l = getStateAuto(0, vec_to_left);
     int detected_gesture_r = getStateAuto(1, vec_to_right);
 
-    /*
+
     switch (detected_gesture_l)
     {
-      case HandGesture::PUSH_PULL_ZP:
-        if (detected_gesture_r == HandGesture::PUSH_PULL_ZN)
+      case Gesture::DIR_Z_POS:
+        if (detected_gesture_r == Gesture::DIR_Z_NEG)
         {
-          ROS_INFO("Rotate X-");
-          detected_gesture = HandGesture::PUSH_PULL_RXN;
+          ROS_INFO_THROTTLE(1.0, "Rotate X-");
+          detected_gesture = Gesture::ROT_X_NEG;
         }
         break;
-      case HandGesture::PUSH_PULL_ZN:
-        if (detected_gesture_r == HandGesture::PUSH_PULL_ZP)
+      case Gesture::DIR_Z_NEG:
+        if (detected_gesture_r == Gesture::DIR_Z_POS)
         {
-          ROS_INFO("Rotate X+");
-          detected_gesture = HandGesture::PUSH_PULL_RXP;
+          ROS_INFO_THROTTLE(1.0, "Rotate X+");
+          detected_gesture = Gesture::ROT_X_POS;
         }
         break;
-      case HandGesture::PUSH_PULL_XP:
-        if (detected_gesture_r == HandGesture::PUSH_PULL_XP)
+      case Gesture::DIR_X_POS:
+        if (detected_gesture_r == Gesture::DIR_X_POS)
         {
-          ROS_INFO("Rotate Y+");
-          detected_gesture = HandGesture::PUSH_PULL_RYP;
+          ROS_INFO_THROTTLE(1.0, "Rotate Y+");
+          detected_gesture = Gesture::ROT_Y_POS;
         }
-        else if (detected_gesture_r == HandGesture::PUSH_PULL_XN)
+        else if (detected_gesture_r == Gesture::DIR_X_NEG)
         {
-          ROS_INFO("Rotate Z+");
-          detected_gesture = HandGesture::PUSH_PULL_RZP;
+          ROS_INFO_THROTTLE(1.0, "Rotate Z+");
+          detected_gesture = Gesture::ROT_Z_POS;
         }
         break;
-      case HandGesture::PUSH_PULL_XN:
-        if (detected_gesture_r == HandGesture::PUSH_PULL_XP)
+      case Gesture::DIR_X_NEG:
+        if (detected_gesture_r == Gesture::DIR_X_POS)
         {
-          ROS_INFO("Rotate Z-");
-          detected_gesture = HandGesture::PUSH_PULL_RZN;
+          ROS_INFO_THROTTLE(1.0, "Rotate Z-");
+          detected_gesture = Gesture::ROT_Z_NEG;
         }
-        else if (detected_gesture_r == HandGesture::PUSH_PULL_XN)
+        else if (detected_gesture_r == Gesture::DIR_X_NEG)
         {
-          ROS_INFO("Rotate Y-");
-          detected_gesture = HandGesture::PUSH_PULL_RYN;
+          ROS_INFO_THROTTLE(1.0, "Rotate Y-");
+          detected_gesture = Gesture::ROT_Y_NEG;
         }
         break;
     }
-    */
+
+    if(detected_gesture != Gesture::GESTURE_NOT_DETECTED)
+    {
+      gesture.direction = detected_gesture;
+      gesture.hand_count = 2;
+      gesture.type = Gesture::GESTURE_HAND_PUSH_PULL;
+      gesture.vectors.resize(2);
+      gesture.vars.resize(2);
+      tf::vector3TFToMsg(vec_to_left, gesture.vectors[0]);
+      tf::vector3TFToMsg(vec_to_right, gesture.vectors[1]);
+      gesture.vars[0] = vec_to_left.length() / getR3();
+      gesture.vars[1] = vec_to_right.length() / getR3();
+      //return Gesture::GESTURE_HAND_PUSH_PULL;
+    }
   }
 
 
@@ -409,37 +427,37 @@ int GestureDetectorHandPushPull::getStateAuto(int hand, const tf::Vector3& vec_t
             case 0:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO("[%d] X+", hand);
-                //detected_gesture = HandGesture::PUSH_PULL_XP;
+                ROS_INFO_THROTTLE(1.0, "[%d] X+", hand);
+                detected_gesture = Gesture::DIR_X_POS;
               }
               else
               {
-                ROS_INFO("[%d] X-", hand);
-                //detected_gesture = HandGesture::PUSH_PULL_XN;
+                ROS_INFO_THROTTLE(1.0, "[%d] X-", hand);
+                detected_gesture = Gesture::DIR_X_NEG;
               }
               break;
             case 1:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO("[%d] Y+", hand);
-                //detected_gesture = HandGesture::PUSH_PULL_YP;
+                ROS_INFO_THROTTLE(1.0, "[%d] Y+", hand);
+                detected_gesture = Gesture::DIR_Y_POS;
               }
               else
               {
-                ROS_INFO("[%d] Y-", hand);
-                //detected_gesture = HandGesture::PUSH_PULL_YN;
+                ROS_INFO_THROTTLE(1.0, "[%d] Y-", hand);
+                detected_gesture = Gesture::DIR_Y_NEG;
               }
               break;
             case 2:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO("[%d] Z+", hand);
-                //detected_gesture = HandGesture::PUSH_PULL_ZP;
+                ROS_INFO_THROTTLE(1.0, "[%d] Z+", hand);
+                detected_gesture = Gesture::DIR_Z_POS;
               }
               else
               {
-                ROS_INFO("[%d] Z-", hand);
-                //detected_gesture = HandGesture::PUSH_PULL_ZN;
+                ROS_INFO_THROTTLE(1.0, "[%d] Z-", hand);
+                detected_gesture = Gesture::DIR_Z_NEG;
               }
               break;
             default:
@@ -454,7 +472,7 @@ int GestureDetectorHandPushPull::getStateAuto(int hand, const tf::Vector3& vec_t
       }
       break;
     case LEAVING:
-      ROS_INFO("%d LEAVING", hand);
+      //ROS_INFO("%d LEAVING", hand);
       if (ds > getR3())
       {
         current_state_[hand] = IDEL;

@@ -21,6 +21,12 @@ uint32 DIR_Y_POS = 3
 uint32 DIR_Y_NEG = 4
 uint32 DIR_Z_POS = 5
 uint32 DIR_Z_NEG = 6
+uint32 ROT_X_POS = 7
+uint32 ROT_X_NEG = 8
+uint32 ROT_Y_POS = 9
+uint32 ROT_Y_NEG = 10
+uint32 ROT_Z_POS = 11
+uint32 ROT_Z_NEG = 12
 
 
 uint32 type
@@ -34,6 +40,6 @@ float64[] vars
 geometry_msgs/Vector3[] vectors
 
 #Only used if the type specified has some use of them
-geometry_msgs/Transform transforms
+geometry_msgs/Transform[] transforms
 
 

@@ -35,8 +35,8 @@
    (transforms
     :reader transforms
     :initarg :transforms
-    :type geometry_msgs-msg:Transform
-    :initform (cl:make-instance 'geometry_msgs-msg:Transform)))
+    :type (cl:vector geometry_msgs-msg:Transform)
+   :initform (cl:make-array 0 :element-type 'geometry_msgs-msg:Transform :initial-element (cl:make-instance 'geometry_msgs-msg:Transform))))
 )
 
 (cl:defclass Gesture (<Gesture>)
@@ -91,7 +91,13 @@
     (:DIR_Y_POS . 3)
     (:DIR_Y_NEG . 4)
     (:DIR_Z_POS . 5)
-    (:DIR_Z_NEG . 6))
+    (:DIR_Z_NEG . 6)
+    (:ROT_X_POS . 7)
+    (:ROT_X_NEG . 8)
+    (:ROT_Y_POS . 9)
+    (:ROT_Y_NEG . 10)
+    (:ROT_Z_POS . 11)
+    (:ROT_Z_NEG . 12))
 )
 (cl:defmethod roslisp-msg-protocol:symbol-codes ((msg-type (cl:eql 'Gesture)))
     "Constants for message type 'Gesture"
@@ -108,7 +114,13 @@
     (:DIR_Y_POS . 3)
     (:DIR_Y_NEG . 4)
     (:DIR_Z_POS . 5)
-    (:DIR_Z_NEG . 6))
+    (:DIR_Z_NEG . 6)
+    (:ROT_X_POS . 7)
+    (:ROT_X_NEG . 8)
+    (:ROT_Y_POS . 9)
+    (:ROT_Y_NEG . 10)
+    (:ROT_Z_POS . 11)
+    (:ROT_Z_NEG . 12))
 )
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <Gesture>) ostream)
   "Serializes a message object of type '<Gesture>"
@@ -146,7 +158,13 @@
     (cl:write-byte (cl:ldb (cl:byte 8 24) __ros_arr_len) ostream))
   (cl:map cl:nil #'(cl:lambda (ele) (roslisp-msg-protocol:serialize ele ostream))
    (cl:slot-value msg 'vectors))
-  (roslisp-msg-protocol:serialize (cl:slot-value msg 'transforms) ostream)
+  (cl:let ((__ros_arr_len (cl:length (cl:slot-value msg 'transforms))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) __ros_arr_len) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) __ros_arr_len) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) __ros_arr_len) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) __ros_arr_len) ostream))
+  (cl:map cl:nil #'(cl:lambda (ele) (roslisp-msg-protocol:serialize ele ostream))
+   (cl:slot-value msg 'transforms))
 )
 (cl:defmethod roslisp-msg-protocol:deserialize ((msg <Gesture>) istream)
   "Deserializes a message object of type '<Gesture>"
@@ -190,7 +208,16 @@
     (cl:dotimes (i __ros_arr_len)
     (cl:setf (cl:aref vals i) (cl:make-instance 'geometry_msgs-msg:Vector3))
   (roslisp-msg-protocol:deserialize (cl:aref vals i) istream))))
-  (roslisp-msg-protocol:deserialize (cl:slot-value msg 'transforms) istream)
+  (cl:let ((__ros_arr_len 0))
+    (cl:setf (cl:ldb (cl:byte 8 0) __ros_arr_len) (cl:read-byte istream))
+    (cl:setf (cl:ldb (cl:byte 8 8) __ros_arr_len) (cl:read-byte istream))
+    (cl:setf (cl:ldb (cl:byte 8 16) __ros_arr_len) (cl:read-byte istream))
+    (cl:setf (cl:ldb (cl:byte 8 24) __ros_arr_len) (cl:read-byte istream))
+  (cl:setf (cl:slot-value msg 'transforms) (cl:make-array __ros_arr_len))
+  (cl:let ((vals (cl:slot-value msg 'transforms)))
+    (cl:dotimes (i __ros_arr_len)
+    (cl:setf (cl:aref vals i) (cl:make-instance 'geometry_msgs-msg:Transform))
+  (roslisp-msg-protocol:deserialize (cl:aref vals i) istream))))
   msg
 )
 (cl:defmethod roslisp-msg-protocol:ros-datatype ((msg (cl:eql '<Gesture>)))
@@ -201,16 +228,16 @@
   "hg_user_interaction/Gesture")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<Gesture>)))
   "Returns md5sum for a message object of type '<Gesture>"
-  "355d3ec6c605417c6e0a093dc3cfb48c")
+  "5fc487b8bf6f2cf9190678cc3e1d5720")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'Gesture)))
   "Returns md5sum for a message object of type 'Gesture"
-  "355d3ec6c605417c6e0a093dc3cfb48c")
+  "5fc487b8bf6f2cf9190678cc3e1d5720")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<Gesture>)))
   "Returns full string definition for message of type '<Gesture>"
-  (cl:format cl:nil "#gesture~%uint32 GESTURE_NOT_DETECTED = 0~%~%#hand~%uint32 GESTURE_HAND_SWEEP = 1~%uint32 GESTURE_HAND_PUSH_PULL = 2~%~%#body~%uint32 GESTURE_BODY_MOVE = 101~%uint32 GESTURE_BODY_TWIST = 102~%uint32 GESTURE_BODY_LEAN = 103~%~%#hand(s)~%uint32 HAND_ONE = 1  ~%uint32 HAND_TWO = 2~%~%#direction flags~%uint32 DIR_X_POS = 1~%uint32 DIR_X_NEG = 2~%uint32 DIR_Y_POS = 3~%uint32 DIR_Y_NEG = 4~%uint32 DIR_Z_POS = 5~%uint32 DIR_Z_NEG = 6~%~%~%uint32 type~%uint32 hand_count~%uint32 direction~%~%#Only used if the type specified has some use of them ~%float64[] vars~%~%#Only used if the type specified has some use of them~%geometry_msgs/Vector3[] vectors~%~%#Only used if the type specified has some use of them~%geometry_msgs/Transform transforms~%~%~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%~%"))
+  (cl:format cl:nil "#gesture~%uint32 GESTURE_NOT_DETECTED = 0~%~%#hand~%uint32 GESTURE_HAND_SWEEP = 1~%uint32 GESTURE_HAND_PUSH_PULL = 2~%~%#body~%uint32 GESTURE_BODY_MOVE = 101~%uint32 GESTURE_BODY_TWIST = 102~%uint32 GESTURE_BODY_LEAN = 103~%~%#hand(s)~%uint32 HAND_ONE = 1  ~%uint32 HAND_TWO = 2~%~%#direction flags~%uint32 DIR_X_POS = 1~%uint32 DIR_X_NEG = 2~%uint32 DIR_Y_POS = 3~%uint32 DIR_Y_NEG = 4~%uint32 DIR_Z_POS = 5~%uint32 DIR_Z_NEG = 6~%uint32 ROT_X_POS = 7~%uint32 ROT_X_NEG = 8~%uint32 ROT_Y_POS = 9~%uint32 ROT_Y_NEG = 10~%uint32 ROT_Z_POS = 11~%uint32 ROT_Z_NEG = 12~%~%~%uint32 type~%uint32 hand_count~%uint32 direction~%~%#Only used if the type specified has some use of them ~%float64[] vars~%~%#Only used if the type specified has some use of them~%geometry_msgs/Vector3[] vectors~%~%#Only used if the type specified has some use of them~%geometry_msgs/Transform[] transforms~%~%~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'Gesture)))
   "Returns full string definition for message of type 'Gesture"
-  (cl:format cl:nil "#gesture~%uint32 GESTURE_NOT_DETECTED = 0~%~%#hand~%uint32 GESTURE_HAND_SWEEP = 1~%uint32 GESTURE_HAND_PUSH_PULL = 2~%~%#body~%uint32 GESTURE_BODY_MOVE = 101~%uint32 GESTURE_BODY_TWIST = 102~%uint32 GESTURE_BODY_LEAN = 103~%~%#hand(s)~%uint32 HAND_ONE = 1  ~%uint32 HAND_TWO = 2~%~%#direction flags~%uint32 DIR_X_POS = 1~%uint32 DIR_X_NEG = 2~%uint32 DIR_Y_POS = 3~%uint32 DIR_Y_NEG = 4~%uint32 DIR_Z_POS = 5~%uint32 DIR_Z_NEG = 6~%~%~%uint32 type~%uint32 hand_count~%uint32 direction~%~%#Only used if the type specified has some use of them ~%float64[] vars~%~%#Only used if the type specified has some use of them~%geometry_msgs/Vector3[] vectors~%~%#Only used if the type specified has some use of them~%geometry_msgs/Transform transforms~%~%~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%~%"))
+  (cl:format cl:nil "#gesture~%uint32 GESTURE_NOT_DETECTED = 0~%~%#hand~%uint32 GESTURE_HAND_SWEEP = 1~%uint32 GESTURE_HAND_PUSH_PULL = 2~%~%#body~%uint32 GESTURE_BODY_MOVE = 101~%uint32 GESTURE_BODY_TWIST = 102~%uint32 GESTURE_BODY_LEAN = 103~%~%#hand(s)~%uint32 HAND_ONE = 1  ~%uint32 HAND_TWO = 2~%~%#direction flags~%uint32 DIR_X_POS = 1~%uint32 DIR_X_NEG = 2~%uint32 DIR_Y_POS = 3~%uint32 DIR_Y_NEG = 4~%uint32 DIR_Z_POS = 5~%uint32 DIR_Z_NEG = 6~%uint32 ROT_X_POS = 7~%uint32 ROT_X_NEG = 8~%uint32 ROT_Y_POS = 9~%uint32 ROT_Y_NEG = 10~%uint32 ROT_Z_POS = 11~%uint32 ROT_Z_NEG = 12~%~%~%uint32 type~%uint32 hand_count~%uint32 direction~%~%#Only used if the type specified has some use of them ~%float64[] vars~%~%#Only used if the type specified has some use of them~%geometry_msgs/Vector3[] vectors~%~%#Only used if the type specified has some use of them~%geometry_msgs/Transform[] transforms~%~%~%~%================================================================================~%MSG: geometry_msgs/Vector3~%# This represents a vector in free space. ~%~%float64 x~%float64 y~%float64 z~%================================================================================~%MSG: geometry_msgs/Transform~%# This represents the transform between two coordinate frames in free space.~%~%Vector3 translation~%Quaternion rotation~%~%================================================================================~%MSG: geometry_msgs/Quaternion~%# This represents an orientation in free space in quaternion form.~%~%float64 x~%float64 y~%float64 z~%float64 w~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <Gesture>))
   (cl:+ 0
      4
@@ -218,7 +245,7 @@
      4
      4 (cl:reduce #'cl:+ (cl:slot-value msg 'vars) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ 8)))
      4 (cl:reduce #'cl:+ (cl:slot-value msg 'vectors) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ (roslisp-msg-protocol:serialization-length ele))))
-     (roslisp-msg-protocol:serialization-length (cl:slot-value msg 'transforms))
+     4 (cl:reduce #'cl:+ (cl:slot-value msg 'transforms) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ (roslisp-msg-protocol:serialization-length ele))))
 ))
 (cl:defmethod roslisp-msg-protocol:ros-message-to-list ((msg <Gesture>))
   "Converts a ROS message object to a list"

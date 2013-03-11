@@ -34,12 +34,14 @@ ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 set(qt_srcs
     src/main.cpp
     src/gesture_detector.cpp
-    src/gesture_hand_pushpull.cpp)
+    src/gesture_hand_pushpull.cpp
+    src/gesture_body_movement.cpp)
       
 set(qt_hdrs
     include/${PROJECT_NAME}/main.h
     include/${PROJECT_NAME}/gesture_detector.h
-    include/${PROJECT_NAME}/gesture_hand_pushpull.h)
+    include/${PROJECT_NAME}/gesture_hand_pushpull.h
+    include/${PROJECT_NAME}/gesture_body_movement.h)
       
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})

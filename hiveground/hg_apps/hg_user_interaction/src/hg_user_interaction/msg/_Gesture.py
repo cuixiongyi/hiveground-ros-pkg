@@ -7,7 +7,7 @@ import struct
 import geometry_msgs.msg
 
 class Gesture(genpy.Message):
-  _md5sum = "355d3ec6c605417c6e0a093dc3cfb48c"
+  _md5sum = "5fc487b8bf6f2cf9190678cc3e1d5720"
   _type = "hg_user_interaction/Gesture"
   _has_header = False #flag to mark the presence of a Header object
   _full_text = """#gesture
@@ -33,6 +33,12 @@ uint32 DIR_Y_POS = 3
 uint32 DIR_Y_NEG = 4
 uint32 DIR_Z_POS = 5
 uint32 DIR_Z_NEG = 6
+uint32 ROT_X_POS = 7
+uint32 ROT_X_NEG = 8
+uint32 ROT_Y_POS = 9
+uint32 ROT_Y_NEG = 10
+uint32 ROT_Z_POS = 11
+uint32 ROT_Z_NEG = 12
 
 
 uint32 type
@@ -46,7 +52,7 @@ float64[] vars
 geometry_msgs/Vector3[] vectors
 
 #Only used if the type specified has some use of them
-geometry_msgs/Transform transforms
+geometry_msgs/Transform[] transforms
 
 
 
@@ -89,9 +95,15 @@ float64 w
   DIR_Y_NEG = 4
   DIR_Z_POS = 5
   DIR_Z_NEG = 6
+  ROT_X_POS = 7
+  ROT_X_NEG = 8
+  ROT_Y_POS = 9
+  ROT_Y_NEG = 10
+  ROT_Z_POS = 11
+  ROT_Z_NEG = 12
 
   __slots__ = ['type','hand_count','direction','vars','vectors','transforms']
-  _slot_types = ['uint32','uint32','uint32','float64[]','geometry_msgs/Vector3[]','geometry_msgs/Transform']
+  _slot_types = ['uint32','uint32','uint32','float64[]','geometry_msgs/Vector3[]','geometry_msgs/Transform[]']
 
   def __init__(self, *args, **kwds):
     """
@@ -121,14 +133,14 @@ float64 w
       if self.vectors is None:
         self.vectors = []
       if self.transforms is None:
-        self.transforms = geometry_msgs.msg.Transform()
+        self.transforms = []
     else:
       self.type = 0
       self.hand_count = 0
       self.direction = 0
       self.vars = []
       self.vectors = []
-      self.transforms = geometry_msgs.msg.Transform()
+      self.transforms = []
 
   def _get_types(self):
     """
@@ -153,8 +165,15 @@ float64 w
       for val1 in self.vectors:
         _x = val1
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-      _x = self
-      buff.write(_struct_7d.pack(_x.transforms.translation.x, _x.transforms.translation.y, _x.transforms.translation.z, _x.transforms.rotation.x, _x.transforms.rotation.y, _x.transforms.rotation.z, _x.transforms.rotation.w))
+      length = len(self.transforms)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.transforms:
+        _v1 = val1.translation
+        _x = _v1
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+        _v2 = val1.rotation
+        _x = _v2
+        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -167,7 +186,7 @@ float64 w
       if self.vectors is None:
         self.vectors = None
       if self.transforms is None:
-        self.transforms = geometry_msgs.msg.Transform()
+        self.transforms = None
       end = 0
       _x = self
       start = end
@@ -191,10 +210,23 @@ float64 w
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
         self.vectors.append(val1)
-      _x = self
       start = end
-      end += 56
-      (_x.transforms.translation.x, _x.transforms.translation.y, _x.transforms.translation.z, _x.transforms.rotation.x, _x.transforms.rotation.y, _x.transforms.rotation.z, _x.transforms.rotation.w,) = _struct_7d.unpack(str[start:end])
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.transforms = []
+      for i in range(0, length):
+        val1 = geometry_msgs.msg.Transform()
+        _v3 = val1.translation
+        _x = _v3
+        start = end
+        end += 24
+        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+        _v4 = val1.rotation
+        _x = _v4
+        start = end
+        end += 32
+        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        self.transforms.append(val1)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
@@ -218,8 +250,15 @@ float64 w
       for val1 in self.vectors:
         _x = val1
         buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
-      _x = self
-      buff.write(_struct_7d.pack(_x.transforms.translation.x, _x.transforms.translation.y, _x.transforms.translation.z, _x.transforms.rotation.x, _x.transforms.rotation.y, _x.transforms.rotation.z, _x.transforms.rotation.w))
+      length = len(self.transforms)
+      buff.write(_struct_I.pack(length))
+      for val1 in self.transforms:
+        _v5 = val1.translation
+        _x = _v5
+        buff.write(_struct_3d.pack(_x.x, _x.y, _x.z))
+        _v6 = val1.rotation
+        _x = _v6
+        buff.write(_struct_4d.pack(_x.x, _x.y, _x.z, _x.w))
     except struct.error as se: self._check_types(se)
     except TypeError as te: self._check_types(te)
 
@@ -233,7 +272,7 @@ float64 w
       if self.vectors is None:
         self.vectors = None
       if self.transforms is None:
-        self.transforms = geometry_msgs.msg.Transform()
+        self.transforms = None
       end = 0
       _x = self
       start = end
@@ -257,15 +296,28 @@ float64 w
         end += 24
         (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
         self.vectors.append(val1)
-      _x = self
       start = end
-      end += 56
-      (_x.transforms.translation.x, _x.transforms.translation.y, _x.transforms.translation.z, _x.transforms.rotation.x, _x.transforms.rotation.y, _x.transforms.rotation.z, _x.transforms.rotation.w,) = _struct_7d.unpack(str[start:end])
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      self.transforms = []
+      for i in range(0, length):
+        val1 = geometry_msgs.msg.Transform()
+        _v7 = val1.translation
+        _x = _v7
+        start = end
+        end += 24
+        (_x.x, _x.y, _x.z,) = _struct_3d.unpack(str[start:end])
+        _v8 = val1.rotation
+        _x = _v8
+        start = end
+        end += 32
+        (_x.x, _x.y, _x.z, _x.w,) = _struct_4d.unpack(str[start:end])
+        self.transforms.append(val1)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e) #most likely buffer underfill
 
 _struct_I = genpy.struct_I
 _struct_3I = struct.Struct("<3I")
-_struct_7d = struct.Struct("<7d")
+_struct_4d = struct.Struct("<4d")
 _struct_3d = struct.Struct("<3d")

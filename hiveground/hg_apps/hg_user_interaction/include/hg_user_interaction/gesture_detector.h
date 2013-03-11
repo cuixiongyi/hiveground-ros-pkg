@@ -72,7 +72,8 @@ public:
   enum RttiValue
   {
     Rtti_Item = 0,
-    Rtti_HandPushPull = 1
+    Rtti_HandPushPull,
+    Rtti_BodyMovement
   };
 
   virtual int rtti() const

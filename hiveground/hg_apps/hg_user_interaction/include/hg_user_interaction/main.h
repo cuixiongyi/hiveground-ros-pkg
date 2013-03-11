@@ -51,6 +51,8 @@
 
 #include <hg_user_interaction/gesture_detector.h>
 #include <hg_user_interaction/gesture_hand_pushpull.h>
+#include <hg_user_interaction/gesture_body_movement.h>
+
 #include <ve_view.h>
 #include <ve_scene.h>
 
@@ -103,6 +105,7 @@ public:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   bool quit_threads_;
+  QMutex mutex_callback_;
 
   QtTreePropertyBrowser *property_editor_;
   QtDoublePropertyManager *double_manager_;
@@ -141,6 +144,8 @@ public:
 
   ros::Subscriber hands_sub_raw_;
   ros::Publisher hands_markers_publisher_;
+  ros::Publisher hands_gesture_publisher_;
+
 
 
 

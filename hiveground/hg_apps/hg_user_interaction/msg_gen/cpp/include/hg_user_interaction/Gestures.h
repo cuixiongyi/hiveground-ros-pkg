@@ -70,12 +70,12 @@ template<class ContainerAllocator>
 struct MD5Sum< ::hg_user_interaction::Gestures_<ContainerAllocator> > {
   static const char* value() 
   {
-    return "f60a2668c13069cbc1add1df14b4370a";
+    return "24ca0655602b0a9814569dc0b56ad044";
   }
 
   static const char* value(const  ::hg_user_interaction::Gestures_<ContainerAllocator> &) { return value(); } 
-  static const uint64_t static_value1 = 0xf60a2668c13069cbULL;
-  static const uint64_t static_value2 = 0xc1add1df14b4370aULL;
+  static const uint64_t static_value1 = 0x24ca0655602b0a98ULL;
+  static const uint64_t static_value2 = 0x14569dc0b56ad044ULL;
 };
 
 template<class ContainerAllocator>
@@ -144,6 +144,12 @@ uint32 DIR_Y_POS = 3\n\
 uint32 DIR_Y_NEG = 4\n\
 uint32 DIR_Z_POS = 5\n\
 uint32 DIR_Z_NEG = 6\n\
+uint32 ROT_X_POS = 7\n\
+uint32 ROT_X_NEG = 8\n\
+uint32 ROT_Y_POS = 9\n\
+uint32 ROT_Y_NEG = 10\n\
+uint32 ROT_Z_POS = 11\n\
+uint32 ROT_Z_NEG = 12\n\
 \n\
 \n\
 uint32 type\n\
@@ -157,7 +163,7 @@ float64[] vars\n\
 geometry_msgs/Vector3[] vectors\n\
 \n\
 #Only used if the type specified has some use of them\n\
-geometry_msgs/Transform transforms\n\
+geometry_msgs/Transform[] transforms\n\
 \n\
 \n\
 \n\

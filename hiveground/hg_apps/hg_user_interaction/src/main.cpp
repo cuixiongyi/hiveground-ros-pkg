@@ -69,6 +69,7 @@ bool UserInteraction::initialize()
 
   hands_sub_raw_ = nh_private_.subscribe(hands_topic_, 1, &UserInteraction::handsCallback, this);
   hands_markers_publisher_ = nh_private_.advertise<MarkerArray>("hands_makers", 128);
+  hands_gesture_publisher_ = nh_private_.advertise<Gestures>("hand_gestures", 128);
 
   /*
   nh_private_.getParam("skeletons_topic", skeletons_topic_);
@@ -129,13 +130,23 @@ bool UserInteraction::initialize()
   connect(scene_, SIGNAL(signal_node_deleted(QObject*)),
           this, SLOT(gestureDetectorItemDeleted(QObject*)));
 
-  GestureDetectorItem* item = new GestureDetectorHandPushPull(nh_private_, QRect(50, 50, 50, 50));
+  GestureDetectorItem* item = 0;
+  item = new GestureDetectorHandPushPull(nh_private_, QRect(50, 50, 50, 50));
   item->setObjectName("HandPushPull");
   if(item->initialize())
   {
     scene_->addItem(item);
     gesture_detector_items_[item->objectName()] = item;
   }
+
+  item = new GestureBodyMovement(nh_private_, QRect(100, 50, 50, 50));
+  item->setObjectName("BodyMovement");
+  if(item->initialize())
+  {
+    scene_->addItem(item);
+    gesture_detector_items_[item->objectName()] = item;
+  }
+
 
 
 
@@ -177,8 +188,8 @@ void UserInteraction::skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPt
           - skeleton[Skeleton::SKELETON_POSITION_WRIST_RIGHT].getOrigin();
       tf::Vector3 hand_left_to_right = skeleton[Skeleton::SKELETON_POSITION_HAND_LEFT].getOrigin()
           - skeleton[Skeleton::SKELETON_POSITION_HAND_RIGHT].getOrigin();
-      ROS_INFO("skeleton_wrist_distance: %f", wrist_left_to_right.length());
-      ROS_INFO("skeleton_hand_distance: %f", hand_left_to_right.length());
+      //ROS_INFO("skeleton_wrist_distance: %f", wrist_left_to_right.length());
+      //ROS_INFO("skeleton_hand_distance: %f", hand_left_to_right.length());
     }
   }
 
@@ -202,84 +213,110 @@ void UserInteraction::skeletonsHandsCallback(const kinect_msgs::SkeletonsConstPt
 
 
   }
-
-
-
-
-
-
-
 }
 
 void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& skeletons)
 {
-  //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
-  //ROS_INFO_STREAM(skelentons->header);
-
-  publishTransforms (skeletons);
+  MarkerArray markers;
 
   tf::StampedTransform tf;
   tf_listener_.lookupTransform("base_link", "kinect_server", ros::Time(0), tf);
 
-  visualization_msgs::MarkerArray marker_array;
-  skeleton_marker_id_ = 0;
+  publishTransforms(skeletons);
 
+  //copy
+  kinect_msgs::SkeletonsPtr transformed_skeletons = kinect_msgs::SkeletonsPtr(new kinect_msgs::Skeletons);
+  *transformed_skeletons = *skeletons;
 
+  //transform coordinate
+  transformed_skeletons->header.frame_id = "base_link";
+  tf::Transform transformed_skeleton;
   for (int i = 0; i < Skeletons::SKELETON_COUNT; i++)
   {
-    if (skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
+    if (transformed_skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
     {
-      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, marker_array);
+      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
 
-      ROS_DEBUG_STREAM(
-          "[" << i << "]: " << skeletons->skeletons[i].tracking_id << " : "<< skeletons->skeletons[i].user_index);
-      tf::Transform skeleton[Skeleton::SKELETON_POSITION_COUNT];
       for (int j = 0; j < Skeleton::SKELETON_POSITION_COUNT; j++)
       {
-        tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[j], skeleton[j]);
-        skeleton[j] = tf * skeleton[j];
+        tf::transformMsgToTF(transformed_skeletons->skeletons[i].skeleton_positions[j], transformed_skeleton);
+        transformed_skeleton = tf * transformed_skeleton;
+        tf::transformTFToMsg(transformed_skeleton, transformed_skeletons->skeletons[i].skeleton_positions[j]);
       }
+    }
+  }
 
-      tf::Vector3 wrist_left_to_right = skeleton[Skeleton::SKELETON_POSITION_WRIST_LEFT].getOrigin()
-          - skeleton[Skeleton::SKELETON_POSITION_WRIST_RIGHT].getOrigin();
-      tf::Vector3 hand_left_to_right = skeleton[Skeleton::SKELETON_POSITION_HAND_LEFT].getOrigin()
-          - skeleton[Skeleton::SKELETON_POSITION_HAND_RIGHT].getOrigin();
-      //ROS_INFO("skeleton_wrist_distance: %f", wrist_left_to_right.length());
-      ROS_INFO("skeleton_hand_distance: %f", hand_left_to_right.length());
+  //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+  Gestures gestures;
+  gestures.header = transformed_skeletons->header;
+  GestureDetectorItem* item;
 
+  {
+    QMutexLocker locker(&mutex_callback_);
+    Q_FOREACH(item, gesture_detector_items_)
+    {
+      Gesture gesture;
+      item->addSkeletonsMessage(transformed_skeletons);
+      int detected_gesture = item->lookForGesture(gesture);
+      item->drawHistory(markers, transformed_skeletons->header.frame_id);
+      item->drawResult(markers, transformed_skeletons->header.frame_id);
+      if (detected_gesture != Gesture::GESTURE_NOT_DETECTED)
+        gestures.gestures.push_back(gesture);
     }
   }
 
   if (skeletons_markers_publisher_.getNumSubscribers() != 0)
   {
-    if (!marker_array.markers.empty())
+    if (!markers.markers.empty())
     {
-      skeletons_markers_publisher_.publish(marker_array);
+      skeletons_markers_publisher_.publish(markers);
     }
   }
 }
 
 void UserInteraction::handsCallback(const hg_object_tracking::HandsConstPtr& hands)
 {
-  ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+  //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+  Gestures gestures;
+  gestures.header = hands->header;
   MarkerArray markers;
   GestureDetectorItem* item;
-  Q_FOREACH(item, gesture_detector_items_)
+
   {
-    Gesture gesture;
-    item->addHandsMessage(hands);
-    item->lookForGesture(gesture);
-    item->drawHistory(markers, hands->header.frame_id);
-    item->drawResult(markers, hands->header.frame_id);
+    QMutexLocker locker(&mutex_callback_);
+    Q_FOREACH(item, gesture_detector_items_)
+    {
+      Gesture gesture;
+      item->addHandsMessage(hands);
+      int detected_gesture = item->lookForGesture(gesture);
+      item->drawHistory(markers, hands->header.frame_id);
+      item->drawResult(markers, hands->header.frame_id);
+      if(detected_gesture != Gesture::GESTURE_NOT_DETECTED)
+        gestures.gestures.push_back(gesture);
+    }
+  }
+
+  gestures.header.stamp = ros::Time::now();
+
+  if(hands_gesture_publisher_.getNumSubscribers() != 0)
+  {
+    if(!gestures.gestures.empty())
+    {
+      hands_gesture_publisher_.publish(gestures);
+    }
   }
 
   if(hands_markers_publisher_.getNumSubscribers() != 0)
   {
-    if(markers.markers.size() != 0)
+    if(!markers.markers.empty())
     {
       hands_markers_publisher_.publish(markers);
     }
   }
+
+
+
+
 
 
   //ROS_INFO_THROTTLE(1.0, __FUNCTION__);

@@ -54,8 +54,8 @@
 #include <hg_inspector_arm/inspection_point.h>
 #include <hg_inspector_arm/planning_base.h>
 
-//#include <hg_object_tracking/Hands.h>
-//#include <hg_hand_interaction/HandGestures.h>
+#include <hg_object_tracking/Hands.h>
+#include <hg_user_interaction/Gestures.h>
 
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
@@ -132,8 +132,8 @@ protected:
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
-  //void handsCallBack(const hg_object_tracking::HandsConstPtr message);
-  //void handGestureCallBack(const hg_hand_interaction::HandGesturesConstPtr message);
+  void handsCallBack(const hg_object_tracking::HandsConstPtr message);
+  void handGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
   void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
 
 
@@ -255,8 +255,8 @@ private:
 
 
   //gesture
-  //ros::Subscriber hands_subscriber_;
-  //ros::Subscriber hand_gestures_subscriber_;
+  ros::Subscriber hands_subscriber_;
+  ros::Subscriber hand_gestures_subscriber_;
 
   //3d mouse
   ros::Subscriber space_navigator_subscriber_;
