@@ -66,6 +66,7 @@ bool GestureBodyMovement::initialize()
   three_axes_[0] = tf::Vector3(1, 0, 0); //X
   three_axes_[1] = tf::Vector3(0, 1, 0); //Y
   three_axes_[2] = tf::Vector3(0, 0, 1); //Z
+  skeleton_updated_ = false;
 
   nh_private_.getParam("body_movement_gesture_draw_history", draw_history_);
   nh_private_.getParam("body_movement_gesture_draw_result", draw_result_);
@@ -89,6 +90,7 @@ void GestureBodyMovement::addSkeletonsMessage(const kinect_msgs::SkeletonsConstP
   {
     if (skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
     {
+      skeleton_updated_ = true;
       //ROS_INFO_STREAM("[" << i << "] " << skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER]);
       tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER], tf0);
       tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_LEFT], tf1);
@@ -112,6 +114,7 @@ void GestureBodyMovement::drawHistory(visualization_msgs::MarkerArray& marker_ar
 void GestureBodyMovement::drawResult(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id)
 {
   if(!getDrawResult()) return;
+  if(!skeleton_updated_) return;
 
   Marker marker;
   marker.lifetime = ros::Duration(0.1);
@@ -171,6 +174,8 @@ void GestureBodyMovement::drawResult(visualization_msgs::MarkerArray& marker_arr
 
 int GestureBodyMovement::lookForGesture(hg_user_interaction::Gesture& gesture)
 {
+  if(!skeleton_updated_) return Gesture::GESTURE_NOT_DETECTED;
+
   center_position_ = last_position_.getOrigin();
   int detected_gesture = Gesture::GESTURE_NOT_DETECTED;
 
