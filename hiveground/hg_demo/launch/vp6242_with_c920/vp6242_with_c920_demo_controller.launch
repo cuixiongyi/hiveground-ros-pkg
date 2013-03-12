@@ -1,5 +1,7 @@
 <launch>
   <arg name="is_simulated" default="true"/>  
+
+  <node pkg="tf" type="static_transform_publisher" name="arm_tf" args="0.1025 1.1045 0 0 0 0 1 world base_link 100" />  
   
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find vp6242_description)/robot/vp6242_with_c920.urdf.xacro'"/>
   

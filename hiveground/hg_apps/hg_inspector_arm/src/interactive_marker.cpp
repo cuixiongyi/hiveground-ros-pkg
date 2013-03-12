@@ -117,6 +117,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
 
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
+#if 0
         if(feedback->menu_entry_id == menu_entry_add_)
         {
           tf::StampedTransform transform;
@@ -131,12 +132,15 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           markers_[item->name().toStdString()] = item;
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
         }
-        else if(feedback->menu_entry_id == menu_entry_add_here_)
+        else
+ #endif
+        if(feedback->menu_entry_id == menu_entry_add_here_)
         {
           std::string name = getMarkerName();
-          addMarker(name, feedback->pose);
+          addMarker(name, feedback->pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
           InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, feedback->pose);
           item->setName(name.c_str());
+          item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
           item->setJointState(markers_[feedback->marker_name]->jointState());
           markers_[item->name().toStdString()] = item;
           selectOnlyOneMarker(name);
@@ -365,18 +369,19 @@ std::string InspectorArm::getMarkerName()
 void InspectorArm::addMarker(const std::string& name,
                                  geometry_msgs::Pose pose,
                                  bool selectable,
-                                 double arrow_length)
+                                 double arrow_length,
+                                 double scale)
 {
   InteractiveMarker int_marker;
   int_marker.name = name;
   int_marker.description = name;
   int_marker.header.frame_id = world_frame_;
-  int_marker.scale = arrow_length;
+  int_marker.scale = arrow_length * scale;
   int_marker.pose = pose;
 
   std::vector<Marker> markers;
-  markers.push_back(makeBox(0.5 * arrow_length, 0.5, 0.5, 0.5));
-  markers.push_back(makeArrow(arrow_length));
+  markers.push_back(makeBox(scale * 0.5 * arrow_length, 0.5, 0.5, 0.5, 0.5));
+  markers.push_back(makeArrow(scale * arrow_length, 1.0, 0.0, 0.0, 0.5));
 
   if(selectable)
   {
@@ -405,14 +410,20 @@ void InspectorArm::addMarkerAtEndEffector()
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(transform, pose);
   std::string name = getMarkerName();
-  addMarker(name, pose);
+  addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+
+
+
   InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
   item->setName(name.c_str());
+  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
   mutex_joint_state_.lock();
   item->setJointState(latest_joint_state_);
   mutex_joint_state_.unlock();
   markers_[item->name().toStdString()] = item;
+
   selectOnlyOneMarker(name);
+
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
   markers_touched_ = true;
 }
@@ -553,7 +564,7 @@ void InspectorArm::selectMarker(const std::string& name)
     ROS_ERROR_STREAM("Cannot erase " << name);
     return;
   }
-  addMarker(name, markers_[name]->pose(), false);
+  addMarker(name, markers_[name]->pose(), false, 0.05, markers_[name]->getMarkerScale());
   selected_markers_.push_back(name);
 }
 
@@ -564,7 +575,7 @@ void InspectorArm::deselectMarker(const std::string& name)
     ROS_ERROR_STREAM("Cannot erase " << name);
     return;
   }
-  addMarker(name, markers_[name]->pose());
+  addMarker(name, markers_[name]->pose(), true, 0.05, markers_[name]->getMarkerScale());
   selected_markers_.remove(name);
 }
 
@@ -611,11 +622,6 @@ void InspectorArm::makeMenu()
   // Allocate memory to the menu handlers
   menu_handler_map_["Top Level"];
   menu_handler_map_["Inspection Point"];
-
-  menu_entry_add_ = registerMenuEntry(
-      menu_handler_map_["Inspection Point"],
-      menu_entry_maps_["Inspection Point"],
-      "Add");
 
   menu_entry_add_here_ = registerMenuEntry(
       menu_handler_map_["Inspection Point"],
@@ -753,12 +759,12 @@ void InspectorArm::loadMarker()
   // Read the version
   qint32 version;
   in >> version;
-  if (version < 100)
+  if (version < FILE_VERSION_MARKER)
   {
     ROS_ERROR("File version is too old");
     return;
   }
-  if (version > 100)
+  if (version > FILE_VERSION_MARKER)
   {
     ROS_ERROR("File version is too new");
     return;
@@ -780,7 +786,7 @@ void InspectorArm::loadMarker()
           InspectionPointItem* item = new InspectionPointItem(this, &marker_server_);
           item->load(in);
           markers_[item->name().toStdString()] = item;
-          addMarker(item->name().toStdString(), item->pose());
+          addMarker(item->name().toStdString(), item->pose(), true, 0.05, item->getMarkerScale());
           Q_EMIT inspectionPointClickedSignal(item);
         }
         break;

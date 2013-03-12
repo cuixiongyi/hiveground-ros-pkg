@@ -40,6 +40,8 @@
 
 #include <sensor_msgs/JointState.h>
 
+#include <hg_inspector_arm/inspection_point_setget.h>
+
 class InspectorArm;
 class InspectionPointLookAt;
 class InspectionPointItem;
@@ -94,6 +96,8 @@ public:
     return yaw;
   }
 
+  IP_GETSET(double, marker_scale_, MarkerScale);
+
   void setX(double a) { move(a, y(), z()); }
   void setY(double a) { move(x(), a, z()); }
   void setZ(double a) { move(x(), y(), a); }
@@ -121,6 +125,7 @@ protected:
   QString name_;
   geometry_msgs::Pose pose_;
   sensor_msgs::JointState joint_state_;
+  double marker_scale_;
 
 
 };
