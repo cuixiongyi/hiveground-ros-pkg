@@ -5,7 +5,7 @@ Axes.Reference\ Frame=<Fixed Frame>
 Background\ ColorB=0.12549
 Background\ ColorG=0.12549
 Background\ ColorR=0.12549
-Camera\ Config=0.334799 6.0473 2.32812 0.231635 1.1005 0.328798
+Camera\ Config=0.535203 6.1123 1.34682 0.231317 0.928886 0.210792
 Camera\ Type=rviz::OrbitViewController
 Center\ Kinect..AxisColorAutocompute\ Value\ Bounds=1
 Center\ Kinect..AxisColorAxis=2
@@ -52,9 +52,6 @@ Grid.OffsetZ=0
 Grid.Plane=0
 Grid.Plane\ Cell\ Count=20
 Grid.Reference\ Frame=<Fixed Frame>
-Hand\ Interaction.Enabled=1
-Hand\ Interaction.Marker\ Array\ Topic=/hand_interaction/gesture_history
-Hand\ Interaction.Queue\ Size=100
 Inspection\ Point.Enabled=1
 Inspection\ Point.Show\ Axes=0
 Inspection\ Point.Show\ Descriptions=1
@@ -114,9 +111,9 @@ Plannning\ Scene.Enabled=1
 Plannning\ Scene.Marker\ Topic=/planning_scene_markers
 Plannning\ Scene.Queue\ Size=100
 Plannning\ Scene.collision_map_markers=1
-Property\ Grid\ Splitter=1,1
-Property\ Grid\ State=expanded=.Global Options,TF.Enabled,TF.Frames,Center Kinect.Enabled,Hand Interaction.Enabled,SelfFilter.Enabled,Inspector Arm.Enabled;splitterratio=0.570858
-QMainWindow=000000ff00000000fd0000000300000000000002070000041bfc0200000001fb000000100044006900730070006c006100790073020000019200000071000002070000041b00000001000001310000041bfc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000001d000001200000006700fffffffb0000000a00560069006500770073000000001d00000284000000bb00fffffffb0000001200530065006c0065006300740069006f006e000000001d0000041b0000006700ffffff00000003000003c50000003efc0100000001fb0000000800540069006d00650100000000000003c5000002bf00ffffff000003c50000045b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+Property\ Grid\ Splitter=883,78
+Property\ Grid\ State=expanded=.Global Options,TF.Enabled,TF.Frames,Center Kinect.Enabled,User Interaction.Enabled,User Interaction.Status,SelfFilter.Enabled,Inspector Arm.Enabled;splitterratio=0.570858
+QMainWindow=000000ff00000000fd0000000300000000000002070000041bfc0200000001fb000000100044006900730070006c006100790073030000019200000071000002070000041b00000001000001310000041bfc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000001d000001200000006700fffffffb0000000a00560069006500770073000000001d00000284000000bb00fffffffb0000001200530065006c0065006300740069006f006e000000001d0000041b0000006700ffffff00000003000003e50000003efc0100000001fb0000000800540069006d00650100000000000003e5000002bf00ffffff000003e5000004a300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 Robot\ Model.Alpha=1
 Robot\ Model.Collision\ Enabled=0
 Robot\ Model.Enabled=1
@@ -207,6 +204,13 @@ Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Tracked\ Object.Enabled=1
 Tracked\ Object.Marker\ Array\ Topic=/object_tracking/tracked_object_array
 Tracked\ Object.Queue\ Size=100
+Tracked\ Object.detected_hands=1
+Tracked\ Object.point_history=1
+Tracked\ Object.simple_marker=1
+User\ Interaction.Enabled=1
+User\ Interaction.GestureDetectorHandPushPull_result=1
+User\ Interaction.Marker\ Array\ Topic=/user_interaction/hands_makers
+User\ Interaction.Queue\ Size=100
 [Display0]
 ClassName=rviz::GridDisplay
 Name=Grid
@@ -221,7 +225,7 @@ ClassName=rviz::InteractiveMarkerDisplay
 Name=Inspection Point
 [Display12]
 ClassName=rviz::MarkerArrayDisplay
-Name=Hand Interaction
+Name=User Interaction
 [Display13]
 ClassName=rviz::PointCloud2Display
 Name=SelfFilter
@@ -253,7 +257,7 @@ Name=Center Kinect
 ClassName=rviz::PointCloud2Display
 Name=Object Tracking
 [Window]
-Height=1248
-Width=981
-X=6989
+Height=1320
+Width=1013
+X=6983
 Y=753

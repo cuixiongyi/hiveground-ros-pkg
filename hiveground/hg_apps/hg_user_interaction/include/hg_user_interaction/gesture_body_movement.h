@@ -97,6 +97,7 @@ protected:
   ros::Time start_activating_time_;
   bool is_moving_;
   tf::Vector3 three_axes_[3];
+  bool skeleton_updated_;
 
 
 

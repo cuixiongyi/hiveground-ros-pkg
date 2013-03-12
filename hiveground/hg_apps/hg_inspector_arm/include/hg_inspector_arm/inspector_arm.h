@@ -141,7 +141,6 @@ protected:
 
   //utility functions
   void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
-  tf::Transform transformEndEffector(const tf::Transform& pose, const tf::Vector3& translation, const tf::Quaternion& rotation, bool global);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
