@@ -412,7 +412,7 @@ double IKFastKinematicsPlugin::harmonize_old(const std::vector<double> &ik_seed_
 double IKFastKinematicsPlugin::harmonize(const std::vector<double> &ik_seed_state, std::vector<double> &solution)
 {
   double dist_sqr = 0;
-  for (size_t i = 0; i < ik_seed_state.size()-1; ++i)
+  for (size_t i = 0; i < ik_seed_state.size(); ++i)
   {
     double diff = angles::shortest_angular_distance(ik_seed_state[i], solution[i]);
     ROS_DEBUG("J%lu seed: %6.3f solution: %6.3f diff: %6.3f", i, ik_seed_state[i], solution[i], diff);

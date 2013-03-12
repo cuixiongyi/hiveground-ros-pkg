@@ -42,7 +42,7 @@
           inline Type get##FaceName() const { \
             return MemberName; \
           }; \
-          inline void get##FaceName(Type value) { \
+          inline void set##FaceName(Type value) { \
             MemberName = value; \
           }
 

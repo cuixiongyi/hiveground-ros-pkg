@@ -164,6 +164,7 @@ void InspectionPointItem::save(QDataStream& out)
   {
     out << joint_state_.position[i];
   }
+  out << marker_scale_;
 }
 
 void InspectionPointItem::load(QDataStream& in)
@@ -183,8 +184,7 @@ void InspectionPointItem::load(QDataStream& in)
   {
     in >> joint_state_.position[i];
   }
-
-
+  in >> marker_scale_;
 }
 
 

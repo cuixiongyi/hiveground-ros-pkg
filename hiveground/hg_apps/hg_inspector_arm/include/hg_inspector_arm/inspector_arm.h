@@ -63,7 +63,7 @@ typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
 typedef std::map<std::string, interactive_markers::MenuHandler> MenuHandlerMap;
 
 #define FILE_MAGIC_MARKER 0x6602AAAA
-#define FILE_VERSION_MARKER 100
+#define FILE_VERSION_MARKER 101
 
 class InspectorArm : public QMainWindow, PlanningBase
 {
@@ -95,7 +95,8 @@ protected:
   void addMarker(const std::string& name,
                    geometry_msgs::Pose pose = geometry_msgs::Pose(),
                    bool selectable = true,
-                   double arrow_length = 0.05);
+                   double arrow_length = 0.05,
+                   double scale = 2.0);
   std::string getMarkerName();
   void addMarkerAtEndEffector();
   void clearMarker();
@@ -140,6 +141,7 @@ protected:
 
   //utility functions
   void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
+  tf::Transform transformEndEffector(const tf::Transform& pose, const tf::Vector3& translation, const tf::Quaternion& rotation, bool global);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
@@ -221,7 +223,6 @@ private:
   MenuHandlerMap menu_handler_map_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_top_add_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_top_clear_;
-  interactive_markers::MenuHandler::EntryHandle menu_entry_add_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_add_here_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_point_x_plus_;
   interactive_markers::MenuHandler::EntryHandle menu_entry_point_x_minus_;
@@ -234,6 +235,7 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
   QString markers_save_file_name_;
   bool markers_touched_;
+
 
   //trajectory
   planning_models::KinematicState* robot_state_;

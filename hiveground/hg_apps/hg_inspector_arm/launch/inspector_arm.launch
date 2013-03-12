@@ -9,6 +9,7 @@
     <remap from="body_gestures_message" to="user_interaction/body_gestures"/>
     <remap from="space_navigator_message" to="spacenav/twist"/>
     <rosparam>
+      marker_scale: 2.0
       look_at_distance: 0.2
       mouse3d_translation_scale: 0.01
       mouse3d_ratation_scale: 0.05

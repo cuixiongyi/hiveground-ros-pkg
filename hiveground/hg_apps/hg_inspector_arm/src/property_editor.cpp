@@ -163,6 +163,13 @@ void InspectorArm::inspectionPointClicked(InspectionPointItem* item)
   double_manager_->setRange(property, -180.0, 180.0);
   double_manager_->setValue(property, angles::to_degrees(item->yaw()));
   addProperty(property, QLatin1String("pose_yaw"));
+
+  property = double_manager_->addProperty(tr("Marker scale"));
+  double_manager_->setDecimals(property, 2);
+  double_manager_->setSingleStep(property, 0.1);
+  double_manager_->setRange(property, 0.01, 10.0);
+  double_manager_->setValue(property, item->getMarkerScale());
+  addProperty(property, QLatin1String("marker_scale"));
 }
 
 void InspectorArm::addProperty(QtProperty *property, const QString &id)
@@ -224,6 +231,11 @@ void InspectorArm::valueChanged(QtProperty *property, double value)
   else if (id == QLatin1String("pose_yaw"))
   {
     current_item_->setYaw(angles::from_degrees(value));
+  }
+  else if (id == QLatin1String("marker_scale"))
+  {
+    current_item_->setMarkerScale(value);
+    selectOnlyOneMarker(current_item_->name().toStdString());
   }
 }
 
