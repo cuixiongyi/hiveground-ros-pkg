@@ -1,0 +1,20 @@
+<launch>  
+  <node pkg="spacenav_node" type="spacenav_node" name="spacenav"/>
+
+  <node pkg="hg_inspector_arm" type="inspector_arm" name="inspector_arm" output="screen">
+    <param name="base_link" value="base_link" />    
+    <param name="world_frame" value="base_link" />    
+    <remap from="hands_message" to="object_tracking/filtered_hands"/>
+    <remap from="hand_gestures_message" to="user_interaction/hand_gestures"/>
+    <remap from="body_gestures_message" to="user_interaction/body_gestures"/>
+    <remap from="space_navigator_message" to="spacenav/twist"/>
+    <rosparam>
+      marker_scale: 2.0
+      look_at_distance: 0.2
+      mouse3d_translation_scale: 0.01
+      mouse3d_ratation_scale: 0.05
+      gesture_translation_scale: 0.002
+      gesture_rotation_scale: 0.01
+    </rosparam>
+  </node>
+</launch>

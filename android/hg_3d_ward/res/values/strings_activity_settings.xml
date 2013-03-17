@@ -1,0 +1,14 @@
+<resources>
+
+    <string name="title_activity_settings">Settings</string>
+
+		<!-- Settings -->
+    <string name="pref_category_connection">Connection settings</string>
+    <string name="pref_summary_ip">Server IP address</string>
+    <string name="pref_title_ip">Server IP address</string>
+  	<string name="pref_summary_port">Server port</string>
+    <string name="pref_title_port">Server port</string>
+  
+    <string name="pref_category_ward">3D ward settings</string>
+
+</resources>
