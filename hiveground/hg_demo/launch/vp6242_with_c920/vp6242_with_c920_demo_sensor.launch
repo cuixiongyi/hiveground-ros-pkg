@@ -1,5 +1,0 @@
-<launch>
-  <include file="$(find hg_demo)/launch/vp6242_with_c920/vp6242_with_c920_kinect_center.launch"/>
-  <include file="$(find hg_demo)/launch/vp6242_with_c920/vp6242_with_c920_self_filter.launch"/>        
-
-</launch>
