@@ -386,6 +386,16 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     tf::Vector3 angular;
     tf::vector3MsgToTF(message->angular, angular);
 
+    double l1 = linear.length2();
+    double l2 = angular.length2();
+
+    if((l1 == 0.0) && (l2 == 0.0))
+      return;
+
+    bool translate = false;
+    if(l1 > l2)
+      translate = true;
+
     linear.setX(-linear.x());
     linear.setY(-linear.y());
 
@@ -415,7 +425,7 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
       }
     }
 
-    if (ui.checkBox3DMouseRotation->isChecked())
+    if (ui.checkBox3DMouseRotation->isChecked() && !translate)
     {
       pose.setRotation(pose.getRotation() * q);
     }
