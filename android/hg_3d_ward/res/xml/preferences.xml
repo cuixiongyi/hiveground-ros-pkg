@@ -1,0 +1,25 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory 
+        android:title="@string/pref_category_connection"
+        android:key="pref_connection_settings">
+        
+        <EditTextPreference 
+            android:key="pref_key_ip"
+            android:summary="@string/pref_summary_ip"
+            android:title="@string/pref_title_ip"
+            android:defaultValue="192.168.0.1"/>
+        <EditTextPreference 
+            android:key="pref_key_port"
+            android:summary="@string/pref_summary_port"
+            android:title="@string/pref_title_port"
+            android:defaultValue="12345"/>        
+    </PreferenceCategory>
+    
+    
+    <PreferenceCategory 
+        android:title="@string/pref_category_ward"
+        android:key="pref_ward_settings">
+    </PreferenceCategory>
+    
+    
+</PreferenceScreen>
