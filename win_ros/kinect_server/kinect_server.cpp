@@ -601,7 +601,7 @@ bool kinect_server::nuiGotSkeletonAlert()
   }
 
   // smooth out the skeleton data
-  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_DEFAULT);
+  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_MORE);
   if ( FAILED(hr) )
   {
     return false;
