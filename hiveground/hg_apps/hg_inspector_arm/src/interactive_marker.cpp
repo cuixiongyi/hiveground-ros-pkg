@@ -380,8 +380,8 @@ void InspectorArm::addMarker(const std::string& name,
   int_marker.pose = pose;
 
   std::vector<Marker> markers;
-  markers.push_back(makeBox(scale * 0.5 * arrow_length, 0.5, 0.5, 0.5, 0.5));
-  markers.push_back(makeArrow(scale * arrow_length, 1.0, 0.0, 0.0, 0.5));
+  markers.push_back(makeBox(scale * 0.5 * arrow_length, 0.5, 0.5, 0.5, 0.8));
+  markers.push_back(makeArrow(scale * arrow_length, 1.0, 0.0, 0.0, 0.8));
 
   if(selectable)
   {
