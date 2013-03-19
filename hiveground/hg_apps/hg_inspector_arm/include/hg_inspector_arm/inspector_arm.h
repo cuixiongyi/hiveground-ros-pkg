@@ -97,8 +97,9 @@ protected:
                    bool selectable = true,
                    double arrow_length = 0.05,
                    double scale = 2.0);
-  std::string getMarkerName();
+  std::string getMarkerName(const std::string& type);
   void addMarkerAtEndEffector();
+  void addMarkerAtTool();
   void clearMarker();
   visualization_msgs::Marker makeBox(double size = 0.1,
                                       double r = 1.0, double g = 0.0, double b = 0.0, double a = 1.0);
@@ -167,6 +168,7 @@ private Q_SLOTS:
 
   //Path Menu
   void on_actionAddMarker_triggered();
+  void on_actionAddMarkerToTool_triggered();
   void on_actionClearMarker_triggered();
   void on_actionLoadMarker_triggered();
   void on_actionSaveMarker_triggered();
@@ -212,6 +214,7 @@ private:
   tf::TransformListener listener_;
   std::string world_frame_;
   std::string base_link_;
+  std::string tool_frame_;
   tf::Transform last_feedback_pose_;
   kinematics_msgs::GetKinematicSolverInfo::Response ik_solver_info_;
   int name_count_;

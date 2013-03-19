@@ -53,6 +53,9 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   ROS_ASSERT(nh_private_.getParam("base_link", base_link_));
   ROS_INFO_STREAM("base_link: " << base_link_);
 
+  ROS_ASSERT(nh_private_.getParam("tool_frame", tool_frame_));
+  ROS_INFO_STREAM("tool_frame: " << tool_frame_);
+
   //ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
   //ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
 
@@ -94,23 +97,55 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:
+      /*
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
         Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
       }
+      */
       break;
     case InteractiveMarkerFeedback::MOUSE_UP:
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
-        tf::Transform pose_new;
-        tf::poseMsgToTF(feedback->pose, pose_new);
-        if(pose_new == last_feedback_pose_)
-          return;
-        last_feedback_pose_ = pose_new;
+        //ROS_INFO_STREAM("marker_name: " << feedback->marker_name);
+        if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
+        {
+          tf::Transform pose_new;
+          tf::poseMsgToTF(feedback->pose, pose_new);
+          if(pose_new == last_feedback_pose_)
+            return;
+          last_feedback_pose_ = pose_new;
 
-        if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
-          markers_touched_ = true;
+          if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
+            markers_touched_ = true;
+        }
+        else if(feedback->marker_name.rfind("marker_tool") != std::string::npos)
+        {
+          tf::Transform pose_tool;
+          tf::poseMsgToTF(feedback->pose, pose_tool);
+          if(pose_tool == last_feedback_pose_)
+            return;
+          last_feedback_pose_ = pose_tool;
+
+          ROS_INFO_STREAM(feedback->pose);
+
+          tf::Transform tf;
+          tf.setOrigin(tf::Vector3(-0.145, 0, 0));
+          tf.setRotation(tf::Quaternion(0, 0, 0, 1));
+//          tf::StampedTransform tfs;
+//          listener_.lookupTransform(tool_frame_,
+//                                    ik_solver_info_.kinematic_solver_info.link_names[0],
+//                                    ros::Time(0), tfs);
+          tf::Transform pose_ee = pose_tool * tf;
+          sensor_msgs::JointState joint_state = markers_[feedback->marker_name]->jointState();
+          if(checkIKConstraintAware(pose_ee, joint_state))
+          {
+            markers_[feedback->marker_name]->setJointState(joint_state);
+            markers_[feedback->marker_name]->setPose(feedback->pose, false);
+            markers_touched_ = true;
+          }
+        }
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
@@ -136,15 +171,18 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
  #endif
         if(feedback->menu_entry_id == menu_entry_add_here_)
         {
-          std::string name = getMarkerName();
-          addMarker(name, feedback->pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
-          InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, feedback->pose);
-          item->setName(name.c_str());
-          item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
-          item->setJointState(markers_[feedback->marker_name]->jointState());
-          markers_[item->name().toStdString()] = item;
-          selectOnlyOneMarker(name);
-          Q_EMIT inspectionPointClickedSignal(markers_[name]);
+          if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
+          {
+            std::string name = getMarkerName("marker_ee");
+            addMarker(name, feedback->pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+            InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, feedback->pose);
+            item->setName(name.c_str());
+            item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
+            item->setJointState(markers_[feedback->marker_name]->jointState());
+            markers_[item->name().toStdString()] = item;
+            selectOnlyOneMarker(name);
+            Q_EMIT inspectionPointClickedSignal(markers_[name]);
+          }
         }
         else if(feedback->menu_entry_id == menu_entry_point_x_plus_)
         {
@@ -172,14 +210,23 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
         {
-          ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+          if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
+          {
 
-          tf::StampedTransform ee_pose;
-          listener_.lookupTransform(world_frame_,
-                                      ik_solver_info_.kinematic_solver_info.link_names[0],
-                                      ros::Time(0), ee_pose);
-          geometry_msgs::Pose pose;
-          tf::poseTFToMsg(ee_pose, pose);
+            ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+
+            tf::StampedTransform ee_pose;
+            listener_.lookupTransform(world_frame_,
+                                        ik_solver_info_.kinematic_solver_info.link_names[0],
+                                        ros::Time(0), ee_pose);
+            geometry_msgs::Pose pose;
+            tf::poseTFToMsg(ee_pose, pose);
+            if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
+              markers_touched_ = true;
+          }
+
+
+/*
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose, false);
@@ -188,6 +235,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           mutex_joint_state_.unlock();
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
           markers_touched_ = true;
+          */
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
@@ -358,19 +406,19 @@ bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs
   return true;
 }
 
-std::string InspectorArm::getMarkerName()
+std::string InspectorArm::getMarkerName(const std::string& type)
 {
     std::stringstream ss;
-    ss << "marker_" << std::setfill('0') << std::setw(5) << name_count_++;
+    ss << std::setfill('0') << std::setw(5) << name_count_++ << "_" << type;
     return ss.str();
 }
 
 
 void InspectorArm::addMarker(const std::string& name,
-                                 geometry_msgs::Pose pose,
-                                 bool selectable,
-                                 double arrow_length,
-                                 double scale)
+                             geometry_msgs::Pose pose,
+                             bool selectable,
+                             double arrow_length,
+                             double scale)
 {
   InteractiveMarker int_marker;
   int_marker.name = name;
@@ -409,7 +457,7 @@ void InspectorArm::addMarkerAtEndEffector()
   listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(transform, pose);
-  std::string name = getMarkerName();
+  std::string name = getMarkerName("marker_ee");
   addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
 
 
@@ -426,6 +474,30 @@ void InspectorArm::addMarkerAtEndEffector()
 
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
   markers_touched_ = true;
+}
+
+void InspectorArm::addMarkerAtTool()
+{
+  tf::StampedTransform transform;
+  listener_.lookupTransform(world_frame_, tool_frame_, ros::Time(0), transform);
+  geometry_msgs::Pose pose;
+  tf::poseTFToMsg(transform, pose);
+  std::string name = getMarkerName("marker_tool");
+  addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+
+  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
+  item->setName(name.c_str());
+  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
+  mutex_joint_state_.lock();
+  item->setJointState(latest_joint_state_);
+  mutex_joint_state_.unlock();
+  markers_[item->name().toStdString()] = item;
+
+  selectOnlyOneMarker(name);
+
+  Q_EMIT inspectionPointClickedSignal(markers_[name]);
+  markers_touched_ = true;
+
 }
 
 void InspectorArm::clearMarker()
