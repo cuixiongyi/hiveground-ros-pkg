@@ -74,6 +74,8 @@ bool InspectionPointItem::setPose(const geometry_msgs::Pose& pose, bool check_ik
     pose_ = pose;
     server_->setPose(name_.toStdString(), pose_);
     server_->applyChanges();
+    inspector_arm_->inspectionPointMoved(this);
+    Q_EMIT inspector_arm_->followPointSignal();
     return true;
   }
 }

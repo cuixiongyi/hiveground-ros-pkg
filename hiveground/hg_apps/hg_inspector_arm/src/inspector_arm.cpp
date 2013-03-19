@@ -432,7 +432,42 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
 
 
     if(ui.checkBox3DMouseTranslation->isChecked() || ui.checkBox3DMouseRotation->isChecked())
-      markers_[selected_markers_.back()]->setPose(pose, true);
+    {
+      if(selected_markers_.back().rfind("marker_tool") != std::string::npos)
+      {
+        tf::StampedTransform tf;
+        listener_.lookupTransform(tool_frame_,
+                                  ik_solver_info_.kinematic_solver_info.link_names[0],
+                                  ros::Time(0), tf);
+        tf::Transform pose_ee = pose * tf;
+
+        geometry_msgs::Transform tf_message;
+        tf::transformTFToMsg(pose, tf_message);
+        ROS_INFO_STREAM(tf_message);
+
+        tf::transformTFToMsg(tf, tf_message);
+        ROS_INFO_STREAM(tf_message);
+
+        tf::transformTFToMsg(pose_ee, tf_message);
+        ROS_INFO_STREAM(tf_message);
+
+
+
+
+
+        sensor_msgs::JointState joint_state = markers_[selected_markers_.back()]->jointState();
+        if (checkIKConstraintAware(pose_ee, joint_state))
+        {
+          markers_[selected_markers_.back()]->setJointState(joint_state);
+          markers_[selected_markers_.back()]->setPose(pose, false);
+        }
+
+      }
+      else
+      {
+        markers_[selected_markers_.back()]->setPose(pose, true);
+      }
+    }
   }
 }
 
@@ -475,6 +510,11 @@ void InspectorArm::on_actionAddMarker_triggered()
 {
   //ROS_INFO(__FUNCTION__);
   addMarkerAtEndEffector();
+}
+
+void InspectorArm::on_actionAddMarkerToTool_triggered()
+{
+  addMarkerAtTool();
 }
 
 void InspectorArm::on_actionClearMarker_triggered()
@@ -580,11 +620,9 @@ void InspectorArm::onMarkerArrayPublisherTimer()
       target_robot_state_->setKinematicState(joint_state_map);
       //collision_models_interface_->getAllCollisionPointMarkers(*target_robot_state_, marker_array_, bad_color_, ros::Duration(0.1));
       collision_models_interface_->getGroupAndUpdatedJointMarkersGivenState(*target_robot_state_,
-                                                                                  marker_array_,
-                                                                                  "manipulator", start_color_, end_color_,
-                                                                                  ros::Duration(0.1));
-
-
+                                                                            marker_array_,
+                                                                            "manipulator", start_color_, end_color_,
+                                                                            ros::Duration(0.1));
     }
 
 
