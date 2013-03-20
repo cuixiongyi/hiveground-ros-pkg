@@ -481,11 +481,12 @@ void InspectorArm::on_pushButtonPlan_clicked()
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   trajectory_msgs::JointTrajectoryPoint point;
   //point.velocities.resize(ik_solver_info_.kinematic_solver_info.joint_names.size(), 0);
-  while (it != markers_.end())
+
+  int count = ui.listWidgetMarker->count();
+  for(int i = 0; i < count; i++)
   {
-    point.positions = it->second->jointState().position;
+    point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
     goal.trajectory.points.push_back(point);
-    it++;
   }
 
   action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
@@ -610,10 +611,20 @@ void InspectorArm::onMarkerArrayPublisherTimer()
                                                                             ros::Duration(0.1));
     }
 
-
-
     marker_array_publisher_.publish(marker_array_);
     marker_array_.markers.clear();
+  }
+}
+
+void InspectorArm::on_listWidgetMarker_itemClicked( QListWidgetItem * item )
+{
+  if(selected_markers_.back() == item->text().toStdString()) return;
+
+  if(markers_.find(item->text().toStdString()) != markers_.end())
+  {
+    selectOnlyOneMarker(item->text().toStdString());
+    inspectionPointClicked(markers_[item->text().toStdString()]);
+    Q_EMIT followPointSignal();
   }
 }
 

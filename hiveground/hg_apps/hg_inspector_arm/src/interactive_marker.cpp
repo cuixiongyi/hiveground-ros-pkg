@@ -170,18 +170,22 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
  #endif
         if(feedback->menu_entry_id == menu_entry_add_here_)
         {
+          std::string name;
           if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
           {
-            std::string name = getMarkerName("marker_ee");
-            addMarker(name, feedback->pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
-            InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, feedback->pose);
-            item->setName(name.c_str());
-            item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
-            item->setJointState(markers_[feedback->marker_name]->jointState());
-            markers_[item->name().toStdString()] = item;
-            selectOnlyOneMarker(name);
-            Q_EMIT inspectionPointClickedSignal(markers_[name]);
+            name = getMarkerName("marker_ee");
           }
+          else if(feedback->marker_name.rfind("marker_tool") != std::string::npos)
+          {
+            name = getMarkerName("marker_tool");
+          }
+
+          addMarker(name, feedback->pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+          addInspectionPointFrom(name, markers_[feedback->marker_name]);
+
+          selectOnlyOneMarker(name);
+          Q_EMIT inspectionPointClickedSignal(markers_[name]);
+
         }
         else if(feedback->menu_entry_id == menu_entry_point_x_plus_)
         {
@@ -249,6 +253,13 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.applyChanges();
           Q_EMIT inspectionPointClickedSignal(0);
           markers_touched_ = true;
+          QList<QListWidgetItem*> items = ui.listWidgetMarker->findItems(feedback->marker_name.c_str(), Qt::MatchExactly);
+          Q_FOREACH(QListWidgetItem* item, items)
+          {
+            ROS_INFO_STREAM(item->text().toStdString());
+            ui.listWidgetMarker->takeItem(ui.listWidgetMarker->row(item));
+            delete item;
+          }
         }
       }
       else if(feedback->marker_name == "top_level")
@@ -459,15 +470,7 @@ void InspectorArm::addMarkerAtEndEffector()
   std::string name = getMarkerName("marker_ee");
   addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
 
-
-
-  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
-  item->setName(name.c_str());
-  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
-  mutex_joint_state_.lock();
-  item->setJointState(latest_joint_state_);
-  mutex_joint_state_.unlock();
-  markers_[item->name().toStdString()] = item;
+  addInspectionPoint(name, pose, latest_joint_state_);
 
   selectOnlyOneMarker(name);
 
@@ -484,13 +487,7 @@ void InspectorArm::addMarkerAtTool()
   std::string name = getMarkerName("marker_tool");
   addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
 
-  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
-  item->setName(name.c_str());
-  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
-  mutex_joint_state_.lock();
-  item->setJointState(latest_joint_state_);
-  mutex_joint_state_.unlock();
-  markers_[item->name().toStdString()] = item;
+  addInspectionPoint(name, pose, latest_joint_state_);
 
   selectOnlyOneMarker(name);
 
@@ -498,6 +495,23 @@ void InspectorArm::addMarkerAtTool()
   markers_touched_ = true;
 
 }
+
+void InspectorArm::addInspectionPoint(const std::string& name, const geometry_msgs::Pose& pose, const sensor_msgs::JointState& joint_state)
+{
+  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
+  item->setName(name.c_str());
+  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
+  item->setJointState(joint_state);
+  markers_[item->name().toStdString()] = item;
+
+  ui.listWidgetMarker->addItem(item->name());
+}
+
+void InspectorArm::addInspectionPointFrom(const std::string& name, const InspectionPointItem* from)
+{
+  addInspectionPoint(name, from->pose(), from->jointState());
+}
+
 
 void InspectorArm::clearMarker()
 {
@@ -512,6 +526,8 @@ void InspectorArm::clearMarker()
   marker_server_.applyChanges();
   Q_EMIT inspectionPointClickedSignal(0);
   markers_touched_ = true;
+
+  ui.listWidgetMarker->clear();
 }
 
 Marker InspectorArm::makeBox(double size, double r, double g, double b, double a)
@@ -664,13 +680,27 @@ void InspectorArm::selectOnlyOneMarker(const std::string& name)
 
 bool InspectorArm::setMarkerOrientation(const std::string& name, double roll, double pitch, double yaw)
 {
-  ROS_DEBUG("reset orientation");
   geometry_msgs::Pose pose = markers_[name]->pose();
   tf::Quaternion q;
   q.setRPY(roll, pitch, yaw);
   tf::quaternionTFToMsg(q, pose.orientation);
   sensor_msgs::JointState joint_state;
-  if (checkIKConstraintAware(pose, joint_state))
+
+
+  tf::Transform marker_pose;
+  tf::poseMsgToTF(pose, marker_pose);
+  tf::Transform pose_ee = marker_pose;
+  if(name.rfind("marker_tool") != std::string::npos)
+  {
+    tf::StampedTransform tfs;
+    listener_.lookupTransform(tool_frame_,
+                              ik_solver_info_.kinematic_solver_info.link_names[0],
+                              ros::Time(0), tfs);
+    pose_ee = marker_pose * tfs;
+  }
+
+
+  if (checkIKConstraintAware(pose_ee, joint_state))
   {
     markers_[name]->setPose(pose, false);
     markers_[name]->setJointState(joint_state);
@@ -797,12 +827,21 @@ void InspectorArm::saveMarker()
   out << (quint32) FILE_VERSION_MARKER;
   out << name_count_;
 
+  int count = ui.listWidgetMarker->count();
+  for (int i = 0; i < count; i++)
+  {
+    markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->save(out);
+  }
+
+  /*
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   while (it != markers_.end())
   {
     it->second->save(out);
     it++;
   }
+  */
+
   file.close();
   markers_touched_  = false;
 }
@@ -858,6 +897,7 @@ void InspectorArm::loadMarker()
           item->load(in);
           markers_[item->name().toStdString()] = item;
           addMarker(item->name().toStdString(), item->pose(), true, 0.05, item->getMarkerScale());
+          ui.listWidgetMarker->addItem(item->name());
           Q_EMIT inspectionPointClickedSignal(item);
         }
         break;
