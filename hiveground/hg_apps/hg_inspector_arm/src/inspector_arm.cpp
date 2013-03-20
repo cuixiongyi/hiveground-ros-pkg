@@ -440,21 +440,6 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
                                   ik_solver_info_.kinematic_solver_info.link_names[0],
                                   ros::Time(0), tf);
         tf::Transform pose_ee = pose * tf;
-
-        geometry_msgs::Transform tf_message;
-        tf::transformTFToMsg(pose, tf_message);
-        ROS_INFO_STREAM(tf_message);
-
-        tf::transformTFToMsg(tf, tf_message);
-        ROS_INFO_STREAM(tf_message);
-
-        tf::transformTFToMsg(pose_ee, tf_message);
-        ROS_INFO_STREAM(tf_message);
-
-
-
-
-
         sensor_msgs::JointState joint_state = markers_[selected_markers_.back()]->jointState();
         if (checkIKConstraintAware(pose_ee, joint_state))
         {
