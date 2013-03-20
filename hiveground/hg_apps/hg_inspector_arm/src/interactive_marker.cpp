@@ -92,25 +92,26 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
   {
     case InteractiveMarkerFeedback::BUTTON_CLICK:
       {
+        //ROS_INFO_STREAM("click : " << feedback->marker_name);
         selectOnlyOneMarker(feedback->marker_name);
         Q_EMIT followPointSignal();
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:
-      /*
+      //ROS_INFO_STREAM("mouse down : " << feedback->marker_name);
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
         Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
       }
-      */
       break;
     case InteractiveMarkerFeedback::MOUSE_UP:
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
-        //ROS_INFO_STREAM("marker_name: " << feedback->marker_name);
+        //ROS_INFO_STREAM("pose: " << feedback->marker_name);
         if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
         {
+          //ROS_INFO("a");
           tf::Transform pose_new;
           tf::poseMsgToTF(feedback->pose, pose_new);
           if(pose_new == last_feedback_pose_)
@@ -122,22 +123,20 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         }
         else if(feedback->marker_name.rfind("marker_tool") != std::string::npos)
         {
+          //ROS_INFO("b");
           tf::Transform pose_tool;
           tf::poseMsgToTF(feedback->pose, pose_tool);
           if(pose_tool == last_feedback_pose_)
             return;
           last_feedback_pose_ = pose_tool;
 
-          ROS_INFO_STREAM(feedback->pose);
+          //ROS_INFO_STREAM("haha: " << feedback->pose);
 
-          tf::Transform tf;
-          tf.setOrigin(tf::Vector3(-0.145, 0, 0));
-          tf.setRotation(tf::Quaternion(0, 0, 0, 1));
-//          tf::StampedTransform tfs;
-//          listener_.lookupTransform(tool_frame_,
-//                                    ik_solver_info_.kinematic_solver_info.link_names[0],
-//                                    ros::Time(0), tfs);
-          tf::Transform pose_ee = pose_tool * tf;
+          tf::StampedTransform tfs;
+          listener_.lookupTransform(tool_frame_,
+                                    ik_solver_info_.kinematic_solver_info.link_names[0],
+                                    ros::Time(0), tfs);
+          tf::Transform pose_ee = pose_tool * tfs;
           sensor_msgs::JointState joint_state = markers_[feedback->marker_name]->jointState();
           if(checkIKConstraintAware(pose_ee, joint_state))
           {

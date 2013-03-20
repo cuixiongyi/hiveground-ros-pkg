@@ -516,6 +516,7 @@
    <addaction name="actionExit"/>
    <addaction name="separator"/>
    <addaction name="actionAddMarker"/>
+   <addaction name="actionAddMarkerToTool"/>
    <addaction name="actionLoadMarker"/>
    <addaction name="actionSaveMarker"/>
   </widget>
