@@ -100,6 +100,8 @@ protected:
   std::string getMarkerName(const std::string& type);
   void addMarkerAtEndEffector();
   void addMarkerAtTool();
+  void addInspectionPoint(const std::string& name, const geometry_msgs::Pose& pose, const sensor_msgs::JointState& joint_state);
+  void addInspectionPointFrom(const std::string& name, const InspectionPointItem* item);
   void clearMarker();
   visualization_msgs::Marker makeBox(double size = 0.1,
                                       double r = 1.0, double g = 0.0, double b = 0.0, double a = 1.0);
@@ -179,6 +181,9 @@ private Q_SLOTS:
 
   //Marker
   void onMarkerArrayPublisherTimer();
+
+  //Marker list
+  void on_listWidgetMarker_itemClicked( QListWidgetItem * item );
 
 
 
