@@ -140,6 +140,8 @@ protected:
   void handGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
   void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
   void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
+  void updateMarkerCallbBack(const std::string& name, const tf::Transform& pose);
+  void updateMarkerCallbBack(const std::string& name, const geometry_msgs::Pose& pose);
 
 
   //utility functions

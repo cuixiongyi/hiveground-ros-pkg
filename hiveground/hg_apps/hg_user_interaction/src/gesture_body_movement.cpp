@@ -92,11 +92,11 @@ void GestureBodyMovement::addSkeletonsMessage(const kinect_msgs::SkeletonsConstP
     {
       skeleton_updated_ = true;
       //ROS_INFO_STREAM("[" << i << "] " << skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER]);
-      tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER], tf0);
+      //tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER], tf0);
       tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_LEFT], tf1);
       tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_RIGHT], tf2);
-      tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_HEAD], tf3);
-      last_position_.setOrigin((tf0.getOrigin() + tf1.getOrigin() + tf2.getOrigin() + tf3.getOrigin()) / 4.0);
+      //tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_HEAD], tf3);
+      last_position_.setOrigin((/*tf0.getOrigin() + */tf1.getOrigin() + tf2.getOrigin() /*+ tf3.getOrigin()*/) / 2.0);
     }
   }
 }

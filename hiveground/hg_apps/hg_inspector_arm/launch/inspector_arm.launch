@@ -12,8 +12,8 @@
     <rosparam>
       marker_scale: 2.0
       look_at_distance: 0.2
-      mouse3d_translation_scale: 0.01
-      mouse3d_ratation_scale: 0.05
+      mouse3d_translation_scale: 0.005
+      mouse3d_ratation_scale: 0.02
       gesture_translation_scale: 0.002
       gesture_rotation_scale: 0.01
     </rosparam>
