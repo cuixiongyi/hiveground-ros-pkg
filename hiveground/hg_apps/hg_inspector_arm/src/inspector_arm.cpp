@@ -281,7 +281,10 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
             tf::Quaternion q;
             q.setRPY(rx, ry, rz);
             pose.setRotation(pose.getRotation() * q);
-            markers_[selected_markers_.back()]->setPose(pose, true);
+
+
+            if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
+              updateMarkerCallbBack(selected_markers_.back(), pose);
           }
         }
       }
@@ -302,15 +305,13 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
         {
           tf::Transform pose;
           tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
-          double rx, ry, rz;
-          rx = ry = rz = 0;
           tf::Vector3 linear(0, 0, 0);
 
           //message->gestures[i].hand_count
-          double hand_distance = message->gestures[i].vars[0] * 0.1;
+          double move_distance = message->gestures[i].vars[0] * 0.1;
 
-          double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * hand_distance;
-          double rotation_scale = ui.doubleSpinBoxGestureRotationScale->value() * hand_distance;
+          double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * move_distance;
+
           switch(message->gestures[i].direction)
           {
             case Gesture::DIR_X_POS:
@@ -331,16 +332,15 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
             case Gesture::DIR_Z_NEG:
               linear.m_floats[2] -= translation_scale;
               break;
-            case Gesture::ROT_X_POS: rx = rotation_scale; break;
-            case Gesture::ROT_X_NEG: rx = -rotation_scale; break;
-            case Gesture::ROT_Y_POS: ry = rotation_scale; break;
-            case Gesture::ROT_Y_NEG: ry = -rotation_scale; break;
-            case Gesture::ROT_Z_POS: rz = rotation_scale; break;
-            case Gesture::ROT_Z_NEG: rz = -rotation_scale; break;
-              break;
             default: break;
           }
 
+          if(!ui.checkBoxAllTranslation->isChecked())
+          {
+            if(!ui.checkBoxEnableTranX->isChecked()) linear.setX(0);
+            if(!ui.checkBoxEnableTranY->isChecked()) linear.setY(0);
+            if(!ui.checkBoxEnableTranZ->isChecked()) linear.setZ(0);
+          }
 
           if (ui.checkBoxUseWorldCoordinate->isChecked())
           {
@@ -353,10 +353,8 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
             pose = offset;
           }
 
-          tf::Quaternion q;
-          q.setRPY(rx, ry, rz);
-          pose.setRotation(pose.getRotation() * q);
-          markers_[selected_markers_.back()]->setPose(pose, true);
+          if(ui.checkBoxEnableTranslation->isChecked())
+            updateMarkerCallbBack(selected_markers_.back(), pose);
         }
       }
     }
@@ -402,6 +400,20 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     linear = linear * (1/350.0) * ui.doubleSpinBoxLinearScale->value();
     angular = angular * (1/350.0) * ui.doubleSpinBoxAngularScale->value();
 
+    if(!ui.checkBoxAllTranslation->isChecked())
+    {
+      if(!ui.checkBoxEnableTranX->isChecked()) linear.setX(0);
+      if(!ui.checkBoxEnableTranY->isChecked()) linear.setY(0);
+      if(!ui.checkBoxEnableTranZ->isChecked()) linear.setZ(0);
+    }
+
+    if(!ui.checkBoxAllRotation->isChecked())
+    {
+      if(!ui.checkBoxEnableRotX->isChecked()) angular.setX(0);
+      if(!ui.checkBoxEnableRotY->isChecked()) angular.setY(0);
+      if(!ui.checkBoxEnableRotZ->isChecked()) angular.setZ(0);
+    }
+
     tf::Quaternion q;
     if (ui.checkBoxSwapRxRz->isChecked())
       q.setRPY(angular.z(), angular.y(), angular.x());
@@ -411,7 +423,7 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     tf::Transform pose;
     tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
 
-    if (ui.checkBox3DMouseTranslation->isChecked())
+    if (ui.checkBoxEnableTranslation->isChecked())
     {
       if (ui.checkBoxUseWorldCoordinate->isChecked())
       {
@@ -425,34 +437,43 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
       }
     }
 
-    if (ui.checkBox3DMouseRotation->isChecked() && !translate)
+    if (ui.checkBoxEnableRotation->isChecked() && !translate)
     {
       pose.setRotation(pose.getRotation() * q);
     }
 
 
-    if(ui.checkBox3DMouseTranslation->isChecked() || ui.checkBox3DMouseRotation->isChecked())
+    if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
     {
-      if(selected_markers_.back().rfind("marker_tool") != std::string::npos)
-      {
-        tf::StampedTransform tf;
-        listener_.lookupTransform(tool_frame_,
-                                  ik_solver_info_.kinematic_solver_info.link_names[0],
-                                  ros::Time(0), tf);
-        tf::Transform pose_ee = pose * tf;
-        sensor_msgs::JointState joint_state = markers_[selected_markers_.back()]->jointState();
-        if (checkIKConstraintAware(pose_ee, joint_state))
-        {
-          markers_[selected_markers_.back()]->setJointState(joint_state);
-          markers_[selected_markers_.back()]->setPose(pose, false);
-        }
-
-      }
-      else
-      {
-        markers_[selected_markers_.back()]->setPose(pose, true);
-      }
+      updateMarkerCallbBack(selected_markers_.back(), pose);
     }
+  }
+}
+
+void InspectorArm::updateMarkerCallbBack(const std::string& name, const geometry_msgs::Pose& pose)
+{
+  tf::Transform tf;
+  tf::poseMsgToTF(pose, tf);
+  updateMarkerCallbBack(name, tf);
+}
+
+void InspectorArm::updateMarkerCallbBack(const std::string& name, const tf::Transform& pose)
+{
+  if (name.rfind("marker_tool") != std::string::npos)
+  {
+    tf::StampedTransform tf;
+    listener_.lookupTransform(tool_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), tf);
+    tf::Transform pose_ee = pose * tf;
+    sensor_msgs::JointState joint_state = markers_[name]->jointState();
+    if (checkIKConstraintAware(pose_ee, joint_state))
+    {
+      markers_[name]->setJointState(joint_state);
+      markers_[name]->setPose(pose, false);
+    }
+  }
+  else if (name.rfind("marker_ee") != std::string::npos)
+  {
+    markers_[selected_markers_.back()]->setPose(pose, true);
   }
 }
 
@@ -478,7 +499,6 @@ void InspectorArm::on_pushButtonPlan_clicked()
   goal.trajectory.header.stamp = ros::Time::now();
   goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
 
-  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   trajectory_msgs::JointTrajectoryPoint point;
   //point.velocities.resize(ik_solver_info_.kinematic_solver_info.joint_names.size(), 0);
 

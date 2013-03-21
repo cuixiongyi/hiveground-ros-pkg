@@ -237,7 +237,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
   {
     if (transformed_skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
     {
-      //getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
+      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
 
       for (int j = 0; j < Skeleton::SKELETON_POSITION_COUNT; j++)
       {
