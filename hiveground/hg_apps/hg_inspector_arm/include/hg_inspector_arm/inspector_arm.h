@@ -57,6 +57,8 @@
 #include <hg_object_tracking/Hands.h>
 #include <hg_user_interaction/Gestures.h>
 
+#include <leptrino/ForceTorque.h>
+
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
@@ -138,10 +140,13 @@ protected:
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
-  void handsCallBack(const hg_object_tracking::HandsConstPtr message);
-  void handGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
-  void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
-  void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
+  void handsCallBack(const hg_object_tracking::HandsConstPtr& message);
+  void handGestureCallBack(const hg_user_interaction::GesturesConstPtr& message);
+  void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr& message);
+  void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message);
+  void forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& message);
+
+
   void updateMarkerCallbBack(const std::string& name, const tf::Transform& pose);
   void updateMarkerCallbBack(const std::string& name, const geometry_msgs::Pose& pose);
 
@@ -167,6 +172,7 @@ private Q_SLOTS:
 
   //UI
   void on_pushButtonPlan_clicked();
+  void on_pushButtonSetZeroForceTorque_clicked();
 
 
   //Menu action
@@ -277,6 +283,11 @@ private:
   ros::Subscriber space_navigator_subscriber_;
   ros::Time space_navigator_last_update_;
 
+  //Force sensor
+  ros::Subscriber force_torque_subscriber_;
+  ros::Publisher force_torque_set_zero_publisher_;
+  QMutex force_torque_mutex_;
+  ros::Publisher force_torque_direction_publisher_;
 
   //Marker
   QTimer* marker_array_publisher_timer_;

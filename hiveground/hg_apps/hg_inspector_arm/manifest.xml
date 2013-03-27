@@ -31,6 +31,8 @@
   <depend package="qt_property_browser"/>
   <depend package="hg_object_tracking"/>
   <depend package="hg_user_interaction"/>
+  
+  <depend package="leptrino"/>
 
 </package>
 

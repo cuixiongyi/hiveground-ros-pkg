@@ -148,11 +148,11 @@ int main(int argc, char** argv)
       {
         stGetInfo = (ST_R_GET_INF *)CommRcvBuff;
         stGetInfo->scFVer[F_VER_SIZE] = 0;
-        ROS_INFO("Version:%s", stGetInfo->scFVer);
+        ROS_INFO("Version: %s", stGetInfo->scFVer);
         stGetInfo->scSerial[SERIAL_SIZE] = 0;
-        ROS_INFO("SerialNo:%s", stGetInfo->scSerial);
+        ROS_INFO("SerialNo: %s", stGetInfo->scSerial);
         stGetInfo->scPName[P_NAME_SIZE] = 0;
-        ROS_INFO("Type:%s", stGetInfo->scPName);
+        ROS_INFO("Type: %s", stGetInfo->scPName);
         //stGetInfo->scFreq[FREQ_SIZE] = 0;
         //ROS_INFO("Freq:%s", stGetInfo->scFreq);
         break;
@@ -261,17 +261,6 @@ int main(int argc, char** argv)
   } //while
 
   SerialStop();
-  stCmdHead = (ST_RES_HEAD *)CommRcvBuff;
-  if (stCmdHead->ucCmd == CMD_DATA_STOP)
-  {
-    printf("Receive Stop Response:");
-    l = stCmdHead->ucLen;
-    for (i = 0; i < l; i++)
-    {
-      printf("%02x ", CommRcvBuff[i]);
-    }
-    printf("\n");
-  }
   App_Close();
   return 0;
 }

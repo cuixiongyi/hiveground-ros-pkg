@@ -44,6 +44,8 @@
 #include <hg_inspector_arm/inspector_arm.h>
 #include <spline_smoother/cubic_trajectory.h>
 
+#include <std_msgs/Bool.h>
+
 using namespace visualization_msgs;
 using namespace hg_user_interaction;
 
@@ -150,8 +152,12 @@ bool InspectorArm::initializeServiceClient()
   hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
   body_gestures_subscriber_ = nh_.subscribe("body_gestures_message", 1, &InspectorArm::bodyGestureCallBack, this);
   space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);
+  force_torque_subscriber_ = nh_.subscribe("force_torque_message", 1, &InspectorArm::forceTorqueCallBack, this);
+
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
+  force_torque_set_zero_publisher_ = nh_.advertise<std_msgs::Bool>("/leptrino/reset", 1);
+  force_torque_direction_publisher_ = nh_private_.advertise<MarkerArray>("force_torque_direction_marker", 128);
 
 //  ros::service::waitForService("plan_cartesian_path");
 //  hg_cartesian_trajectory_client_ =
@@ -178,7 +184,7 @@ void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState
 }
 
 
-void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message)
+void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr& message)
 {
   if(message->hands.empty()) return;
 
@@ -207,7 +213,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
 }
 
 
-void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstPtr message)
+void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstPtr& message)
 {
   //ROS_INFO_THROTTLE(1, __FUNCTION__);
   if(ui.checkBoxEnableHandGesture->isChecked())
@@ -266,23 +272,6 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
 
             tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, linear);
 
-            /*
-            if (ui.checkBoxUseWorldCoordinate->isChecked())
-            {
-              pose.setOrigin(pose.getOrigin() + linear);
-            }
-            else
-            {
-              tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
-              offset = pose * offset;
-              pose = offset;
-            }
-
-            tf::Quaternion q;
-            q.setRPY(rx, ry, rz);
-            pose.setRotation(pose.getRotation() * q);
-            */
-
             if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
               updateMarkerCallbBack(selected_markers_.back(), pose);
           }
@@ -292,7 +281,7 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
   }
 }
 
-void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message)
+void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr& message)
 {
   //ROS_INFO_THROTTLE(1, __FUNCTION__);
   if (ui.checkBoxEnableBodyGesture->isChecked())
@@ -345,7 +334,7 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
 }
 
 
-void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message)
+void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message)
 {
   if((ros::Time::now() - space_navigator_last_update_).toSec() < 0.05)
   {
@@ -381,6 +370,101 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     }
 
   }
+}
+
+void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& message)
+{
+  static int count = 0;
+  //static tf::Vector3 force_sum(0, 0, 0);
+  //static tf::Vector3 torque_sum(0, 0, 0);
+
+
+  tf::Vector3 fx(0, -0.707106781, 0.707106781);
+  tf::Vector3 fy(0, 0.707106781, 0.707106781);
+
+  fx = fx * -message->fx;
+  fy = fy * message->fy;
+
+
+  tf::Vector3 force(message->fz, fx.y() + fy.y(), fx.z()+ fy.z());
+  tf::Vector3 torque(message->mx, message->my, message->mz);
+
+  QMutexLocker lock(&force_torque_mutex_);
+
+
+  if(ui.checkBoxEnableForceTorque->isChecked())
+  {
+
+    if(force.length() > 3)
+    {
+      count = 0;
+      tf::Vector3 liner = force.normalized() * 0.001;
+      tf::Transform pose = moveSelectedMarker(selected_markers_.back(), tf::Vector3(0,0,0), liner);
+      if(ui.checkBoxEnableTranslation->isChecked())
+        updateMarkerCallbBack(selected_markers_.back(), pose);
+    }
+  }
+
+
+
+
+
+
+
+
+
+    MarkerArray markers;
+    Marker arrow = makeArrow();
+    arrow.id = 0;
+    arrow.ns = "sensor";
+    arrow.lifetime = ros::Duration(0.1);
+    arrow.header.frame_id = world_frame_;
+    tf::StampedTransform stf;
+    listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), stf);
+
+
+
+    tf::Pose pose = stf;
+    Eigen::Quaternionf q;
+
+    arrow.color.r = 1;
+    arrow.color.g = 0;
+    arrow.color.b = 0;
+    arrow.scale.z = (force.x() / 20.0);
+    tf::poseTFToMsg(pose, arrow.pose);
+    markers.markers.push_back(arrow);
+    arrow.id++;
+
+
+    arrow.color.r = 0;
+    arrow.color.g = 1;
+    arrow.color.b = 0;
+    arrow.scale.z = (force.y() / 20.0);
+    q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0, 1, 0));
+    tf::Transform arrow_tf(tf::Quaternion(q.x(), q.y(), q.z(), q.w()), tf::Vector3(0,0,0));
+    tf::poseTFToMsg(pose * arrow_tf, arrow.pose);
+    markers.markers.push_back(arrow);
+    arrow.id++;
+
+    arrow.color.r = 0;
+    arrow.color.g = 0;
+    arrow.color.b = 1;
+    arrow.scale.z = (force.z() / 20.0);
+    q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0, 0, 1));
+    arrow_tf.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
+    tf::poseTFToMsg(pose * arrow_tf, arrow.pose);
+    markers.markers.push_back(arrow);
+    arrow.id++;
+
+
+    if(force_torque_direction_publisher_.getNumSubscribers() != 0)
+    {
+      force_torque_direction_publisher_.publish(markers);
+    }
+
+
+
+
 }
 
 void InspectorArm::updateMarkerCallbBack(const std::string& name, const geometry_msgs::Pose& pose)
@@ -443,6 +527,22 @@ void InspectorArm::on_pushButtonPlan_clicked()
   }
 
   action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+}
+
+void InspectorArm::on_pushButtonSetZeroForceTorque_clicked()
+{
+  QMutexLocker lock(&force_torque_mutex_);
+  ui.checkBoxEnableForceTorque->setChecked(false);
+  std_msgs::Bool msg;
+  if(ui.pushButtonSetZeroForceTorque->isChecked())
+  {
+    msg.data = true;
+  }
+  else
+  {
+    msg.data = false;
+  }
+  force_torque_set_zero_publisher_.publish(msg);
 }
 
 void InspectorArm::on_actionAddMarker_triggered()
