@@ -1,0 +1,27 @@
+<launch>  
+   <node pkg="robot_self_filter" type="self_filter" respawn="true" output="screen" name="self_filter">
+     <!-- The topic for the input cloud -->
+     <remap from="cloud_in" to="/passthrough_y/output" />
+
+     <!-- The topic for the output cloud -->
+     <remap from="cloud_out" to="/vp6242_force_sensor_soldering_lead/self_filtered_cloud" />
+
+     <!-- The frame of the sensor used to obtain the data to be
+       filtered; This parameter is optional. If it is not specified,
+       shadow points will be considered outside -->
+       <!--       <param name="sensor_frame" type="string" value="/base_link" />-->
+
+     <!-- Minimum distance to sensor (for point not to be considered inside) -->
+     <param name="min_sensor_dist" type="double" value="0.02" />
+
+     <!-- The padding to be added for the body parts the robot can see -->
+     <param name="self_see_padd" type="double" value="0.01" />
+
+     <!-- The scaling to be added for the body parts the robot can see -->
+     <param name="self_see_scale" type="double" value="1.0" />
+     
+     <rosparam command="load" file="$(find hg_demo)/config/vp6242_self_filter.yaml" />
+    
+   </node>
+</launch>
+
