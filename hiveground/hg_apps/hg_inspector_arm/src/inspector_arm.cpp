@@ -220,11 +220,8 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
         {
           if(message->gestures[i].type == Gesture::GESTURE_HAND_PUSH_PULL)
           {
-            tf::Transform pose;
-            tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
-            double rx, ry, rz;
-            rx = ry = rz = 0;
             tf::Vector3 linear(0, 0, 0);
+            tf::Vector3 angular(0, 0, 0);
 
             //message->gestures[i].hand_count
             double hand_distance = 0.0;
@@ -257,16 +254,19 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
               case Gesture::DIR_Z_NEG:
                 linear.m_floats[2] -= translation_scale;
                 break;
-              case Gesture::ROT_X_POS: rx = rotation_scale; break;
-              case Gesture::ROT_X_NEG: rx = -rotation_scale; break;
-              case Gesture::ROT_Y_POS: ry = rotation_scale; break;
-              case Gesture::ROT_Y_NEG: ry = -rotation_scale; break;
-              case Gesture::ROT_Z_POS: rz = rotation_scale; break;
-              case Gesture::ROT_Z_NEG: rz = -rotation_scale; break;
+              case Gesture::ROT_X_POS: angular.m_floats[0] = rotation_scale; break;
+              case Gesture::ROT_X_NEG: angular.m_floats[0] = -rotation_scale; break;
+              case Gesture::ROT_Y_POS: angular.m_floats[1] = rotation_scale; break;
+              case Gesture::ROT_Y_NEG: angular.m_floats[1] = -rotation_scale; break;
+              case Gesture::ROT_Z_POS: angular.m_floats[2] = rotation_scale; break;
+              case Gesture::ROT_Z_NEG: angular.m_floats[2] = -rotation_scale; break;
                 break;
               default: break;
             }
 
+            tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, linear);
+
+            /*
             if (ui.checkBoxUseWorldCoordinate->isChecked())
             {
               pose.setOrigin(pose.getOrigin() + linear);
@@ -281,7 +281,7 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
             tf::Quaternion q;
             q.setRPY(rx, ry, rz);
             pose.setRotation(pose.getRotation() * q);
-
+            */
 
             if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
               updateMarkerCallbBack(selected_markers_.back(), pose);
@@ -303,8 +303,6 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
       {
         if(message->gestures[i].type == Gesture::GESTURE_BODY_MOVE)
         {
-          tf::Transform pose;
-          tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
           tf::Vector3 linear(0, 0, 0);
 
           //message->gestures[i].hand_count
@@ -335,23 +333,8 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
             default: break;
           }
 
-          if(!ui.checkBoxAllTranslation->isChecked())
-          {
-            if(!ui.checkBoxEnableTranX->isChecked()) linear.setX(0);
-            if(!ui.checkBoxEnableTranY->isChecked()) linear.setY(0);
-            if(!ui.checkBoxEnableTranZ->isChecked()) linear.setZ(0);
-          }
 
-          if (ui.checkBoxUseWorldCoordinate->isChecked())
-          {
-            pose.setOrigin(pose.getOrigin() + linear);
-          }
-          else
-          {
-            tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
-            offset = pose * offset;
-            pose = offset;
-          }
+          tf::Transform pose = moveSelectedMarker(selected_markers_.back(), tf::Vector3(0,0,0), linear);
 
           if(ui.checkBoxEnableTranslation->isChecked())
             updateMarkerCallbBack(selected_markers_.back(), pose);
@@ -384,69 +367,19 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     tf::Vector3 angular;
     tf::vector3MsgToTF(message->angular, angular);
 
-    double l1 = linear.length2();
-    double l2 = angular.length2();
-
-    if((l1 == 0.0) && (l2 == 0.0))
-      return;
-
-    bool translate = false;
-    if(l1 > l2)
-      translate = true;
-
     linear.setX(-linear.x());
     linear.setY(-linear.y());
 
     linear = linear * (1/350.0) * ui.doubleSpinBoxLinearScale->value();
     angular = angular * (1/350.0) * ui.doubleSpinBoxAngularScale->value();
 
-    if(!ui.checkBoxAllTranslation->isChecked())
-    {
-      if(!ui.checkBoxEnableTranX->isChecked()) linear.setX(0);
-      if(!ui.checkBoxEnableTranY->isChecked()) linear.setY(0);
-      if(!ui.checkBoxEnableTranZ->isChecked()) linear.setZ(0);
-    }
-
-    if(!ui.checkBoxAllRotation->isChecked())
-    {
-      if(!ui.checkBoxEnableRotX->isChecked()) angular.setX(0);
-      if(!ui.checkBoxEnableRotY->isChecked()) angular.setY(0);
-      if(!ui.checkBoxEnableRotZ->isChecked()) angular.setZ(0);
-    }
-
-    tf::Quaternion q;
-    if (ui.checkBoxSwapRxRz->isChecked())
-      q.setRPY(angular.z(), angular.y(), angular.x());
-    else
-      q.setRPY(angular.x(), angular.y(), angular.z());
-
-    tf::Transform pose;
-    tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
-
-    if (ui.checkBoxEnableTranslation->isChecked())
-    {
-      if (ui.checkBoxUseWorldCoordinate->isChecked())
-      {
-        pose.setOrigin(pose.getOrigin() + linear);
-      }
-      else
-      {
-        tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
-        offset = pose * offset;
-        pose = offset;
-      }
-    }
-
-    if (ui.checkBoxEnableRotation->isChecked() && !translate)
-    {
-      pose.setRotation(pose.getRotation() * q);
-    }
-
+    tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, linear);
 
     if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
     {
       updateMarkerCallbBack(selected_markers_.back(), pose);
     }
+
   }
 }
 

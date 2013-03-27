@@ -203,7 +203,7 @@ void RC7MController::control()
   BCAP_HRESULT hr;
   double dt_sum = 0;
   int dt_count = 0;
-  ros::Time startTime;
+  ros::Time startTime = ros::Time::now();
   while (is_running_)
   {
 
@@ -219,7 +219,7 @@ void RC7MController::control()
     {
       if (motor_on_)
       {
-        dt_sum += (ros::Time(ros::WallTime::now().toSec()) - startTime).toSec();
+        dt_sum += (ros::Time(ros::Time::now().toSec()) - startTime).toSec();
         dt_count++;
         if(dt_count == rate_)
         {

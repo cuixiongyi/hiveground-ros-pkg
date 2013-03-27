@@ -714,6 +714,77 @@ bool InspectorArm::setMarkerOrientation(const std::string& name, double roll, do
   return false;
 }
 
+tf::Transform  InspectorArm::moveSelectedMarker(const std::string& name, const tf::Vector3& rotation, const tf::Vector3& translation)
+{
+  tf::Vector3 linear = translation;
+  tf::Vector3 angular = rotation;
+  tf::Transform pose;
+  tf::poseMsgToTF(markers_[name]->pose(), pose);
+
+
+  double l1 = linear.length2();
+  double l2 = angular.length2();
+
+  if((l1 == 0.0) && (l2 == 0.0))
+    return pose;
+
+  bool translate = false;
+  if(l1 > l2)
+    translate = true;
+
+
+  if(!ui.checkBoxAllTranslation->isChecked())
+  {
+    if(!ui.checkBoxEnableTranX->isChecked()) linear.setX(0);
+    if(!ui.checkBoxEnableTranY->isChecked()) linear.setY(0);
+    if(!ui.checkBoxEnableTranZ->isChecked()) linear.setZ(0);
+  }
+
+  if(!ui.checkBoxAllRotation->isChecked())
+  {
+    if(!ui.checkBoxEnableRotX->isChecked()) angular.setX(0);
+    if(!ui.checkBoxEnableRotY->isChecked()) angular.setY(0);
+    if(!ui.checkBoxEnableRotZ->isChecked()) angular.setZ(0);
+  }
+
+  tf::Quaternion q;
+  if (ui.checkBoxSwapRxRz->isChecked())
+    q.setRPY(angular.z(), angular.y(), angular.x());
+  else
+    q.setRPY(angular.x(), angular.y(), angular.z());
+
+
+  if (ui.checkBoxEnableTranslation->isChecked())
+  {
+    if(!ui.checkBoxApproach->isChecked())
+    {
+      if (ui.checkBoxUseWorldCoordinate->isChecked())
+      {
+        pose.setOrigin(pose.getOrigin() + linear);
+      }
+      else
+      {
+        tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
+        offset = pose * offset;
+        pose = offset;
+      }
+    }
+    else
+    {
+      tf::Transform offset(tf::Quaternion(0, 0, 0, 1), tf::Vector3(linear.getX(), 0, 0));
+      offset = pose * offset;
+      pose = offset;
+    }
+  }
+
+  if (ui.checkBoxEnableRotation->isChecked() && !translate)
+  {
+    pose.setRotation(pose.getRotation() * q);
+  }
+
+  return pose;
+}
+
 void InspectorArm::makeMenu()
 {
   menu_entry_maps_["Top Level"] = MenuEntryHandleMap();
