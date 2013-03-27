@@ -5,7 +5,7 @@ Axes.Reference\ Frame=<Fixed Frame>
 Background\ ColorB=0.741176
 Background\ ColorG=0.741176
 Background\ ColorR=0.741176
-Camera\ Config=0.724799 6.19956 1.80747 0.364526 0.927806 0.166116
+Camera\ Config=0.0948003 0.111375 2.84409 0.364526 0.927806 0.166116
 Camera\ Type=rviz::OrbitViewController
 Camera.Enabled=0
 Camera.Image\ Rendering=background & overlay
@@ -60,7 +60,6 @@ Grid.Plane=0
 Grid.Plane\ Cell\ Count=40
 Grid.Reference\ Frame=<Fixed Frame>
 Hand\ Interaction.Enabled=1
-Hand\ Interaction.GestureDetectorHandPushPull_result=1
 Hand\ Interaction.Marker\ Array\ Topic=/user_interaction/hands_makers
 Hand\ Interaction.Queue\ Size=100
 Inspection\ Point.Enabled=1
@@ -71,11 +70,17 @@ Inspection\ Point.Update\ Topic=/inspection_point_marker/update
 InspectorArm.Enabled=1
 InspectorArm.Marker\ Array\ Topic=/inspector_arm/marker_array
 InspectorArm.Queue\ Size=100
+InspectorArm.manipulator=1
+InspectorArm.manipulator_updated_links=1
 Interactive\ Markers.Enabled=1
 Interactive\ Markers.Show\ Axes=0
 Interactive\ Markers.Show\ Descriptions=1
 Interactive\ Markers.Show\ Tool\ Tips=1
 Interactive\ Markers.Update\ Topic=/planning_scene_warehouse_viewer_controls/update
+MarkerArray.=1
+MarkerArray.Enabled=1
+MarkerArray.Marker\ Array\ Topic=/inspector_arm/force_torque_direction_marker
+MarkerArray.Queue\ Size=100
 Object\ Tracking..AxisColorAutocompute\ Value\ Bounds=1
 Object\ Tracking..AxisColorAxis=2
 Object\ Tracking..AxisColorMax\ Value=0.243698
@@ -120,8 +125,8 @@ Plannning\ Scene.Enabled=0
 Plannning\ Scene.Marker\ Topic=/planning_scene_markers
 Plannning\ Scene.Queue\ Size=100
 Property\ Grid\ Splitter=888,78
-Property\ Grid\ State=expanded=.Global Options,Grid.Enabled,Robot Model.Enabled,Robot Model.Status,TF.Enabled,Hand Interaction.Enabled,InspectorArm.Enabled,Skeleton.Enabled,Camera.Enabled;splitterratio=0.570858
-QMainWindow=000000ff00000000fd0000000300000000000001c1000004bbfc0200000002fb000000100044006900730070006c00610079007303000000830000008c000001c100000420fb0000000c00430061006d006500720061020000005b00000036000002a30000020b00000001000001310000054bfc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d000001520000006700fffffffb0000000a0056006900650077007301000001750000029b000000bb00fffffffb0000001200530065006c0065006300740069006f006e0100000416000001520000006700ffffff00000003000004650000003efc0100000001fb0000000800540069006d0065010000000000000465000002bf00ffffff0000032e0000054b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+Property\ Grid\ State=expanded=.Global Options,Grid.Enabled,Robot Model.Enabled,Robot Model.Status,TF.Enabled,Hand Interaction.Enabled,InspectorArm.Enabled,Skeleton.Enabled,Camera.Enabled,MarkerArray.Enabled,MarkerArray.Namespaces;splitterratio=0.570858
+QMainWindow=000000ff00000000fd0000000300000000000001c1000004bbfc0200000002fb000000100044006900730070006c00610079007303000000830000008c000001c100000420fb0000000c00430061006d006500720061020000005b00000036000002a30000020b000000010000013100000593fc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d000001640000006700fffffffb0000000a005600690065007700730100000187000002bf000000bb00fffffffb0000001200530065006c0065006300740069006f006e010000044c000001640000006700ffffff00000003000004850000003efc0100000001fb0000000800540069006d0065010000000000000485000002bf00ffffff0000034e0000059300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 Robot\ Model.Alpha=1
 Robot\ Model.Collision\ Enabled=0
 Robot\ Model.Enabled=1
@@ -234,6 +239,9 @@ Name=Skeleton
 [Display16]
 ClassName=rviz::CameraDisplay
 Name=Camera
+[Display17]
+ClassName=rviz::MarkerArrayDisplay
+Name=MarkerArray
 [Display2]
 ClassName=rviz::MarkerDisplay
 Name=PSV Markers
@@ -270,7 +278,7 @@ Config=0.474797 4.14456 2.12588 0.567112 0.743053 0.276431
 Target=<Fixed Frame>
 Type=rviz::OrbitViewController
 [Window]
-Height=1488
-Width=1141
+Height=1560
+Width=1173
 X=5818
 Y=-717
