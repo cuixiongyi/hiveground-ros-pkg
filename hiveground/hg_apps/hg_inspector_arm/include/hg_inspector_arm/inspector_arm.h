@@ -119,6 +119,8 @@ protected:
   void deselectMarker(const std::string& name);
   void selectOnlyOneMarker(const std::string& name);
   bool setMarkerOrientation(const std::string& name, double roll, double pitch, double yaw);
+  tf::Transform moveSelectedMarker(const std::string& name, const tf::Vector3& rotation, const tf::Vector3& translation);
+
 
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
