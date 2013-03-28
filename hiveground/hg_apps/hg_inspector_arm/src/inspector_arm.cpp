@@ -381,13 +381,17 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
 
   tf::Vector3 fx(0, -0.707106781, 0.707106781);
   tf::Vector3 fy(0, 0.707106781, 0.707106781);
+  tf::Vector3 mx(0, -0.707106781, 0.707106781);
+  tf::Vector3 my(0, 0.707106781, 0.707106781);
 
   fx = fx * -message->fx;
   fy = fy * message->fy;
+  mx = mx * message->mx;
+  my = my * message->my;
 
 
   tf::Vector3 force(message->fz, fx.y() + fy.y(), fx.z()+ fy.z());
-  tf::Vector3 torque(message->mx, message->my, message->mz);
+  tf::Vector3 torque(message->mz, mx.z() + my.z(), mx.y()+ my.y());
 
   QMutexLocker lock(&force_torque_mutex_);
 
@@ -395,12 +399,13 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
   if(ui.checkBoxEnableForceTorque->isChecked())
   {
 
-    if(force.length() > 3)
+    if((force.length() > 3) || (torque.length() > 0.25))
     {
       count = 0;
-      tf::Vector3 liner = force.normalized() * 0.001;
-      tf::Transform pose = moveSelectedMarker(selected_markers_.back(), tf::Vector3(0,0,0), liner);
-      if(ui.checkBoxEnableTranslation->isChecked())
+      tf::Vector3 liner = force.normalized() * ui.doubleSpinBoxForceTranslationScale->value();
+      tf::Vector3 angular = torque.normalized() * ui.doubleSpinBoxForceRotationScale->value();
+      tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, liner);
+      if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
         updateMarkerCallbBack(selected_markers_.back(), pose);
     }
   }
@@ -409,9 +414,8 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
 
 
 
-
-
-
+  if (force_torque_direction_publisher_.getNumSubscribers() != 0)
+  {
 
     MarkerArray markers;
     Marker arrow = makeArrow();
@@ -422,26 +426,27 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
     tf::StampedTransform stf;
     listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), stf);
 
-
-
     tf::Pose pose = stf;
     Eigen::Quaternionf q;
 
     arrow.color.r = 1;
     arrow.color.g = 0;
     arrow.color.b = 0;
+    arrow.scale.x = torque.x();
+    arrow.scale.y = torque.x();
     arrow.scale.z = (force.x() / 20.0);
     tf::poseTFToMsg(pose, arrow.pose);
     markers.markers.push_back(arrow);
     arrow.id++;
 
-
     arrow.color.r = 0;
     arrow.color.g = 1;
     arrow.color.b = 0;
+    arrow.scale.x = torque.y();
+    arrow.scale.y = torque.y();
     arrow.scale.z = (force.y() / 20.0);
     q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0, 1, 0));
-    tf::Transform arrow_tf(tf::Quaternion(q.x(), q.y(), q.z(), q.w()), tf::Vector3(0,0,0));
+    tf::Transform arrow_tf(tf::Quaternion(q.x(), q.y(), q.z(), q.w()), tf::Vector3(0, 0, 0));
     tf::poseTFToMsg(pose * arrow_tf, arrow.pose);
     markers.markers.push_back(arrow);
     arrow.id++;
@@ -449,6 +454,8 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
     arrow.color.r = 0;
     arrow.color.g = 0;
     arrow.color.b = 1;
+    arrow.scale.x = torque.z();
+    arrow.scale.y = torque.z();
     arrow.scale.z = (force.z() / 20.0);
     q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0, 0, 1));
     arrow_tf.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
@@ -457,10 +464,10 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
     arrow.id++;
 
 
-    if(force_torque_direction_publisher_.getNumSubscribers() != 0)
-    {
-      force_torque_direction_publisher_.publish(markers);
-    }
+
+
+    force_torque_direction_publisher_.publish(markers);
+  }
 
 
 
