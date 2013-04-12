@@ -127,7 +127,7 @@ void RC7MController::startup()
     //set priority
 #ifdef WIN32
 
-#elif 0
+#else
     int retcode;
     int policy;
     pthread_t thread_id = (pthread_t)control_thread_.native_handle();
@@ -144,7 +144,7 @@ void RC7MController::startup()
         "Control thread inherited: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
 
     policy = SCHED_FIFO;
-    param.sched_priority = 4;
+    param.sched_priority = sched_get_priority_max(policy);
 
     if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
     {
@@ -169,6 +169,7 @@ void RC7MController::startup()
 
 #endif
   }
+
 
   is_running_ = true;
 
