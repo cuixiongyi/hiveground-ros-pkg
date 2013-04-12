@@ -1,5 +1,0 @@
-<library path="lib/librc7m">
-  <class name="controller_plugins/RC7MController" type="hg_controller::RC7MController" base_class_type="hg::Controller">
-    <description>This is a RC7M controller plugin.</description>
-  </class>  
-</library>
