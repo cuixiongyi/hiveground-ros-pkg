@@ -1,4 +1,0 @@
-<launch>
-  <include file="$(find hg_demo)/launch/vp6242/vp6242_kinect_center.launch"/> 
-  <include file="$(find hg_demo)/launch/vp6242/vp6242_self_filter.launch"/>
-</launch>

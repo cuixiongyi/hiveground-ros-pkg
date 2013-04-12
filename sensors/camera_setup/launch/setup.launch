@@ -1,6 +1,0 @@
-<launch>     
-  <node name="camera_setup" pkg="camera_setup" type="camera_setup" output="screen"> 
-    <param name="camera_n" value="1"/>  	
-    <param name="camera_0" value="kinect_server 0.0 0.0 0.0 0 0 0 1 world kinect_server"/>    
-   </node>     
-</launch>
