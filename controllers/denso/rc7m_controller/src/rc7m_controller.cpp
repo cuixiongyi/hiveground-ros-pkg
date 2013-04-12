@@ -127,7 +127,7 @@ void RC7MController::startup()
     //set priority
 #ifdef WIN32
 
-#else
+#elif 0
     int retcode;
     int policy;
     pthread_t thread_id = (pthread_t)control_thread_.native_handle();

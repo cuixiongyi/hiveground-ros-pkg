@@ -52,6 +52,7 @@
 #include <hg_user_interaction/gesture_detector.h>
 #include <hg_user_interaction/gesture_hand_pushpull.h>
 #include <hg_user_interaction/gesture_body_movement.h>
+#include <hg_user_interaction/gesture_elbow_switch.h>
 
 #include <ve_view.h>
 #include <ve_scene.h>

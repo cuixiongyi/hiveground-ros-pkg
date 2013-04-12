@@ -7,7 +7,7 @@ import struct
 import geometry_msgs.msg
 
 class Gesture(genpy.Message):
-  _md5sum = "5fc487b8bf6f2cf9190678cc3e1d5720"
+  _md5sum = "3cf6eb6acf20991136916508e4297e8b"
   _type = "hg_user_interaction/Gesture"
   _has_header = False #flag to mark the presence of a Header object
   _full_text = """#gesture
@@ -16,6 +16,9 @@ uint32 GESTURE_NOT_DETECTED = 0
 #hand
 uint32 GESTURE_HAND_SWEEP = 1
 uint32 GESTURE_HAND_PUSH_PULL = 2
+
+#elbow
+uint32 GESTURE_ELBOW_TOGGLE = 51
 
 #body
 uint32 GESTURE_BODY_MOVE = 101
@@ -84,6 +87,7 @@ float64 w
   GESTURE_NOT_DETECTED = 0
   GESTURE_HAND_SWEEP = 1
   GESTURE_HAND_PUSH_PULL = 2
+  GESTURE_ELBOW_TOGGLE = 51
   GESTURE_BODY_MOVE = 101
   GESTURE_BODY_TWIST = 102
   GESTURE_BODY_LEAN = 103
