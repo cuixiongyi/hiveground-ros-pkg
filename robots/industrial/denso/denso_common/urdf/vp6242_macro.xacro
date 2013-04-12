@@ -1,0 +1,220 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <!--
+        Limits
+            Joint: J1   J2   J3   J4   J5   J6
+            Max  : 160  120  160  160  120  360
+            Min  :-160 -120   19 -160 -120 -360
+    -->
+
+    <xacro:macro name="mesh_origin">
+        <origin rpy="-1.570796 3.141592 0" xyz="0 0 0"/>
+    </xacro:macro>
+    <xacro:property name="mesh_path" value="package://denso_common/meshes/vp6242" />
+    <xacro:property name="mesh_scale" value="0.001 0.001 0.001" />
+    <xacro:property name="default_joint_velocity" value="1.0" />
+    <xacro:property name="default_joint_effort" value="0" />
+    <xacro:property name="joint1_max" value="2.792526803"/>
+    <xacro:property name="joint1_min" value="-2.792526803"/>
+    <xacro:property name="joint2_max" value="2.094395102"/>
+    <xacro:property name="joint2_min" value="-2.094395102"/>
+    <xacro:property name="joint3_max" value="2.792526803"/>
+    <xacro:property name="joint3_min" value="0.331612558"/>
+    <xacro:property name="joint4_max" value="2.792526803"/>
+    <xacro:property name="joint4_min" value="-2.792526803"/>
+    <xacro:property name="joint5_max" value="2.094395102"/>
+    <xacro:property name="joint5_min" value="-2.094395102"/>
+    <xacro:property name="joint6_max" value="6.283185307"/>
+    <xacro:property name="joint6_min" value="-6.283185307"/>
+    
+    
+    <xacro:macro name="vp6242" params="prefix">     
+
+        <!-- Link lisk -->
+        <link name="${prefix}base_link">
+            <visual>
+	            <geometry>
+                    <mesh filename="${mesh_path}/visual/base.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <xacro:mesh_origin/>               
+            </visual>
+            <collision> 
+	  	        <geometry>
+  	                <mesh filename="${mesh_path}/collision/base.dae" scale="${mesh_scale}"/>
+        	  	</geometry>
+                <xacro:mesh_origin/>
+            </collision>    
+        </link> 
+        
+        <link name="${prefix}link1">
+            <visual>
+                <geometry>
+                    <mesh filename="${mesh_path}/visual/link1.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <xacro:mesh_origin/>
+            </visual>
+            <collision>
+                <geometry>
+                <mesh filename="${mesh_path}/collision/link1.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <xacro:mesh_origin/>
+            </collision>
+        </link>
+
+        <link name="${prefix}link2">
+            <visual>
+                <geometry>
+                    <mesh filename="${mesh_path}/visual/link2.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <xacro:mesh_origin/>
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="${mesh_path}/collision/link2.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <xacro:mesh_origin/>	
+            </collision>    
+        </link>
+
+        <link name="${prefix}link3">
+            <visual>
+                <geometry>
+                    <mesh filename="${mesh_path}/visual/link3.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <origin rpy="-1.570796 1.570796 0" xyz="0 0 0"/>
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="${mesh_path}/collision/link3.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <origin rpy="-1.570796 1.570796 0" xyz="0 0 0"/>
+            </collision>        
+        </link>
+        <link name="${prefix}link4">
+            <visual>
+                <geometry>
+                    <mesh filename="${mesh_path}/visual/link4.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <origin rpy="0 1.570796 1.570796" xyz="0 0 0.085"/>    
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="${mesh_path}/collision/link4.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <origin rpy="0 1.570796 1.570796" xyz="0 0 0.085"/>
+            </collision>    
+        </link>        
+        <link name="${prefix}link5">
+            <visual>
+                <geometry>
+                    <mesh filename="${mesh_path}/visual/link5.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>        
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="${mesh_path}/collision/link5.dae" scale="${mesh_scale}"/>
+                </geometry>
+                <origin rpy="0 1.570796 1.570796" xyz="0 0 0.0"/>
+            </collision>    
+        </link>
+        <link name="${prefix}link6">
+            <visual>
+                <geometry>
+                    <cylinder length="0.01" radius="0.0205"/>
+                </geometry>
+                <origin rpy="0 -1.570796 0" xyz="0.0 0.0 0.0"/>
+                <material name="plate">
+                    <color rgba="0.1 0.1 0.1 0.8"/>
+                </material>
+            </visual>
+        </link>    
+        <link name="${prefix}tool0"/>
+        
+        <!-- Joint lisk -->
+        <joint name="${prefix}joint1" type="revolute">
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.155"/>
+            <parent link="${prefix}base_link"/>
+            <child link="${prefix}link1"/>
+            <axis xyz="0 0 1"/>
+            <limit 
+                upper="${joint1_max}"               
+                lower="${joint1_min}" 
+                effort="${default_joint_effort}" 
+                velocity="${default_joint_velocity}" />
+            <calibration    
+                rising="0"
+                falling="0" />
+			<dynamics
+                damping="0"
+                friction="0" />       
+        </joint>
+        <joint name="${prefix}joint2" type="revolute">
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.125"/>   
+            <parent link="link1"/>   
+            <child link="link2"/>                   
+            <axis xyz="0 1 0"/>
+            <limit 
+                upper="${joint2_max}"               
+                lower="${joint2_min}" 
+                effort="${default_joint_effort}" 
+                velocity="${default_joint_velocity}" />
+            <calibration    
+                rising="0"
+                falling="0" />
+			<dynamics
+                damping="0"
+                friction="0" />       
+        </joint>
+        <joint name="${prefix}joint3" type="revolute">
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
+            <parent link="link2"/>
+            <child link="link3"/>
+            <axis xyz="0 1 0"/>
+            <limit 
+                upper="${joint3_max}"               
+                lower="${joint3_min}" 
+                effort="${default_joint_effort}"                  
+                velocity="${default_joint_velocity}"/>
+        </joint>        
+        <joint name="${prefix}joint4" type="revolute">
+            <origin rpy="0 0 0" xyz="-0.075 0.0 0.0"/>
+            <parent link="link3"/>
+            <child link="link4"/>    
+            <axis xyz="0 0 1"/>
+            <limit 
+                upper="${joint4_max}"               
+                lower="${joint4_min}" 
+                effort="${default_joint_effort}" 
+                velocity="${default_joint_velocity}"/>
+        </joint>      
+        <joint name="${prefix}joint5" type="revolute">
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
+            <parent link="link4"/>
+            <child link="link5"/>
+            <axis xyz="0 1 0"/>
+            <limit
+                upper="${joint5_max}"               
+                lower="${joint5_min}" 
+                effort="${default_joint_effort}"
+                velocity="${default_joint_velocity}"/>
+        </joint>
+        <joint name="J6" type="revolute">
+            <origin rpy="0 -1.570796 0" xyz="0.0 0.0 0.07"/>
+            <parent link="link5"/>
+            <child link="link6"/>
+            <axis xyz="1 0 0"/>
+            <limit 
+                upper="${joint6_max}"               
+                lower="${joint6_min}"                     
+                effort="${default_joint_effort}" 
+                velocity="${default_joint_velocity}"/>
+       
+        </joint>        
+        <joint name="${prefix}joint6-tool0" type="fixed">
+			<parent link="link6"/>
+			<child link="tool0"/>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+		</joint>
+    </xacro:macro>
+</robot>
