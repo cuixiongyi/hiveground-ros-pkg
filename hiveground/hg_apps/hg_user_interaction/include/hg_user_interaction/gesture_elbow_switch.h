@@ -27,74 +27,67 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ * gesture_elbow_switch.h
  *
- * Author: Mahisorn Wongphati
+ *  Created on: Apr 12, 2013
+ *      Author: chang
  */
 
-#ifndef GESTURE_DETECTOR_H_
-#define GESTURE_DETECTOR_H_
+#ifndef GESTURE_ELBOW_SWITCH_H_
+#define GESTURE_ELBOW_SWITCH_H_
 
-#include <ros/ros.h>
-#include <qtpropertymanager.h>
-#include <qteditorfactory.h>
-#include <qttreepropertybrowser.h>
-#include <ve_node.h>
-#include <kinect_msgs/Skeletons.h>
-#include <hg_object_tracking/Hands.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <hg_user_interaction/Gestures.h>
+#include <hg_user_interaction/gesture_detector.h>
+#include <tf/tf.h>
 
 namespace hg_user_interaction
 {
 
-class GestureDetectorItem;
-
-typedef QList<GestureDetectorItem*> GestureDetectorItemList;
-
-class GestureDetectorItem : public ve::Node
+class GestureDetectorElbowSwitch : public GestureDetectorItem
 {
   Q_OBJECT
 public:
-  GestureDetectorItem(ros::NodeHandle& nh_private);
-  GestureDetectorItem(ros::NodeHandle& nh_private, const QRectF& rect);
-  ~GestureDetectorItem();
+  GestureDetectorElbowSwitch(ros::NodeHandle& nh_private);
+  GestureDetectorElbowSwitch(ros::NodeHandle& nh_private, const QRectF& rect);
+  ~GestureDetectorElbowSwitch();
 
-  virtual bool initialize() = 0;
 
-  virtual void addSkeletonsMessage(const kinect_msgs::SkeletonsConstPtr& skeletons) = 0;
-  virtual void addHandsMessage(const hg_object_tracking::HandsConstPtr& hands) = 0;
+  bool initialize();
+  void addSkeletonsMessage(const kinect_msgs::SkeletonsConstPtr& skeletons);
+  void addHandsMessage(const hg_object_tracking::HandsConstPtr& hands) { }
 
-  virtual void drawHistory(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id) = 0;
-  virtual void drawResult(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id) = 0;
-
-  virtual int lookForGesture(hg_user_interaction::Gesture& gesture) = 0;
-
-  enum RttiValue
-  {
-    Rtti_Item = 0,
-    Rtti_HandPushPull,
-    Rtti_BodyMovement,
-    Rtti_ElbowSwitch
-  };
+  void drawHistory(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id);
+  void drawResult(visualization_msgs::MarkerArray& marker_array, const std::string& frame_id);
+  int lookForGesture(hg_user_interaction::Gesture& gesture);
 
   virtual int rtti() const
   {
     return RTTI;
   }
 
-  VE_GETSETG(bool, draw_history_, DrawHistory);
-  VE_GETSETG(bool, draw_result_, DrawResult);
+  VE_GETSETG(int, max_frame_, MaxFrame);
+  VE_GETSETG(double, min_length_, MinLength);
+  VE_GETSETG(double, max_detecting_rate_, MaxDetectRate);
 
 protected:
-  ros::NodeHandle& nh_private_;
-  bool draw_history_;
-  bool draw_result_;
+  bool skeleton_updated_;
+  std::list<tf::Vector3> l_elbow_path_;
+  std::list<tf::Vector3> r_elbow_path_;
+
+  int max_frame_;
+  double min_length_;
+  double max_detecting_rate_; //gesture / s
+  ros::Time last_detected_time_;
+
+
+
 
 private:
-  Q_DISABLE_COPY(GestureDetectorItem);
   static int RTTI;
+
+
 };
 
 }
 
-#endif /* GESTURE_DETECTOR_H_ */
+
+#endif /* GESTURE_ELBOW_SWITCH_H_ */
