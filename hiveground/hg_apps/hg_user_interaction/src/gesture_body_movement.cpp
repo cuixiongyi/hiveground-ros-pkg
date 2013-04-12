@@ -281,36 +281,36 @@ int GestureBodyMovement::getState(const tf::Vector3& vec_to_body)
             case 0:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO_THROTTLE(1.0, "X+");
+                //ROS_INFO_THROTTLE(1.0, "X+");
                 detected_gesture = Gesture::DIR_X_POS;
               }
               else
               {
-                ROS_INFO_THROTTLE(1.0, "X-");
+                //ROS_INFO_THROTTLE(1.0, "X-");
                 detected_gesture = Gesture::DIR_X_NEG;
               }
               break;
             case 1:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO_THROTTLE(1.0, "Y+");
+                //ROS_INFO_THROTTLE(1.0, "Y+");
                 detected_gesture = Gesture::DIR_Y_POS;
               }
               else
               {
-                ROS_INFO_THROTTLE(1.0, "Y-");
+                //ROS_INFO_THROTTLE(1.0, "Y-");
                 detected_gesture = Gesture::DIR_Y_NEG;
               }
               break;
             case 2:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO_THROTTLE(1.0, "Z+");
+                //ROS_INFO_THROTTLE(1.0, "Z+");
                 detected_gesture = Gesture::DIR_Z_POS;
               }
               else
               {
-                ROS_INFO_THROTTLE(1.0, "Z-");
+                //ROS_INFO_THROTTLE(1.0, "Z-");
                 detected_gesture = Gesture::DIR_Z_NEG;
               }
               break;

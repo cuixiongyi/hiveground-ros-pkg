@@ -195,7 +195,8 @@ int GestureDetectorElbowSwitch::lookForGesture(hg_user_interaction::Gesture& ges
         r_elbow_path_.clear();
         last_detected_time_ = ros::Time::now();
 
-        ROS_INFO("l_length: %6.3f r_length: %6.3f", l_length, r_length);
+        //ROS_INFO("l_length: %6.3f r_length: %6.3f", l_length, r_length);
+        gesture.type = Gesture::GESTURE_ELBOW_TOGGLE;
         return Gesture::GESTURE_ELBOW_TOGGLE;
       }
     }
