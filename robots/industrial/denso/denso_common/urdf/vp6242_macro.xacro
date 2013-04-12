@@ -199,7 +199,7 @@
                 effort="${default_joint_effort}"
                 velocity="${default_joint_velocity}"/>
         </joint>
-        <joint name="J6" type="revolute">
+        <joint name="${prefix}joint6" type="revolute">
             <origin rpy="0 -1.570796 0" xyz="0.0 0.0 0.07"/>
             <parent link="link5"/>
             <child link="link6"/>
