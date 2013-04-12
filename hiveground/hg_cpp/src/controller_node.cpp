@@ -32,6 +32,8 @@
  */
 
 #include <signal.h>
+#include <sys/mman.h>
+
 #include <ros/ros.h>
 #include <ros/xmlrpc_manager.h>
 #include <hg_cpp/controller_node.h>
@@ -232,6 +234,15 @@ void shutdownCallback(XmlRpc::XmlRpcValue& params, XmlRpc::XmlRpcValue& result)
 
 int main(int argc, char** argv)
 {
+  // Keep the kernel from swapping us out
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
+    perror("mlockall");
+    return -1;
+  }
+
+
+
+
   ros::init(argc, argv, "hgROS", ros::init_options::NoSigintHandler);
   signal(SIGINT, mySigIntHandler);
 
