@@ -286,11 +286,17 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
   //ROS_INFO_THROTTLE(1, __FUNCTION__);
   if (ui.checkBoxEnableBodyGesture->isChecked())
   {
-    if(markers_.find(selected_markers_.back()) != markers_.end())
+    for (size_t i = 0; i < message->gestures.size(); i++)
     {
-      for(size_t i = 0; i < message->gestures.size(); i++)
+      //ROS_INFO("Type %d", message->gestures[i].type);
+      if (message->gestures[i].type == Gesture::GESTURE_ELBOW_TOGGLE)
       {
-        if(message->gestures[i].type == Gesture::GESTURE_BODY_MOVE)
+        ui.checkBoxUseWorldCoordinate->toggle();
+      }
+
+      if (message->gestures[i].type == Gesture::GESTURE_BODY_MOVE)
+      {
+        if (markers_.find(selected_markers_.back()) != markers_.end())
         {
           tf::Vector3 linear(0, 0, 0);
 
@@ -299,7 +305,7 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
 
           double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * move_distance;
 
-          switch(message->gestures[i].direction)
+          switch (message->gestures[i].direction)
           {
             case Gesture::DIR_X_POS:
               linear.m_floats[0] += translation_scale;
@@ -319,14 +325,15 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
             case Gesture::DIR_Z_NEG:
               linear.m_floats[2] -= translation_scale;
               break;
-            default: break;
+            default:
+              break;
           }
 
+          tf::Transform pose = moveSelectedMarker(selected_markers_.back(), tf::Vector3(0, 0, 0), linear);
 
-          tf::Transform pose = moveSelectedMarker(selected_markers_.back(), tf::Vector3(0,0,0), linear);
-
-          if(ui.checkBoxEnableTranslation->isChecked())
+          if (ui.checkBoxEnableTranslation->isChecked())
             updateMarkerCallbBack(selected_markers_.back(), pose);
+
         }
       }
     }

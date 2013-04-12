@@ -257,7 +257,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
     }
   }
 
-  //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+
   Gestures gestures;
   gestures.header = transformed_skeletons->header;
   GestureDetectorItem* item;
@@ -273,6 +273,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
       item->drawResult(markers, transformed_skeletons->header.frame_id);
       if (detected_gesture != Gesture::GESTURE_NOT_DETECTED)
       {
+        //ROS_INFO("gesture %d", detected_gesture);
         gestures.gestures.push_back(gesture);
       }
     }
