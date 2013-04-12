@@ -1,0 +1,6 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: denso_common
+    relative_path: urdf/vp6242.urdf
+  SRDF:
+    relative_path: config/vp6242.srdf
