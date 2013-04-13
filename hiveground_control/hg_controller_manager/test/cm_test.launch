@@ -1,0 +1,12 @@
+<launch>
+  <rosparam>
+    my_controller:
+      type: hg_controller_manager_tests::EffortTestController
+    my_controller2:
+      type: hg_controller_manager_tests::EffortTestController
+    dummy_controller:
+      type: hg_controller_manager_tests::MyDummyController
+  </rosparam>
+
+  <node pkg="hg_controller_manager" type="dummy_app" name="dummy_app" />  
+</launch>

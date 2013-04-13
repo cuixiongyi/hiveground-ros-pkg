@@ -1,0 +1,8 @@
+<library path="lib/libhg_controller_manager_tests">
+  <class type="hg_controller_manager_tests::EffortTestController" base_class_type="hg_controller_manager::ControllerBase">
+    <description>This is a triangle plugin.</description>
+  </class>
+  <class type="hg_controller_manager_tests::MyDummyController" base_class_type="hg_controller_manager::ControllerBase">
+    <description>This is a square plugin.</description>
+  </class>
+</library>
