@@ -1,25 +1,25 @@
 <?xml version="1.0"?>
 <package>
-  <name>denso_common</name>
+  <name>hg_controller_manager</name>
   <version>0.0.0</version>
-  <description>The denso_common package</description>
+  <description>The hg_controller_manager package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="mahisorn.w@hiveground.com">Mahisorn Wongphati</maintainer>
+  <maintainer email="chang@todo.todo">chang</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>BSD</license>
+  <license>TODO</license>
 
 
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://ros.org/wiki/denso_common</url> -->
+  <!-- <url type="website">http://ros.org/wiki/hg_controller_manager</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -40,10 +40,16 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>hg_realtime_tools</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>urdf</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <run_depend>hg_realtime_tools</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>urdf</run_depend>  
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>pluginlib</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
@@ -52,6 +58,7 @@
     <!-- <metapackage/> -->
 
     <!-- Other tools can request additional information be placed here -->
+    <hg_controller_manager plugin="${prefix}/plugin.xml" />
 
   </export>
 </package>

@@ -5,6 +5,10 @@
 <!-- =================================================================================== -->
 <robot name="vp6242" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <link name="base_link">
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="package://denso_common/meshes/vp6242/visual/base.dae" scale="0.001 0.001 0.001"/>
@@ -19,6 +23,10 @@
     </collision>
   </link>
   <link name="link1">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="package://denso_common/meshes/vp6242/visual/link1.dae" scale="0.001 0.001 0.001"/>
@@ -33,6 +41,10 @@
     </collision>
   </link>
   <link name="link2">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="package://denso_common/meshes/vp6242/visual/link2.dae" scale="0.001 0.001 0.001"/>
@@ -47,6 +59,10 @@
     </collision>
   </link>
   <link name="link3">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="package://denso_common/meshes/vp6242/visual/link3.dae" scale="0.001 0.001 0.001"/>
@@ -61,6 +77,10 @@
     </collision>
   </link>
   <link name="link4">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="package://denso_common/meshes/vp6242/visual/link4.dae" scale="0.001 0.001 0.001"/>
@@ -75,6 +95,10 @@
     </collision>
   </link>
   <link name="link5">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="package://denso_common/meshes/vp6242/visual/link5.dae" scale="0.001 0.001 0.001"/>

@@ -26,12 +26,21 @@
     <xacro:property name="joint5_min" value="-2.094395102"/>
     <xacro:property name="joint6_max" value="6.283185307"/>
     <xacro:property name="joint6_min" value="-6.283185307"/>
-    
+    <xacro:macro name="default_inertial" params="mass">
+        <inertial>
+            <mass value="${mass}" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0"
+                     iyy="1.0" iyz="0.0"
+                     izz="1.0" />
+        </inertial>
+    </xacro:macro>
+
     
     <xacro:macro name="vp6242" params="prefix">     
 
         <!-- Link lisk -->
         <link name="${prefix}base_link">
+            <xacro:default_inertial mass="10"/>
             <visual>
 	            <geometry>
                     <mesh filename="${mesh_path}/visual/base.dae" scale="${mesh_scale}"/>
@@ -47,6 +56,7 @@
         </link> 
         
         <link name="${prefix}link1">
+            <xacro:default_inertial mass="1"/>
             <visual>
                 <geometry>
                     <mesh filename="${mesh_path}/visual/link1.dae" scale="${mesh_scale}"/>
@@ -62,6 +72,7 @@
         </link>
 
         <link name="${prefix}link2">
+            <xacro:default_inertial mass="1"/>
             <visual>
                 <geometry>
                     <mesh filename="${mesh_path}/visual/link2.dae" scale="${mesh_scale}"/>
@@ -77,6 +88,7 @@
         </link>
 
         <link name="${prefix}link3">
+            <xacro:default_inertial mass="1"/>           
             <visual>
                 <geometry>
                     <mesh filename="${mesh_path}/visual/link3.dae" scale="${mesh_scale}"/>
@@ -91,6 +103,7 @@
             </collision>        
         </link>
         <link name="${prefix}link4">
+            <xacro:default_inertial mass="1"/>           
             <visual>
                 <geometry>
                     <mesh filename="${mesh_path}/visual/link4.dae" scale="${mesh_scale}"/>
@@ -105,6 +118,7 @@
             </collision>    
         </link>        
         <link name="${prefix}link5">
+            <xacro:default_inertial mass="1"/>           
             <visual>
                 <geometry>
                     <mesh filename="${mesh_path}/visual/link5.dae" scale="${mesh_scale}"/>
