@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(denso_common)
+project(vp6242_helping_hand)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp urdf hg_controller_manager)
+find_package(catkin REQUIRED COMPONENTS hg_controller_manager roscpp denso_common urdf)
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS system)
+# find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -49,8 +49,8 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
    INCLUDE_DIRS include
-#  LIBRARIES denso_common
-#  CATKIN_DEPENDS roscpp urdf
+#  LIBRARIES vp6242_helping_hand
+#  CATKIN_DEPENDS hg_controller_manager roscpp
 #  DEPENDS system_lib
 )
 
@@ -65,27 +65,22 @@ include_directories(include
 )
 
 ## Declare a cpp library
-add_library(${PROJECT_NAME}
-  src/bcap.cpp
-  src/bcap_serial.cpp
-  src/bcap_net.cpp
-  src/crc16.cpp
-
-  src/rc7m_controller.cpp  
-  src/vp6242_robot.cpp  
-)
+# add_library(vp6242_helping_hand
+#   src/${PROJECT_NAME}/vp6242_helping_hand.cpp
+# )
 
 ## Declare a cpp executable
-#add_executable(denso_common_node src/denso_common_node.cpp)
+add_executable(vp6242_helping_hand_node src/vp6242_helping_hand_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(denso_common_node denso_common_generate_messages_cpp)
+# add_dependencies(vp6242_helping_hand_node vp6242_helping_hand_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-#target_link_libraries(denso_common_node
-#   ${catkin_LIBRARIES}
-#)
+target_link_libraries(vp6242_helping_hand_node
+  ${catkin_LIBRARIES}
+  denso_common
+)
 
 #############
 ## Install ##
@@ -102,7 +97,7 @@ add_library(${PROJECT_NAME}
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS denso_common denso_common_node
+# install(TARGETS vp6242_helping_hand vp6242_helping_hand_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -127,15 +122,10 @@ add_library(${PROJECT_NAME}
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_denso_common.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_vp6242_helping_hand.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
-
-catkin_add_gtest(bcap-net-test test/bcap_net_test.cpp)
-if(TARGET bcap-net-test)  
-  target_link_libraries(bcap-net-test ${PROJECT_NAME} ${Boost_LIBRARIES})  
-endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

@@ -39,6 +39,7 @@
     <xacro:macro name="vp6242" params="prefix">     
 
         <!-- Link lisk -->
+        <link name="${prefix}base"/>
         <link name="${prefix}base_link">
             <xacro:default_inertial mass="10"/>
             <visual>
@@ -146,6 +147,11 @@
         <link name="${prefix}tool0"/>
         
         <!-- Joint lisk -->
+        <joint name="${prefix}base-base_link" type="fixed">
+			<parent link="${prefix}base"/>
+			<child link="${prefix}base_link"/>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+		</joint>
         <joint name="${prefix}joint1" type="revolute">
             <origin rpy="0 0 0" xyz="0.0 0.0 0.155"/>
             <parent link="${prefix}base_link"/>
@@ -165,8 +171,8 @@
         </joint>
         <joint name="${prefix}joint2" type="revolute">
             <origin rpy="0 0 0" xyz="0.0 0.0 0.125"/>   
-            <parent link="link1"/>   
-            <child link="link2"/>                   
+            <parent link="${prefix}link1"/>   
+            <child link="${prefix}link2"/>                   
             <axis xyz="0 1 0"/>
             <limit 
                 upper="${joint2_max}"               
@@ -182,8 +188,8 @@
         </joint>
         <joint name="${prefix}joint3" type="revolute">
             <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
-            <parent link="link2"/>
-            <child link="link3"/>
+            <parent link="${prefix}link2"/>
+            <child link="${prefix}link3"/>
             <axis xyz="0 1 0"/>
             <limit 
                 upper="${joint3_max}"               
@@ -193,8 +199,8 @@
         </joint>        
         <joint name="${prefix}joint4" type="revolute">
             <origin rpy="0 0 0" xyz="-0.075 0.0 0.0"/>
-            <parent link="link3"/>
-            <child link="link4"/>    
+            <parent link="${prefix}link3"/>
+            <child link="${prefix}link4"/>    
             <axis xyz="0 0 1"/>
             <limit 
                 upper="${joint4_max}"               
@@ -204,8 +210,8 @@
         </joint>      
         <joint name="${prefix}joint5" type="revolute">
             <origin rpy="0 0 0" xyz="0.0 0.0 0.210"/>
-            <parent link="link4"/>
-            <child link="link5"/>
+            <parent link="${prefix}link4"/>
+            <child link="${prefix}link5"/>
             <axis xyz="0 1 0"/>
             <limit
                 upper="${joint5_max}"               
@@ -215,8 +221,8 @@
         </joint>
         <joint name="${prefix}joint6" type="revolute">
             <origin rpy="0 -1.570796 0" xyz="0.0 0.0 0.07"/>
-            <parent link="link5"/>
-            <child link="link6"/>
+            <parent link="${prefix}link5"/>
+            <child link="${prefix}link6"/>
             <axis xyz="1 0 0"/>
             <limit 
                 upper="${joint6_max}"               
@@ -226,8 +232,8 @@
        
         </joint>        
         <joint name="${prefix}joint6-tool0" type="fixed">
-			<parent link="link6"/>
-			<child link="tool0"/>
+			<parent link="${prefix}link6"/>
+			<child link="${prefix}tool0"/>
 			<origin xyz="0 0 0" rpy="0 0 0"/>
 		</joint>
     </xacro:macro>

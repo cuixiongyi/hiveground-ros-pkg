@@ -1,0 +1,9 @@
+<launch>
+	<!-- No namespace here as we will share this description. Access with slash at the beginning -->
+  	<param name="robot_description" command="$(find xacro)/xacro.py $(find denso_common)/urdf/vp6242.xacro" />
+  	
+  	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
+  	
+  	<node pkg="vp6242_helping_hand" type="vp6242_helping_hand_node" name="vp6242_helping_hand_node" output="screen" /> 
+  	
+</launch>
