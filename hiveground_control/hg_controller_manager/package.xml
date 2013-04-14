@@ -58,7 +58,7 @@
     <!-- <metapackage/> -->
 
     <!-- Other tools can request additional information be placed here -->
-    <hg_controller_manager plugin="${prefix}/plugin.xml" />
+    <hg_controller_manager plugin="${prefix}/plugins.xml" />
 
   </export>
 </package>
