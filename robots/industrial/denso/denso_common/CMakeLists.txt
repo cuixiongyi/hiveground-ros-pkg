@@ -4,7 +4,7 @@ project(denso_common)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp urdf hg_controller_manager)
+find_package(catkin REQUIRED COMPONENTS roscpp urdf hg_controller_manager hg_realtime_tools)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
@@ -61,6 +61,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include
+  hg_controller_manager
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -70,8 +71,7 @@ add_library(${PROJECT_NAME}
   src/bcap_serial.cpp
   src/bcap_net.cpp
   src/crc16.cpp
-
-  src/rc7m_controller.cpp  
+    
   src/vp6242_robot.cpp  
 )
 

@@ -55,7 +55,6 @@ BCapNet::BCapNet(const std::string& address, const std::string& port, Connecting
     udp::resolver::query query(udp::v4(), address, port);
     udp::resolver::iterator iterator = (resolver.resolve(query));
     host_endpoint_ = *iterator;
-    std::cout << host_endpoint_ << std::endl;
     udp_socket_->connect(host_endpoint_);
   }
 
@@ -64,6 +63,7 @@ BCapNet::BCapNet(const std::string& address, const std::string& port, Connecting
 
 BCapNet::~BCapNet()
 {
+  printf(__FUNCTION__);
   if(tcp_socket_)
   {
     tcp_socket_->close();

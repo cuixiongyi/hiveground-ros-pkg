@@ -95,6 +95,7 @@ void ControllerManager::update(const ros::Time& time, const ros::Duration& perio
   for (size_t i = 0; i < controllers.size(); i++)
     controllers[i].c->updateRequest(time, period);
 
+
   // there are controllers to start/stop
   if (please_switch_)
   {

@@ -30,30 +30,120 @@
  *
  */
 
-#include <denso_common/vp6242_robot.h>
+#include <sys/mman.h>
+#include <signal.h>
 
+#include <denso_robots/vp6242_robot.h>
+#include <hg_controller_manager/hg_controller_manager.h>
 
+using namespace std;
 
-int main(int argc, char** argv)
+bool g_quit = false;
+
+void quitRequested(int sig)
 {
-  ros::init(argc, argv, "vp6242_helping_hand_node");
+  g_quit = true;
+}
 
-  ros::NodeHandle nh;
+boost::thread g_control_thread;
+
+void controlThread()
+{
+  int retcode;
+  int policy;
+  pthread_t thread_id = (pthread_t)g_control_thread.native_handle();
+  struct sched_param param;
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_getschedparam");
+  }
+
+  ROS_INFO_STREAM("Control thread inherited: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+
+  policy = SCHED_FIFO;
+  param.sched_priority = sched_get_priority_max(policy);
+
+  if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_setschedparam");
+  }
+
+  ros::Duration(1.0).sleep();
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_getschedparam");
+  }
+
+  ROS_INFO_STREAM("Control thread changed: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+
+  ros::NodeHandle nh("~");
 
   urdf::Model urdf_model;
   urdf_model.initParam("robot_description");
-  denso_common::VP6242Robot robot(urdf_model);
 
+  denso_common::VP6242Robot vp6242(nh, urdf_model, "arm0_");
 
+  hg_controller_manager::ControllerManager cm(&vp6242, nh);
 
-
-  ros::Duration period(1.0);
-  while (ros::ok())
+  if (!vp6242.start())
   {
-    ROS_INFO("loop");
-    period.sleep();
-    ros::spinOnce();
+    ROS_ERROR("Cannot start robot!");
+    return;
   }
+
+  ros::Rate rate(1000);
+  while (!g_quit)
+  {
+    if(!vp6242.read())
+    {
+      g_quit = true;
+      break;
+    }
+
+    cm.update(ros::Time::now(), ros::Duration(0.001));
+
+    if(!vp6242.write())
+    {
+      g_quit = true;
+      break;
+    }
+
+    rate.sleep();
+  }
+
+  vp6242.stop();
+  ros::shutdown();
+}
+
+int main(int argc, char** argv)
+{
+  // Keep the kernel from swapping us out
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
+    perror("mlockall");
+    return -1;
+  }
+
+  ros::init(argc, argv, "vp6242_helping_hand_node");
+
+  ros::NodeHandle nh("~");
+
+  // Catch attempts to quit
+  signal(SIGTERM, quitRequested);
+  signal(SIGINT, quitRequested);
+  signal(SIGHUP, quitRequested);
+
+  g_control_thread = boost::thread(&controlThread);
+
+  ros::spin();
+
+  g_control_thread.join();
+
+  return 0;
 }
 
 

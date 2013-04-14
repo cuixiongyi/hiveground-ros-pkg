@@ -40,6 +40,7 @@
 
         <!-- Link lisk -->
         <link name="${prefix}base"/>
+        
         <link name="${prefix}base_link">
             <xacro:default_inertial mass="10"/>
             <visual>

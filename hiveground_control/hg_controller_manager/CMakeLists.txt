@@ -81,7 +81,6 @@ add_library(hg_controller_manager_tests
 )
 
 ## Declare a cpp executable
-add_executable(hg_controller_manager_node src/hg_controller_manager_node.cpp)
 add_executable(dummy_app src/controller_manager_tests/dummy_app.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -90,11 +89,6 @@ add_executable(dummy_app src/controller_manager_tests/dummy_app.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(hg_controller_manager
-  ${catkin_LIBRARIES}
-)
-
-
-target_link_libraries(hg_controller_manager_node
   ${catkin_LIBRARIES}
 )
 
