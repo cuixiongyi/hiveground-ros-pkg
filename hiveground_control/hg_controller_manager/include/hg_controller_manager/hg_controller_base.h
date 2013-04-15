@@ -79,7 +79,7 @@ public:
 
   bool startRequest(const ros::Time& time)
   {
-    ROS_INFO("start succeeds even if the controller was already started");
+    //start succeeds even if the controller was already started
     if (state_ == RUNNING || state_ == INITIALIZED)
     {
       starting(time);
@@ -92,7 +92,7 @@ public:
 
   bool stopRequest(const ros::Time& time)
   {
-    ROS_INFO("stop succeeds even if the controller was already stopped");
+    //stop succeeds even if the controller was already stopped
     if (state_ == RUNNING || state_ == INITIALIZED)
     {
       stopping(time);

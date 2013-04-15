@@ -27,7 +27,7 @@ manipulator:
     - KPIECEkConfigDefault
     - BKPIECEkConfigDefault
     - RRTStarkConfigDefault
-tool:
+tool0:
   planner_configs:
     - SBLkConfigDefault
     - LBKPIECEkConfigDefault

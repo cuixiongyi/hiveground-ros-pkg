@@ -49,6 +49,7 @@ boost::thread g_control_thread;
 
 void controlThread()
 {
+  //set up thread priority
   int retcode;
   int policy;
   pthread_t thread_id = (pthread_t)g_control_thread.native_handle();
@@ -80,13 +81,14 @@ void controlThread()
   }
 
   ROS_INFO_STREAM("Control thread changed: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+  //set up thread priority
 
   ros::NodeHandle nh("~");
 
   urdf::Model urdf_model;
   urdf_model.initParam("robot_description");
 
-  denso_common::VP6242Robot vp6242(nh, urdf_model, "arm0_");
+  denso_common::VP6242Robot vp6242(nh, urdf_model);
 
   hg_controller_manager::ControllerManager cm(&vp6242, nh);
 
@@ -95,6 +97,8 @@ void controlThread()
     ROS_ERROR("Cannot start robot!");
     return;
   }
+
+  cm.loadController("JPAC0");
 
   ros::Rate rate(1000);
   while (!g_quit)

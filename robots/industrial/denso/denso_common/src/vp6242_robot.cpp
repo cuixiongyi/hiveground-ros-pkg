@@ -39,8 +39,9 @@ using namespace std;
 
 VP6242Robot::VP6242Robot(const ros::NodeHandle& nh, const urdf::Model& urdf_model, const std::string& prefix)
   : nh_(nh),
+    simulate_(true),
     motor_on_(false),
-    slave_mode_(0x102),
+    slave_mode_(0x102), //Joint ASYNC @ 1kHz
     pub_joint_state_(nh_, "/joint_states", 1)
 {
   urdf_ = urdf_model;
@@ -54,10 +55,10 @@ VP6242Robot::VP6242Robot(const ros::NodeHandle& nh, const urdf::Model& urdf_mode
     boost::shared_ptr<const urdf::Joint> joint_info = urdf_.getJoint(ss.str());
     if(joint_info)
     {
-      ROS_INFO_STREAM(joint_info->name << " lower limit: " << joint_info->limits->lower);
-      ROS_INFO_STREAM(joint_info->name << " upper limit: " << joint_info->limits->upper);
-      ROS_INFO_STREAM(joint_info->name << " velocity limit: " << joint_info->limits->velocity);
-      ROS_INFO_STREAM(joint_info->name << " effort limit: " << joint_info->limits->effort);
+      ROS_DEBUG_STREAM(joint_info->name << " lower limit: " << joint_info->limits->lower);
+      ROS_DEBUG_STREAM(joint_info->name << " upper limit: " << joint_info->limits->upper);
+      ROS_DEBUG_STREAM(joint_info->name << " velocity limit: " << joint_info->limits->velocity);
+      ROS_DEBUG_STREAM(joint_info->name << " effort limit: " << joint_info->limits->effort);
       joint_name_.push_back(joint_info->name);
       joint_position_limit_upper_.push_back(joint_info->limits->upper);
       joint_position_limit_lower_.push_back(joint_info->limits->lower);
@@ -98,6 +99,13 @@ VP6242Robot::VP6242Robot(const ros::NodeHandle& nh, const urdf::Model& urdf_mode
 
   registerInterface(&js_interface_);
   registerInterface(&pj_interface_);
+
+  if (!nh_.getParam("simulate", simulate_))
+  {
+    ROS_WARN("simulate parameter is not set, start in simulated mode");
+    simulate_ = true;
+  }
+
 }
 
 VP6242Robot::~VP6242Robot()
@@ -112,6 +120,7 @@ bool VP6242Robot::read()
 
 bool VP6242Robot::write()
 {
+  //ROS_INFO("hw %f", joint_position_command_[0]);
   for(int i = 0; i < 6; i++)
   {
     if((joint_position_command_[i] > joint_position_limit_upper_[i]) ||
@@ -124,10 +133,18 @@ bool VP6242Robot::write()
         joint_position_command_[i] = joint_position_limit_lower_[i];
     }
     command_degree_[i] = (joint_position_command_[i] * 180.0) / M_PI;
+    if(simulate_)
+    {
+      result_degree_[i] = command_degree_[i];
+    }
   }
 
-  if(!setGetPosition(command_degree_, result_degree_))
-    return false;
+  if(!simulate_)
+  {
+    if(!setGetPosition(command_degree_, result_degree_))
+      return false;
+  }
+
 
   double dt = (ros::Time::now() - last_update_).toSec();
   last_update_ = ros::Time::now();
@@ -138,13 +155,14 @@ bool VP6242Robot::write()
     joint_velocity_[i] = (joint_position_[i] - joint_position_last_[i]) / dt;
     joint_position_last_[i] = joint_position_[i];
   }
+  //ROS_INFO("p[0] %f", joint_position_[0]);
 
   static int count = 0;
   static double sum = 0;
   sum += dt;
   if(count++ == 1000)
   {
-    ROS_INFO("Time: %f", sum);
+    ROS_DEBUG("Time: %f", sum);
     count = 0;
     sum = 0;
   }
@@ -157,6 +175,25 @@ bool VP6242Robot::write()
 
 bool VP6242Robot::start()
 {
+  if(simulate_)
+  {
+    //update joint information
+    for (int i = 0; i < 6; i++)
+    {
+      joint_position_command_[i] = (joint_position_limit_upper_[i] + joint_position_limit_lower_[i]) * 0.5;
+      joint_position_[i] = joint_position_command_[i];
+      joint_position_last_[i] = joint_position_command_[i];
+      joint_velocity_[i] = 0.0;
+      joint_effort_[i] = 0.0;
+      ROS_INFO("Joint%d: %f", i, joint_position_[i]);
+    }
+
+    last_update_ = ros::Time::now();
+    last_published_joint_state_ = ros::Time::now();
+    return true;
+  }
+
+
   if (!nh_.getParam("ip", ip_))
   {
     ROS_ERROR("%s needs ip setting", nh_.getNamespace().c_str());
@@ -256,12 +293,12 @@ bool VP6242Robot::start()
   //update joint information
   for (int i = 0; i < 6; i++)
   {
-    ROS_INFO("joint%d: %f", i, joint_position[i]);
     joint_position_command_[i] = (joint_position[i]  * M_PI) / 180.0;;
     joint_position_[i] = joint_position_command_[i];
     joint_position_last_[i] = joint_position_command_[i];
     joint_velocity_[i] = 0.0;
     joint_effort_[i] = 0.0;
+    ROS_INFO("Joint%d: %f", i, joint_position_[i]);
   }
 
   last_update_ = ros::Time::now();
@@ -298,6 +335,8 @@ bool VP6242Robot::start()
 
 bool VP6242Robot::stop()
 {
+  if(simulate_) return true;
+
   if(!bcap_) return false;
 
   int mode = 0;

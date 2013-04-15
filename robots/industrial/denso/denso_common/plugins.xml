@@ -1,5 +1,0 @@
-<library path="lib/libdenso_common">
-  <class type="denso_common::RC7MController" base_class_type="hg_controller_manager::ControllerBase">
-    <description>Denso RC7M Controller</description>
-  </class>  
-</library>
