@@ -60,7 +60,7 @@ class ControllerManager
 {
 
 public:
-  ControllerManager(hg_controller_manager::RobotHardware *robot_hw, const ros::NodeHandle& nh = ros::NodeHandle());
+  ControllerManager(hg_controller_manager::RobotHardware *robot_hw, const ros::NodeHandle& nh = ros::NodeHandle(), const std::string& prefix="");
   virtual ~ControllerManager();
 
   // Real-time functions

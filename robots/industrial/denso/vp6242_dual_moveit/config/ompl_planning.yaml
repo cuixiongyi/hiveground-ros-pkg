@@ -1,0 +1,59 @@
+planner_configs:
+  SBLkConfigDefault:
+    type: geometric::SBL
+  LBKPIECEkConfigDefault:
+    type: geometric::LBKPIECE
+  RRTkConfigDefault:
+    type: geometric::RRT
+  RRTConnectkConfigDefault:
+    type: geometric::RRTConnect
+  LazyRRTkConfigDefault:
+    type: geometric::LazyRRT
+  ESTkConfigDefault:
+    type: geometric::EST
+  KPIECEkConfigDefault:
+    type: geometric::KPIECE
+  RRTStarkConfigDefault:
+    type: geometric::RRTstar
+  BKPIECEkConfigDefault:
+    type: geometric::BKPIECE
+manipulator0:
+  planner_configs:
+    - SBLkConfigDefault
+    - LBKPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - ESTkConfigDefault
+    - KPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - RRTStarkConfigDefault
+manipulator1:
+  planner_configs:
+    - SBLkConfigDefault
+    - LBKPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - ESTkConfigDefault
+    - KPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - RRTStarkConfigDefault
+eef0:
+  planner_configs:
+    - SBLkConfigDefault
+    - LBKPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - ESTkConfigDefault
+    - KPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - RRTStarkConfigDefault
+eef1:
+  planner_configs:
+    - SBLkConfigDefault
+    - LBKPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - ESTkConfigDefault
+    - KPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - RRTStarkConfigDefault

@@ -5,14 +5,14 @@
   	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
   	
   	<node pkg="vp6242_helping_hand" type="vp6242_helping_hand_node" name="vp6242_helping_hand_node" output="screen">
-	    <rosparam>          
-            simulate: false
+  	  	<rosparam>          
+            simulate: true
             ip: "10.0.0.101"
             port: "5007"
             JPAC0:
                 type: "hg_common_controller::JointPositionActionController"
                 prefix: ""  
                 joints: [joint1, joint2, joint3, joint4, joint5, joint6]
-        </rosparam>        
+         </rosparam>        
   	</node>
 </launch>

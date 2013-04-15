@@ -94,14 +94,16 @@ void controlThread()
   urdf::Model urdf_model;
   urdf_model.initParam("robot_description");
 
-  denso_common::VP6242Robot vp6242(nh, urdf_model);
+  denso_common::VP6242Robot vp6242(nh, urdf_model, "arm0_");
+  denso_common::VP6242Robot vp6242_1(nh, urdf_model, "arm1_");
 
 
-  hg_controller_manager::ControllerManager cm(&vp6242, nh);
+  hg_controller_manager::ControllerManager cm(&vp6242, nh, "arm0_");
+  hg_controller_manager::ControllerManager cm_1(&vp6242_1, nh, "arm1_");
 
   hg_realtime_tools::RealtimePublisher<sensor_msgs::JointState> pub_joint_state(nh, "/joint_states", 1);
 
-  if (!vp6242.start())
+  if (!(vp6242.start() && vp6242_1.start()))
   {
     ROS_ERROR("Cannot start robot!");
     return;
@@ -109,19 +111,21 @@ void controlThread()
 
   //cm.loadController("JPAC0");
   cm.loadController("JPAC0");
+  cm_1.loadController("JPAC1");
 
   ros::Rate rate(1000);
   while (!g_quit)
   {
-    if(!vp6242.read())
+    if(!(vp6242.read() && vp6242_1.read()))
     {
       g_quit = true;
       break;
     }
 
     cm.update(ros::Time::now(), rate.expectedCycleTime());
+    cm_1.update(ros::Time::now(), rate.expectedCycleTime());
 
-    if(!vp6242.write())
+    if(!(vp6242.write() && vp6242_1.write()))
     {
       g_quit = true;
       break;
@@ -132,9 +136,13 @@ void controlThread()
       sensor_msgs::JointState msg;
       msg.header.stamp = ros::Time::now();
       msg.name.insert(msg.name.end(), vp6242.getJointName().begin(), vp6242.getJointName().end());
+      msg.name.insert(msg.name.end(), vp6242_1.getJointName().begin(), vp6242_1.getJointName().end());
       msg.position.insert(msg.position.end(), vp6242.getJointPosition().begin(), vp6242.getJointPosition().end());
+      msg.position.insert(msg.position.end(), vp6242_1.getJointPosition().begin(), vp6242_1.getJointPosition().end());
       msg.velocity.insert(msg.velocity.end(), vp6242.getJointVelocity().begin(), vp6242.getJointVelocity().end());
+      msg.velocity.insert(msg.velocity.end(), vp6242_1.getJointVelocity().begin(), vp6242_1.getJointVelocity().end());
       msg.effort.insert(msg.effort.end(), vp6242.getJointEffort().begin(), vp6242.getJointEffort().end());
+      msg.effort.insert(msg.effort.end(), vp6242_1.getJointEffort().begin(), vp6242_1.getJointEffort().end());
       pub_joint_state.msg_ = msg;
       pub_joint_state.unlockAndPublish();
     }
@@ -143,6 +151,7 @@ void controlThread()
   }
 
   vp6242.stop();
+  vp6242_1.stop();
   ros::shutdown();
 }
 

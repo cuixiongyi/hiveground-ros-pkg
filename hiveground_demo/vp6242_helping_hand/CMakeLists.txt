@@ -48,7 +48,7 @@ find_package(catkin REQUIRED COMPONENTS hg_controller_manager hg_realtime_tools 
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-   INCLUDE_DIRS include
+#   INCLUDE_DIRS include
 #  LIBRARIES vp6242_helping_hand
 #  CATKIN_DEPENDS hg_controller_manager roscpp
 #  DEPENDS system_lib
@@ -71,6 +71,7 @@ include_directories(include
 
 ## Declare a cpp executable
 add_executable(vp6242_helping_hand_node src/vp6242_helping_hand_node.cpp)
+add_executable(vp6242_dual_helping_hand_node src/vp6242_dual_helping_hand_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -78,6 +79,12 @@ add_executable(vp6242_helping_hand_node src/vp6242_helping_hand_node.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(vp6242_helping_hand_node
+  ${catkin_LIBRARIES}
+  denso_common
+  hg_controller_manager  
+)
+
+target_link_libraries(vp6242_dual_helping_hand_node
   ${catkin_LIBRARIES}
   denso_common
   hg_controller_manager  

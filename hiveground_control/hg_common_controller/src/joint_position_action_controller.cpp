@@ -319,7 +319,6 @@ void JointPositionActionController::update(const ros::Time& time, const ros::Dur
       }
     }
   }
-
 }
 
 void JointPositionActionController::stopping(const ros::Time& time)
@@ -517,20 +516,6 @@ void JointPositionActionController::commandTrajectory(const trajectory_msgs::Joi
   for (size_t i = 1; i < msg->points.size(); ++i)
     durations[i] = (msg->points[i].time_from_start - msg->points[i - 1].time_from_start).toSec();
 
-  // Checks if we should wrap
-#if 0
-  std::vector<double> wrap(joint_count_, 0.0);
-  assert(!msg->points[0].positions.empty());
-  for (size_t j = 0; j < joint_count_; ++j)
-  {
-    if (joints_[j]->joint_->type == urdf::Joint::CONTINUOUS)
-    {
-      double dist = angles::shortest_angular_distance(prev_positions[j], msg->points[0].positions[lookup[j]]);
-      wrap[j] = (prev_positions[j] + dist) - msg->points[0].positions[lookup[j]];
-    }
-  }
-#endif
-
   for (size_t i = 0; i < msg->points.size(); ++i)
   {
     Segment seg;
@@ -574,7 +559,7 @@ void JointPositionActionController::commandTrajectory(const trajectory_msgs::Joi
       if (!velocities.empty())
         velocities[j] = msg->points[i].velocities[lookup[j]];
       if (!positions.empty())
-        positions[j] = msg->points[i].positions[lookup[j]];// + wrap[j];
+        positions[j] = msg->points[i].positions[lookup[j]];
     }
 
     // Converts the boundary conditions to splines.
@@ -605,11 +590,6 @@ void JointPositionActionController::commandTrajectory(const trajectory_msgs::Joi
         seg.splines[j].coef[5] = 0.0;
       }
     }
-
-    // Writes the tolerances into the segment
-    //seg.trajectory_tolerance = trajectory_tolerance;
-    //seg.goal_tolerance = goal_tolerance;
-    //seg.goal_time_tolerance = goal_time_tolerance;
 
     // Pushes the splines onto the end of the new trajectory.
 

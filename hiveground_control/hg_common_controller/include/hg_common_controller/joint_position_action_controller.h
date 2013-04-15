@@ -47,13 +47,13 @@
 namespace hg_common_controller
 {
 
+
 template <class Action>
 class RTServerGoalHandle
 {
 private:
   ACTION_DEFINITION(Action);
 
-  //typedef actionlib::ActionServer<Action>::GoalHandle GoalHandle;
   typedef actionlib::ServerGoalHandle<Action> GoalHandle;
   typedef boost::shared_ptr<Result> ResultPtr;
 
@@ -140,12 +140,41 @@ public:
   double acceleration;
 };
 
+  
+
+
 class JointPositionActionController : public hg_controller_manager::Controller<hg_controller_manager::PositionJointInterface>
 {
-  typedef actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction> FJTAS;
-  typedef FJTAS::GoalHandle GoalHandleFollow;
-  typedef RTServerGoalHandle<control_msgs::FollowJointTrajectoryAction> RTGoalHandleFollow;
 
+typedef actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction> FJTAS;
+typedef FJTAS::GoalHandle GoalHandleFollow;
+typedef RTServerGoalHandle<control_msgs::FollowJointTrajectoryAction> RTGoalHandleFollow;
+
+
+// coef[0] + coef[1]*t + ... + coef[5]*t^5
+struct Spline
+{
+  std::vector<double> coef;
+
+  Spline() :
+      coef(6, 0.0)
+  { }
+};
+
+struct Segment
+{
+  double start_time;
+  double duration;
+  std::vector<Spline> splines;
+
+  std::vector<JointTolerance> trajectory_tolerance;
+  std::vector<JointTolerance> goal_tolerance;
+  double goal_time_tolerance;
+
+  boost::shared_ptr<RTGoalHandleFollow> gh_follow; // Goal handle for the newer FollowJointTrajectory action
+};
+typedef std::vector<Segment> SpecifiedTrajectory;
+  
 
 public:
 
@@ -153,56 +182,16 @@ public:
   void starting(const ros::Time& time);
   void update(const ros::Time& time, const ros::Duration& period);
   void stopping(const ros::Time& time);
-
-private:
-  ros::NodeHandle nh_;
-  size_t joint_count_;
-  std::vector<hg_controller_manager::JointHandle> joint_position_command_;
-  ros::Time last_time_;
-  boost::scoped_ptr<FJTAS> action_server_follow_;
-  ros::Timer goal_handle_timer_;
-  boost::shared_ptr<RTGoalHandleFollow> rt_active_goal_follow_;
-  //std::vector<JointTolerance> default_trajectory_tolerance_;
-  //std::vector<JointTolerance> default_goal_tolerance_;
-  //double default_goal_time_constraint_;
-
-
-
+  
+protected:
+  
   void goalCBFollow(GoalHandleFollow gh);
   void cancelCBFollow(GoalHandleFollow gh);
   void preemptActiveGoal();
   void commandTrajectory(const trajectory_msgs::JointTrajectory::ConstPtr &msg,
                          boost::shared_ptr<RTGoalHandleFollow> gh_follow = boost::shared_ptr<RTGoalHandleFollow>((RTGoalHandleFollow*)NULL));
   static bool setsEqual(const std::vector<std::string> &a, const std::vector<std::string> &b);
-
-  // coef[0] + coef[1]*t + ... + coef[5]*t^5
-  struct Spline
-  {
-    std::vector<double> coef;
-
-    Spline() :
-        coef(6, 0.0)
-    { }
-  };
-
-  struct Segment
-  {
-    double start_time;
-    double duration;
-    std::vector<Spline> splines;
-
-    std::vector<JointTolerance> trajectory_tolerance;
-    std::vector<JointTolerance> goal_tolerance;
-    double goal_time_tolerance;
-
-    boost::shared_ptr<RTGoalHandleFollow> gh_follow; // Goal handle for the newer FollowJointTrajectory action
-  };
-  typedef std::vector<Segment> SpecifiedTrajectory;
-
-
-  hg_realtime_tools::RealtimeBox<boost::shared_ptr<const SpecifiedTrajectory> > current_trajectory_box_;
-
-  std::vector<double> q, qd, qdd;  // Preallocated in init
+    
   // Samples, but handling time bounds.  When the time is past the end
   // of the spline duration, the position is the last valid position,
   // and the derivatives are all 0.
@@ -210,6 +199,16 @@ private:
                                          double& position, double& velocity, double& acceleration);
 
 
+protected:
+  ros::NodeHandle nh_;
+  size_t joint_count_;
+  std::vector<hg_controller_manager::JointHandle> joint_position_command_;
+  ros::Time last_time_;
+  boost::scoped_ptr<FJTAS> action_server_follow_;
+  ros::Timer goal_handle_timer_;
+  boost::shared_ptr<RTGoalHandleFollow> rt_active_goal_follow_;
+  hg_realtime_tools::RealtimeBox<boost::shared_ptr<const SpecifiedTrajectory> > current_trajectory_box_;
+  std::vector<double> q, qd, qdd;  // Preallocated in init
 };
 
 
