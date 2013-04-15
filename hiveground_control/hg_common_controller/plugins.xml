@@ -1,0 +1,5 @@
+<library path="lib/libhg_common_controller">  
+    <class type="hg_common_controller::JointPositionActionController" base_class_type="hg_controller_manager::ControllerBase">
+        <description>This is a JointPositionActionController plugin.</description>
+    </class>
+</library>

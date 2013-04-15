@@ -73,6 +73,7 @@ protected:
 
 protected:
   ros::NodeHandle nh_;
+  bool simulate_;
 
   hg_controller_manager::JointStateInterface js_interface_;
   hg_controller_manager::PositionJointInterface pj_interface_;

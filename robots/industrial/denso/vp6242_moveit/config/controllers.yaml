@@ -1,0 +1,12 @@
+controller_manager_ns: hg_controller_manager
+controller_list:
+  - name: vp6242_helping_hand_node/JPAC0
+    ns: follow_joint_trajectory
+    default: true
+    joints:
+      - joint1
+      - joint2
+      - joint3
+      - joint4
+      - joint5
+      - joint6
