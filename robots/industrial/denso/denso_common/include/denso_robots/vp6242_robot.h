@@ -57,6 +57,12 @@ public:
   bool start();
   bool stop();
 
+  std::vector<std::string>& getJointName() { return joint_name_; }
+  const std::vector<double>& getJointPosition() { return joint_position_; };
+  const std::vector<double>& getJointVelocity() { return joint_velocity_; };
+  const std::vector<double>& getJointEffort() { return joint_effort_; };
+
+
 protected:
 
 
@@ -69,11 +75,12 @@ protected:
 
   bool setMotor(bool on);
 
-  void publishJointState();
+  //void publishJointState();
 
 protected:
   ros::NodeHandle nh_;
   bool simulate_;
+  std::string prefix_;
 
   hg_controller_manager::JointStateInterface js_interface_;
   hg_controller_manager::PositionJointInterface pj_interface_;
@@ -108,7 +115,7 @@ protected:
   int slave_mode_;
   boost::mutex bcap_mutex_;
 
-  hg_realtime_tools::RealtimePublisher<sensor_msgs::JointState> pub_joint_state_;
+  //hg_realtime_tools::RealtimePublisher<sensor_msgs::JointState> pub_joint_state_;
 };
 
 

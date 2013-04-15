@@ -39,10 +39,10 @@ using namespace std;
 
 VP6242Robot::VP6242Robot(const ros::NodeHandle& nh, const urdf::Model& urdf_model, const std::string& prefix)
   : nh_(nh),
+    prefix_(prefix),
     simulate_(true),
     motor_on_(false),
-    slave_mode_(0x102), //Joint ASYNC @ 1kHz
-    pub_joint_state_(nh_, "/joint_states", 1)
+    slave_mode_(0x102)//, //Joint ASYNC @ 1kHz
 {
   urdf_ = urdf_model;
   ROS_INFO_STREAM(urdf_.getName());
@@ -52,9 +52,11 @@ VP6242Robot::VP6242Robot(const ros::NodeHandle& nh, const urdf::Model& urdf_mode
   {
     stringstream ss;
     ss << prefix << "joint" << i;
+    ROS_INFO("Adding joint %s", ss.str().c_str());
     boost::shared_ptr<const urdf::Joint> joint_info = urdf_.getJoint(ss.str());
     if(joint_info)
     {
+      ROS_INFO("Add joint %s", joint_info->name.c_str());
       ROS_DEBUG_STREAM(joint_info->name << " lower limit: " << joint_info->limits->lower);
       ROS_DEBUG_STREAM(joint_info->name << " upper limit: " << joint_info->limits->upper);
       ROS_DEBUG_STREAM(joint_info->name << " velocity limit: " << joint_info->limits->velocity);
@@ -85,12 +87,6 @@ VP6242Robot::VP6242Robot(const ros::NodeHandle& nh, const urdf::Model& urdf_mode
   command_degree_.resize(joint_size_);
   result_degree_.resize(joint_size_);
 
-  pub_joint_state_.msg_.name.resize(joint_size_);
-  pub_joint_state_.msg_.position.resize(joint_size_);
-  pub_joint_state_.msg_.velocity.resize(joint_size_);
-  pub_joint_state_.msg_.effort.resize(joint_size_);
-
-
   for(int i = 0; i < 6; i++)
   {
     js_interface_.registerJoint(joint_name_[i], &joint_position_[i], &joint_velocity_[i], &joint_effort_[i]);
@@ -120,7 +116,6 @@ bool VP6242Robot::read()
 
 bool VP6242Robot::write()
 {
-  //ROS_INFO("hw %f", joint_position_command_[0]);
   for(int i = 0; i < 6; i++)
   {
     if((joint_position_command_[i] > joint_position_limit_upper_[i]) ||
@@ -155,20 +150,6 @@ bool VP6242Robot::write()
     joint_velocity_[i] = (joint_position_[i] - joint_position_last_[i]) / dt;
     joint_position_last_[i] = joint_position_[i];
   }
-  //ROS_INFO("p[0] %f", joint_position_[0]);
-
-  static int count = 0;
-  static double sum = 0;
-  sum += dt;
-  if(count++ == 1000)
-  {
-    ROS_DEBUG("Time: %f", sum);
-    count = 0;
-    sum = 0;
-  }
-
-  if((count % 10) == 0)
-    publishJointState();
 
   return true;
 }
@@ -194,13 +175,13 @@ bool VP6242Robot::start()
   }
 
 
-  if (!nh_.getParam("ip", ip_))
+  if (!nh_.getParam(prefix_ + "ip", ip_))
   {
     ROS_ERROR("%s needs ip setting", nh_.getNamespace().c_str());
     return false;
   }
 
-  if (!nh_.getParam("port", port_))
+  if (!nh_.getParam(prefix_ + "port", port_))
   {
     ROS_ERROR("%s needs port setting", nh_.getNamespace().c_str());
     return false;
@@ -471,23 +452,4 @@ bool VP6242Robot::setMotor(bool on)
   ros::Duration(5.0).sleep();
   return true;
 }
-
-void VP6242Robot::publishJointState()
-{
-
-  if (pub_joint_state_.trylock())
-  {
-    for (int i = 0; i < joint_size_; ++i)
-    {
-      pub_joint_state_.msg_.name[i] = joint_name_[i];
-      pub_joint_state_.msg_.position[i] = joint_position_[i];
-      pub_joint_state_.msg_.velocity[i] = joint_velocity_[i];
-      pub_joint_state_.msg_.effort[i] = joint_effort_[i];
-    }
-
-    pub_joint_state_.msg_.header.stamp = ros::Time::now();
-    pub_joint_state_.unlockAndPublish();
-  }
-}
-
 

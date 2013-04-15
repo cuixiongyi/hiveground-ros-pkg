@@ -40,10 +40,10 @@
 namespace hg_controller_manager
 {
 
-ControllerManager::ControllerManager(hg_controller_manager::RobotHardware *robot_hw, const ros::NodeHandle& nh) :
+ControllerManager::ControllerManager(hg_controller_manager::RobotHardware *robot_hw, const ros::NodeHandle& nh, const std::string& prefix) :
     robot_hw_(robot_hw),
     controller_node_(nh),
-    cm_node_(nh, "controller_manager"),
+    cm_node_(nh, prefix + "controller_manager"),
     start_request_(0),
     stop_request_(0),
     please_switch_(false),
@@ -469,7 +469,7 @@ bool ControllerManager::switchController(const std::vector<std::string>& start_c
       return false;
     usleep(100);
   }
-  ROS_DEBUG("Successfully switched controllers");
+  ROS_INFO("Successfully switched controllers");
   return true;
 }
 
