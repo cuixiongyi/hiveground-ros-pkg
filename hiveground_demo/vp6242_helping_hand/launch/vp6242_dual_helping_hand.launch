@@ -9,7 +9,7 @@
             simulate: true
             arm0_ip: "10.0.0.101"
             arm0_port: "5007"
-  	  		arm1_ip: "10.0.0.102"
+            arm1_ip: "10.0.0.102"
             arm1_port: "5007"
             JPAC0:
                 type: "hg_common_controller::JointPositionActionController"

@@ -114,6 +114,7 @@ void controlThread()
   cm_1.loadController("JPAC1");
 
   ros::Rate rate(1000);
+  ros::Time last_joint_state_publish_time = ros::Time::now();
   while (!g_quit)
   {
     if(!(vp6242.read() && vp6242_1.read()))
@@ -131,20 +132,25 @@ void controlThread()
       break;
     }
 
-    if (pub_joint_state.trylock())
+    double dt_joint_state = (ros::Time::now() - last_joint_state_publish_time).toSec();
+    if(dt_joint_state > (10.0 * rate.expectedCycleTime().toSec()))
     {
-      sensor_msgs::JointState msg;
-      msg.header.stamp = ros::Time::now();
-      msg.name.insert(msg.name.end(), vp6242.getJointName().begin(), vp6242.getJointName().end());
-      msg.name.insert(msg.name.end(), vp6242_1.getJointName().begin(), vp6242_1.getJointName().end());
-      msg.position.insert(msg.position.end(), vp6242.getJointPosition().begin(), vp6242.getJointPosition().end());
-      msg.position.insert(msg.position.end(), vp6242_1.getJointPosition().begin(), vp6242_1.getJointPosition().end());
-      msg.velocity.insert(msg.velocity.end(), vp6242.getJointVelocity().begin(), vp6242.getJointVelocity().end());
-      msg.velocity.insert(msg.velocity.end(), vp6242_1.getJointVelocity().begin(), vp6242_1.getJointVelocity().end());
-      msg.effort.insert(msg.effort.end(), vp6242.getJointEffort().begin(), vp6242.getJointEffort().end());
-      msg.effort.insert(msg.effort.end(), vp6242_1.getJointEffort().begin(), vp6242_1.getJointEffort().end());
-      pub_joint_state.msg_ = msg;
-      pub_joint_state.unlockAndPublish();
+      if (pub_joint_state.trylock())
+      {
+        sensor_msgs::JointState msg;
+        msg.header.stamp = ros::Time::now();
+        msg.name.insert(msg.name.end(), vp6242.getJointName().begin(), vp6242.getJointName().end());
+        msg.name.insert(msg.name.end(), vp6242_1.getJointName().begin(), vp6242_1.getJointName().end());
+        msg.position.insert(msg.position.end(), vp6242.getJointPosition().begin(), vp6242.getJointPosition().end());
+        msg.position.insert(msg.position.end(), vp6242_1.getJointPosition().begin(), vp6242_1.getJointPosition().end());
+        msg.velocity.insert(msg.velocity.end(), vp6242.getJointVelocity().begin(), vp6242.getJointVelocity().end());
+        msg.velocity.insert(msg.velocity.end(), vp6242_1.getJointVelocity().begin(), vp6242_1.getJointVelocity().end());
+        msg.effort.insert(msg.effort.end(), vp6242.getJointEffort().begin(), vp6242.getJointEffort().end());
+        msg.effort.insert(msg.effort.end(), vp6242_1.getJointEffort().begin(), vp6242_1.getJointEffort().end());
+        pub_joint_state.msg_ = msg;
+        pub_joint_state.unlockAndPublish();
+        last_joint_state_publish_time = ros::Time::now();
+      }
     }
 
     rate.sleep();

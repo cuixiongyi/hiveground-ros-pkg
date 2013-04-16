@@ -36,7 +36,7 @@
 #include <denso_robots/vp6242_robot.h>
 #include <hg_controller_manager/hg_controller_manager.h>
 
-#define REALTIME 0
+#define REALTIME 1
 
 using namespace std;
 
@@ -111,6 +111,7 @@ void controlThread()
   cm.loadController("JPAC0");
 
   ros::Rate rate(1000);
+  ros::Time last_joint_state_publish_time = ros::Time::now();
   while (!g_quit)
   {
     if(!vp6242.read())
@@ -127,16 +128,21 @@ void controlThread()
       break;
     }
 
-    if (pub_joint_state.trylock())
+    double dt_joint_state = (ros::Time::now() - last_joint_state_publish_time).toSec();
+    if(dt_joint_state > (10 * rate.expectedCycleTime().toSec()))
     {
-      sensor_msgs::JointState msg;
-      msg.header.stamp = ros::Time::now();
-      msg.name.insert(msg.name.end(), vp6242.getJointName().begin(), vp6242.getJointName().end());
-      msg.position.insert(msg.position.end(), vp6242.getJointPosition().begin(), vp6242.getJointPosition().end());
-      msg.velocity.insert(msg.velocity.end(), vp6242.getJointVelocity().begin(), vp6242.getJointVelocity().end());
-      msg.effort.insert(msg.effort.end(), vp6242.getJointEffort().begin(), vp6242.getJointEffort().end());
-      pub_joint_state.msg_ = msg;
-      pub_joint_state.unlockAndPublish();
+      if (pub_joint_state.trylock())
+      {
+        sensor_msgs::JointState msg;
+        msg.header.stamp = ros::Time::now();
+        msg.name.insert(msg.name.end(), vp6242.getJointName().begin(), vp6242.getJointName().end());
+        msg.position.insert(msg.position.end(), vp6242.getJointPosition().begin(), vp6242.getJointPosition().end());
+        msg.velocity.insert(msg.velocity.end(), vp6242.getJointVelocity().begin(), vp6242.getJointVelocity().end());
+        msg.effort.insert(msg.effort.end(), vp6242.getJointEffort().begin(), vp6242.getJointEffort().end());
+        pub_joint_state.msg_ = msg;
+        pub_joint_state.unlockAndPublish();
+        last_joint_state_publish_time = ros::Time::now();
+      }
     }
 
     rate.sleep();
