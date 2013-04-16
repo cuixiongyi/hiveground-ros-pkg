@@ -140,9 +140,6 @@ public:
   double acceleration;
 };
 
-  
-
-
 class JointPositionActionController : public hg_controller_manager::Controller<hg_controller_manager::PositionJointInterface>
 {
 
