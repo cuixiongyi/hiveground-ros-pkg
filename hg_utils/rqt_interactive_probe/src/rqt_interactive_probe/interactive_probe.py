@@ -13,8 +13,11 @@ import geometry_msgs.msg
 import std_msgs.msg
 
 class MarkerInfo:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, pose, length, scale):       
+        self.pose = pose
+        self.length = length
+        self.scale = scale
+        self.selected = False
 
 
 class InteractiveProbe(Plugin):
@@ -55,15 +58,18 @@ class InteractiveProbe(Plugin):
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
         # Add widget to the user interface
         
-        self._widget.addMarkerPushButton.clicked.connect(self._addMarker)          
+        self._widget.add_marker_button.clicked.connect(self._addMarker) 
+        self._widget.add_at_selected_button.clicked.connect(self._addAtSelectedMarker)          
         
         
         context.add_widget(self._widget)
-        
+    
         
         self.server = InteractiveMarkerServer("InteractiveProbe")
         self.fixed_frame = "/base"              
         self.marker_id = 0
+        self.marker_info = dict()
+        self.selected_marker = ""
         
 
     def shutdown_plugin(self):
@@ -90,7 +96,6 @@ class InteractiveProbe(Plugin):
     def processFeedback(self, feedback):
         s = "Feedback from marker '" + feedback.marker_name
         s += "' / control '" + feedback.control_name + "'"
-
         mp = ""
         if feedback.mouse_point_valid:
             mp = " at " + str(feedback.mouse_point.x)
@@ -100,10 +105,14 @@ class InteractiveProbe(Plugin):
 
         if feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
             rospy.loginfo(s + ": button click" + mp + ".")
+            self.selectOnlyOneMarker(feedback.marker_name)
+            
         elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             rospy.loginfo(s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + ".")
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
-            rospy.loginfo(s + ": pose changed")
+            if self.marker_info[feedback.marker_name].pose != feedback.pose:
+                #rospy.loginfo(s + ": pose changed")        
+                self.marker_info[feedback.marker_name].pose = feedback.pose
 # TODO
 #          << "\nposition = "
 #          << feedback.pose.position.x
@@ -130,8 +139,12 @@ class InteractiveProbe(Plugin):
         pose.position.y = self._widget.y_spin_box.value()
         pose.position.z = self._widget.z_spin_box.value()        
         scale = self._widget.scale_spin_box.value()
+        length = self._widget.length_spin_box.value()
         name = "marker" + str(self.marker_id)
-        self.addMaker(name, pose, False, scale*2, scale)
+        self.marker_id += 1
+        self.addMaker(name, pose, True, length, scale)
+        self.selectOnlyOneMarker(name)
+        
         
         """
         pose = geometry_msgs.msg.Pose()
@@ -146,6 +159,18 @@ class InteractiveProbe(Plugin):
         self.marker_list[name] = MarkerInfo(name)
         self.selected_marker = name
         """
+    def _addAtSelectedMarker(self):   
+        if not self.selected_marker in self.marker_info:
+            return
+        scale = self._widget.scale_spin_box.value()
+        length = self._widget.length_spin_box.value()
+        name = "marker" + str(self.marker_id)
+        self.marker_id += 1
+        self.addMaker(name, self.marker_info[self.selected_marker].pose, True, length, scale)
+        self.selectOnlyOneMarker(name)
+        
+        
+        
         
     def addMaker(self, name, pose, selectable, length, scale):
         int_marker = InteractiveMarker()
@@ -161,13 +186,16 @@ class InteractiveProbe(Plugin):
         color.g = 0.5
         color.b = 0.5
         color.a = 0.8 
-        markers.append(self.makeBox(int_marker, color))                
+        markers.append(self.makeBox(int_marker, color))        
         markers.append(self.makeArrow(int_marker, length, color))
         
         if selectable:
             self.makeSelectableControl(int_marker, markers)
         else:
-            self.makeFreeMoveControl(int_marker, markers)                      
+            self.makeFreeMoveControl(int_marker, markers)    
+            self.make6DofMarker(int_marker)      
+            
+        self.marker_info[name] = MarkerInfo(pose, length, scale)        
         
         self.server.insert(int_marker, self.processFeedback)
         self.server.applyChanges()
@@ -176,8 +204,9 @@ class InteractiveProbe(Plugin):
     def makeSelectableControl(self, msg, markers):
         control = InteractiveMarkerControl()
         control.always_visible = True;
-        control.interaction_mode = InteractiveMarkerControl.BUTTON               
-        control.markers = markers 
+        control.interaction_mode = InteractiveMarkerControl.BUTTON
+        for i in range(len(markers)):
+            control.markers.append(markers[i])                  
         msg.controls.append(control)
         return control
   
@@ -186,16 +215,38 @@ class InteractiveProbe(Plugin):
         control.always_visible = True
         #control.orientation_mode = InteractiveMarkerControl.VIEW_FACING
         control.interaction_mode = InteractiveMarkerControl.MOVE_PLANE
-        control.markers = markers
+        for i in range(len(markers)):
+            control.markers.append(markers[i])
         msg.controls.append(control)        
         return control
     
     def selectMarker(self, name):
-        rospy.loginfo("Select " + name)
+        if not self.server.erase(name):
+            rospy.logerr("Marker" + name + "did not exist on server")
+        self.addMaker(name, 
+                      self.marker_info[name].pose, 
+                      False, 
+                      self.marker_info[name].length, 
+                      self.marker_info[name].scale)     
+        self.marker_info[name].selected = True
+        self.selected_marker = name
         
     def deselectMarker(self, name):
-        rospy.loginfo("Deselect " + name)
-
+        if not self.server.erase(name):
+            rospy.logerr("Marker" + name + "did not exist on server")
+        self.addMaker(name, 
+                      self.marker_info[name].pose, 
+                      True, 
+                      self.marker_info[name].length, 
+                      self.marker_info[name].scale)
+        self.marker_info[name].selected = False
+        
+    def selectOnlyOneMarker(self, name):
+        for key in self.marker_info:
+            if self.marker_info[key].selected:
+                rospy.loginfo("deselect " + key)
+                self.deselectMarker(key)
+        self.selectMarker(name)
         
     def makeBox(self, msg, color):
         marker = Marker()    
@@ -224,22 +275,7 @@ class InteractiveProbe(Plugin):
         msg.controls.append(control)        
         return control
         
-    def make6DofMarker(self, pose, scale, name, description, fixed):        
-        int_marker = InteractiveMarker()
-        int_marker.header.frame_id = "/base"
-        int_marker.pose = pose       
-        int_marker.scale = scale
-            
-        int_marker.name = name
-        int_marker.description = description
-    
-        # insert a box
-        self.makeBoxControl(int_marker)
-    
-        if fixed:
-            int_marker.name += "_fixed"
-            int_marker.description += "\n(fixed orientation)"
-    
+    def make6DofMarker(self, msg):        
         control = InteractiveMarkerControl()
         control.orientation.w = 1
         control.orientation.x = 1
@@ -247,9 +283,7 @@ class InteractiveProbe(Plugin):
         control.orientation.z = 0
         control.name = "rotate_x"
         control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
+        msg.controls.append(control)
     
         control = InteractiveMarkerControl()
         control.orientation.w = 1
@@ -258,9 +292,7 @@ class InteractiveProbe(Plugin):
         control.orientation.z = 0
         control.name = "move_x"
         control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
+        msg.controls.append(control)
     
         control = InteractiveMarkerControl()
         control.orientation.w = 1
@@ -269,9 +301,7 @@ class InteractiveProbe(Plugin):
         control.orientation.z = 0
         control.name = "rotate_z"
         control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
+        msg.controls.append(control)
     
         control = InteractiveMarkerControl()
         control.orientation.w = 1
@@ -280,9 +310,7 @@ class InteractiveProbe(Plugin):
         control.orientation.z = 0
         control.name = "move_z"
         control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
+        msg.controls.append(control)
     
         control = InteractiveMarkerControl()
         control.orientation.w = 1
@@ -291,9 +319,7 @@ class InteractiveProbe(Plugin):
         control.orientation.z = 1
         control.name = "rotate_y"
         control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
+        msg.controls.append(control)
     
         control = InteractiveMarkerControl()
         control.orientation.w = 1
@@ -302,12 +328,8 @@ class InteractiveProbe(Plugin):
         control.orientation.z = 1
         control.name = "move_y"
         control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
-    
-        self.server.insert(int_marker, self.processFeedback)
-        
+        msg.controls.append(control)
+            
         
         
         
