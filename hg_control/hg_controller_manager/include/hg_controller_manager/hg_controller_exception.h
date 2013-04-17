@@ -25,6 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////////
 
+//Modify by Mahisorn Wongphati HiveGround Co., Ltd. 2013-04
 
 #ifndef HG_CONTROLLER_EXCEPTION_H_
 #define HG_CONTROLLER_EXCEPTION_H_
