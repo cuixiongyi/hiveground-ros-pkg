@@ -36,7 +36,7 @@
 #include <denso_robots/vp6242_robot.h>
 #include <hg_controller_manager/hg_controller_manager.h>
 
-#define REALTIME 0
+#define REALTIME 1
 
 using namespace std;
 
@@ -51,6 +51,13 @@ boost::thread g_control_thread;
 
 void controlThread()
 {
+  ros::NodeHandle nh("~");
+
+  bool simulate = true;
+  nh.getParam("simulate", simulate);
+
+  if (!simulate)
+  {
 #if REALTIME
   //set up thread priority
   int retcode;
@@ -88,8 +95,7 @@ void controlThread()
 		                                         (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
   //set up thread priority
 #endif
-
-  ros::NodeHandle nh("~");
+  }
 
   urdf::Model urdf_model;
   urdf_model.initParam("robot_description");
@@ -169,6 +175,11 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh("~");
 
+  bool simulate = true;
+  nh.getParam("simulate", simulate);
+  if(!simulate)
+  {
+
 #if REALTIME  
   // Keep the kernel from swapping us out
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
@@ -177,6 +188,7 @@ int main(int argc, char** argv)
   }
 #endif
 
+  }
   // Catch attempts to quit
   signal(SIGTERM, quitRequested);
   signal(SIGINT, quitRequested);

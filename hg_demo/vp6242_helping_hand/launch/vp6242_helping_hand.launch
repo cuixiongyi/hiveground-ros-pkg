@@ -1,11 +1,11 @@
 <launch>
-	<!-- No namespace here as we will share this description. Access with slash at the beginning -->
-  	<param name="robot_description" command="$(find xacro)/xacro.py $(find denso_common)/urdf/vp6242.xacro" />
-  	
-  	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
-  	
-  	<node pkg="vp6242_helping_hand" type="vp6242_helping_hand_node" name="vp6242_helping_hand_node" output="screen">
-  	  	<rosparam>          
+    <!-- No namespace here as we will share this description. Access with slash at the beginning -->
+    <param name="robot_description" command="$(find xacro)/xacro.py $(find denso_common)/urdf/vp6242.xacro" />
+    
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
+    
+    <node pkg="vp6242_helping_hand" type="vp6242_helping_hand_node" name="vp6242_helping_hand_node" output="screen">
+        <rosparam>          
             simulate: true
             ip: "10.0.0.101"
             port: "5007"
@@ -14,5 +14,5 @@
                 prefix: ""  
                 joints: [joint1, joint2, joint3, joint4, joint5, joint6]
          </rosparam>        
-  	</node>
+    </node>
 </launch>

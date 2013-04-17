@@ -37,7 +37,7 @@
 #include <boost/function.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
-#include <bcap/bcap_serial.h>
+#include <denso_common/bcap/bcap_serial.h>
 
 using namespace boost;
 

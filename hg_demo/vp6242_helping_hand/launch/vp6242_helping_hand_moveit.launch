@@ -1,0 +1,5 @@
+<launch> 
+  <node name="vp6242_helping_hand_moveit" pkg="vp6242_helping_hand" type="vp6242_helping_hand_moveit" respawn="false" output="screen">
+    <rosparam command="load" file="$(find vp6242_moveit)/config/kinematics.yaml"/>
+  </node>
+</launch>

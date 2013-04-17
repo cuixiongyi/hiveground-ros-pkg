@@ -48,7 +48,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-   INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES denso_common
 #  CATKIN_DEPENDS roscpp urdf
 #  DEPENDS system_lib
@@ -73,6 +73,10 @@ add_library(${PROJECT_NAME}
   src/crc16.cpp
     
   src/vp6242_robot.cpp  
+)
+
+add_library(vp6242_moveit_arm_kinematics
+  src/vp6242_ikfast/vp6242_manipulator_ikfast_moveit_plugin.cpp    
 )
 
 ## Declare a cpp executable
