@@ -37,7 +37,7 @@
 #include <hg_controller_manager/hg_joint_command_interface.h>
 #include <hg_controller_manager/hg_robot_hardware.h>
 #include <urdf/model.h>
-#include <bcap/bcap_net.h>
+#include <denso_common/bcap/bcap_net.h>
 #include <boost/thread.hpp>
 #include <sensor_msgs/JointState.h>
 #include <hg_realtime_tools/realtime_publisher.h>

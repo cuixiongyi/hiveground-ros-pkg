@@ -51,6 +51,14 @@ boost::thread g_control_thread;
 
 void controlThread()
 {
+  ros::NodeHandle nh("~");
+
+  bool simulate = true;
+  nh.getParam("simulate", simulate);
+
+  if(!simulate)
+  {
+
 #if REALTIME
   //set up thread priority
   int retcode;
@@ -88,8 +96,9 @@ void controlThread()
 		                                         (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
   //set up thread priority
 #endif
+  }
 
-  ros::NodeHandle nh("~");
+
 
   urdf::Model urdf_model;
   urdf_model.initParam("robot_description");
@@ -109,7 +118,6 @@ void controlThread()
 
   //cm.loadController("JPAC0");
   cm.loadController("JPAC0");
-
   ros::Rate rate(1000);
   ros::Time last_joint_state_publish_time = ros::Time::now();
   while (!g_quit)
@@ -160,13 +168,20 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh("~");
 
-#if REALTIME  
+  bool simulate = true;
+  nh.getParam("simulate", simulate);
+  ROS_INFO("simulate %d", simulate);
+
+  if(!simulate)
+  {
+#if REALTIME
   // Keep the kernel from swapping us out
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
     perror("mlockall");
     return -1;
   }
 #endif
+  }
 
   // Catch attempts to quit
   signal(SIGTERM, quitRequested);

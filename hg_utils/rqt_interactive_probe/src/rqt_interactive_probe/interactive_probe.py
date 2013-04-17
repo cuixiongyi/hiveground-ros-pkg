@@ -39,7 +39,8 @@ import rospy
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
-from python_qt_binding.QtGui import QWidget
+from python_qt_binding.QtGui import *
+
 
 import roslib; roslib.load_manifest("interactive_markers")
 from interactive_markers.interactive_marker_server import *
@@ -48,6 +49,11 @@ import geometry_msgs.msg
 import std_msgs.msg
 import sensor_msgs.msg
 import tf
+import copy
+import moveit_msgs.srv
+import moveit_msgs.msg
+
+
 
 class MarkerInfo:
     def __init__(self, pose, length, scale):       
@@ -95,9 +101,12 @@ class InteractiveProbe(Plugin):
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
         # Add widget to the user interface
         
-        self._widget.add_marker_button.clicked.connect(self._addMarker) 
-        self._widget.add_at_selected_button.clicked.connect(self._addAtSelectedMarker)      
+        self._widget.add_marker_button.clicked.connect(self._addMarker)        
+        self._widget.add_at_selected_button.clicked.connect(self._addAtSelectedMarker)
+        self._widget.delete_button.clicked.connect(self._deleteSelectedMarker)
+        self._widget.clear_button.clicked.connect(self._clearAllMarkers)      
         self._widget.joy_topic_check_box.toggled.connect(self._enableJoyMessageToggled)
+        self._widget.reset_rotation.clicked.connect(self._resetRotation)
         
         
         context.add_widget(self._widget)
@@ -108,8 +117,27 @@ class InteractiveProbe(Plugin):
         self.marker_id = 0
         self.marker_info = dict()
         self.selected_marker = ""
-        self.last_button_state = 0        
+        self.last_button_state = [0 for i in range(16)]
         
+        
+        
+        rospy.wait_for_service("compute_ik")
+        self.listener = tf.TransformListener()
+        self.listener.waitForTransform("base", "link6", rospy.Time(0), rospy.Duration(5.0))
+        (trans,rot) = self.listener.lookupTransform("base", "link6", rospy.Time(0))
+        rospy.loginfo(trans)
+        rospy.loginfo(rot)
+        self.start_trans = trans
+        self.start_rot = rot
+        
+        self._widget.x_spin_box.setValue(trans[0])
+        self._widget.y_spin_box.setValue(trans[1])
+        self._widget.z_spin_box.setValue(trans[2])                        
+        euler = tf.transformations.euler_from_quaternion(rot)
+        self._widget.rx_spin_box.setValue(euler[0]) 
+        self._widget.ry_spin_box.setValue(euler[1])
+        self._widget.rz_spin_box.setValue(euler[2])
+                                   
         
         self.refreshTopics()
         #rospy.Subscriber("/spacenav/joy", sensor_msgs.msg.Joy, self.callbackSpacenav)                      
@@ -117,7 +145,14 @@ class InteractiveProbe(Plugin):
     def shutdown_plugin(self):
         # TODO unregister all publishers here
         rospy.loginfo("shutdown")
-        self.joy_subscriber.unregister()
+        try:
+            self.joy_subscriber
+        except:
+            pass
+        else:
+            self.joy_subscriber.unregister()
+        
+        
         self.server.clear()
         self.server.applyChanges()        
 
@@ -154,18 +189,43 @@ class InteractiveProbe(Plugin):
         self.addMaker(name, pose, True, length, scale)
         self.selectOnlyOneMarker(name)
         
-    def _addAtSelectedMarker(self):   
+    def _addAtSelectedMarker(self):
         if not self.selected_marker in self.marker_info:
             return
         scale = self._widget.scale_spin_box.value()
         length = self._widget.length_spin_box.value()
         name = "marker" + str(self.marker_id)
-        self.marker_id += 1
-        self.addMaker(name, self.marker_info[self.selected_marker].pose, True, length, scale)
+        self.marker_id += 1                
+        self.addMaker(name, copy.deepcopy(self.marker_info[self.selected_marker].pose), True, length, scale)
         self.selectOnlyOneMarker(name)       
         
-    def _enableJoyMessageToggled(self, toggled):
-        rospy.loginfo("Toggled " + str(toggled))    
+    def _deleteSelectedMarker(self):
+        if len(self.selected_marker) == 0:
+            return
+        ret = QMessageBox.warning(self._widget, 
+                                  "Delete marker", 
+                                  "Do you want to delete " + self.selected_marker,
+                                  QMessageBox.Ok, QMessageBox.Cancel)
+        if ret == QMessageBox.Ok:
+            self.deleteMarker(self.selected_marker)
+            self.selected_marker = ""               
+                               
+    def _clearAllMarkers(self):
+        if len(self.marker_info) == 0:
+            return
+        ret = QMessageBox.warning(self._widget, 
+                                  "Delete all marker(s)", 
+                                  "Do you want to delete all marker(s)",
+                                  QMessageBox.Ok, QMessageBox.Cancel)        
+        if ret == QMessageBox.Ok:
+            for key in self.marker_info:              
+                self.server.erase(key)                               
+            self.marker_info.clear()
+            self.server.applyChanges()
+            self.selected_marker = ""                                     
+                
+        
+    def _enableJoyMessageToggled(self, toggled):            
         if toggled:
             if self._widget.joy0_select_combo_box.count() != 0:
                 topic_index = self._widget.joy0_select_combo_box.currentIndex()
@@ -174,6 +234,22 @@ class InteractiveProbe(Plugin):
         else:
             self.joy_subscriber.unregister()
                               
+    def _resetRotation(self):
+        if len(self.selected_marker) == 0:
+            return
+        self.marker_info[self.selected_marker].pose.orientation.x = 0
+        self.marker_info[self.selected_marker].pose.orientation.y = 0
+        self.marker_info[self.selected_marker].pose.orientation.z = 0
+        self.marker_info[self.selected_marker].pose.orientation.w = 1
+        self.server.setPose(self.selected_marker, self.marker_info[self.selected_marker].pose)
+        self.server.applyChanges()
+    
+        
+    def deleteMarker(self, name):
+        if name in self.marker_info: 
+            del self.marker_info[name]                 
+            self.server.erase(name)
+            self.server.applyChanges()   
 
     def refreshTopics(self):
         """
@@ -194,23 +270,39 @@ class InteractiveProbe(Plugin):
                     self._widget.joy0_select_combo_box.addItem(name)
                 
                 
-    def callbackJoystick(self, msg):             
+    def callbackJoystick(self, msg):           
+        if self.last_button_state[0] != msg.buttons[0]:            
+            if msg.buttons[0] == 1:    
+                self._widget.enable_translation_global.toggle()
+            self.last_button_state[0] = msg.buttons[0]            
+            
+        if self.last_button_state[1] != msg.buttons[1]:            
+            if msg.buttons[1] == 1:    
+                self._resetRotation()
+            self.last_button_state[1] = msg.buttons[1]          
+                     
+        if not (self._widget.enable_translation.isChecked() or self._widget.enable_rotation.isChecked()):
+            return
         if len(self.selected_marker) == 0:
             return
+                    
+        
+        sum = 0.0
+        for val in msg.axes:
+            sum += val
+        if sum == 0.0:
+            return
+        
         t_scale = self._widget.joy_translation_scaling_spin_box.value()
-        r_scale = self._widget.joy_rotation_scaling_spin_box.value()                                        
+        r_scale = self._widget.joy_rotation_scaling_spin_box.value()                                                 
         self.moveMarkerRelatively(self.selected_marker, 
                                   -msg.axes[0]*t_scale, -msg.axes[1]*t_scale, msg.axes[2]*t_scale,
                                   -msg.axes[3]*r_scale, -msg.axes[4]*r_scale, msg.axes[5]*r_scale)
         
-        if self.last_button_state != msg.buttons[0]:            
-            if msg.buttons[0] == 1:    
-                self._widget.enable_translation_global.toggle()
-            self.last_button_state = msg.buttons[0]
             
         
         
-    def moveMarkerRelatively(self, name, x, y, z, rx, ry, rz):
+    def moveMarkerRelatively(self, name, x, y, z, rx, ry, rz):             
         if not self._widget.enable_tx.isChecked():
             x = 0               
         if not self._widget.enable_ty.isChecked():
@@ -223,48 +315,72 @@ class InteractiveProbe(Plugin):
             ry = 0        
         if not self._widget.enable_rz.isChecked():
             rz = 0
+            
+        pose = copy.deepcopy(self.marker_info[name].pose)
+                            
                                
         if self._widget.enable_translation.isChecked():
             if self._widget.enable_translation_global.isChecked():
-                self.marker_info[name].pose.position.x += x;
-                self.marker_info[name].pose.position.y += y;
-                self.marker_info[name].pose.position.z += z;
+                pose.position.x += x;
+                pose.position.y += y;
+                pose.position.z += z;
             else:
-                marker_t = tf.transformations.translation_matrix((self.marker_info[name].pose.position.x,
-                                                                  self.marker_info[name].pose.position.y,
-                                                                  self.marker_info[name].pose.position.z))        
-                marker_q = (self.marker_info[name].pose.orientation.x,
-                            self.marker_info[name].pose.orientation.y,
-                            self.marker_info[name].pose.orientation.z,
-                            self.marker_info[name].pose.orientation.w)                
+                marker_t = tf.transformations.translation_matrix((pose.position.x, pose.position.y, pose.position.z))        
+                marker_q = (pose.orientation.x,
+                            pose.orientation.y,
+                            pose.orientation.z,
+                            pose.orientation.w)                
                 marker_T = tf.transformations.concatenate_matrices(marker_t, tf.transformations.quaternion_matrix(marker_q))                                       
                 result_T = tf.transformations.concatenate_matrices(marker_T, tf.transformations.translation_matrix((x, y, z)))
                 result_t = tf.transformations.translation_from_matrix(result_T)                
-                result_q = tf.transformations.quaternion_from_matrix(result_T)           
-                self.marker_info[name].pose.position.x = result_t[0]
-                self.marker_info[name].pose.position.y = result_t[1]
-                self.marker_info[name].pose.position.z = result_t[2]
-                self.marker_info[name].pose.orientation.x = result_q[0]
-                self.marker_info[name].pose.orientation.y = result_q[1]
-                self.marker_info[name].pose.orientation.z = result_q[2]
-                self.marker_info[name].pose.orientation.w = result_q[3]                    
-            pass
+                result_q = tf.transformations.quaternion_from_matrix(result_T)      
+                     
+                pose.position.x = result_t[0]
+                pose.position.y = result_t[1]
+                pose.position.z = result_t[2]
+                pose.orientation.x = result_q[0]
+                pose.orientation.y = result_q[1]
+                pose.orientation.z = result_q[2]
+                pose.orientation.w = result_q[3]                               
         
         if self._widget.enable_rotation.isChecked():
             q = tf.transformations.quaternion_from_euler(rx, ry, rz)
-            marker_q = (self.marker_info[name].pose.orientation.x,
-                        self.marker_info[name].pose.orientation.y,
-                        self.marker_info[name].pose.orientation.z,
-                        self.marker_info[name].pose.orientation.w)
+            marker_q = (pose.orientation.x,
+                        pose.orientation.y,
+                        pose.orientation.z,
+                        pose.orientation.w)
             result_q = tf.transformations.quaternion_multiply(marker_q, q)
-            self.marker_info[name].pose.orientation.x = result_q[0]
-            self.marker_info[name].pose.orientation.y = result_q[1]
-            self.marker_info[name].pose.orientation.z = result_q[2]
-            self.marker_info[name].pose.orientation.w = result_q[3]
+            pose.orientation.x = result_q[0]
+            pose.orientation.y = result_q[1]
+            pose.orientation.z = result_q[2]
+            pose.orientation.w = result_q[3]
+            
+        #check IK
+        req = moveit_msgs.srv.GetPositionIKRequest()        
+        req.ik_request.group_name = "manipulator";
+        req.ik_request.pose_stamped.header.frame_id = "base";
+        req.ik_request.pose_stamped.pose = pose;                
+               
         
-        if self._widget.enable_translation.isChecked() or self._widget.enable_rotation.isChecked(): 
-            self.server.setPose(name, self.marker_info[name].pose)
-            self.server.applyChanges()
+        try:
+            res = rospy.ServiceProxy("compute_ik", moveit_msgs.srv.GetPositionIK).call(req)
+            if res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
+                self.marker_info[name].pose = pose                                  
+                self.server.setPose(name, pose)
+                self.server.applyChanges()
+            elif res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.NO_IK_SOLUTION:
+                rospy.loginfo("no solution")
+            else:
+                rospy.loginfo("error " + str(res.error_code))
+        except rospy.ServiceException, e:
+            print "Service call failed: %s"%e
+                        
+        
+        
+            
+        
+               
+        
         
     def processFeedback(self, feedback):
         s = "Feedback from marker '" + feedback.marker_name
@@ -277,13 +393,14 @@ class InteractiveProbe(Plugin):
         mp += " in frame " + feedback.header.frame_id
 
         if feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
-            rospy.loginfo(s + ": button click" + mp + ".")
-            self.selectOnlyOneMarker(feedback.marker_name)
+            if not self.marker_info[feedback.marker_name].selected:                
+                rospy.loginfo(s + ": button click" + mp + ".")            
+                self.selectOnlyOneMarker(feedback.marker_name)
             
         elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             rospy.loginfo(s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + ".")
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
-            if self.marker_info[feedback.marker_name].pose != feedback.pose:
+            #if self.marker_info[feedback.marker_name].pose != feedback.pose:
                 #rospy.loginfo(s + ": pose changed")        
                 self.marker_info[feedback.marker_name].pose = feedback.pose
 # TODO
@@ -300,9 +417,11 @@ class InteractiveProbe(Plugin):
 #          << " time: " << feedback.header.stamp.sec << "sec, "
 #          << feedback.header.stamp.nsec << " nsec" )
         elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
-            rospy.loginfo(s + ": mouse down" + mp + ".")
+            #rospy.loginfo(s + ": mouse down" + mp + ".")
+            pass
         elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
-            rospy.loginfo(s + ": mouse up" + mp + ".")
+            #rospy.loginfo(s + ": mouse up" + mp + ".")
+            pass
         self.server.applyChanges()    
    
     def addMaker(self, name, pose, selectable, length, scale):
@@ -310,8 +429,8 @@ class InteractiveProbe(Plugin):
         int_marker.name = name
         int_marker.description = name
         int_marker.header.frame_id = self.fixed_frame
-        int_marker.scale = scale;
-        int_marker.pose = pose;
+        int_marker.scale = scale
+        int_marker.pose = pose               
         
         markers = []
         color = std_msgs.msg.ColorRGBA()
@@ -328,8 +447,9 @@ class InteractiveProbe(Plugin):
             self.makeFreeMoveControl(int_marker, markers)    
             self.make6DofMarker(int_marker)      
             
-        self.marker_info[name] = MarkerInfo(pose, length, scale)        
-        
+        self.marker_info[name] = MarkerInfo(pose, length, scale)
+        self.marker_info[name].selected = False
+                      
         self.server.insert(int_marker, self.processFeedback)
         self.server.applyChanges()
     
@@ -355,7 +475,7 @@ class InteractiveProbe(Plugin):
     
     def selectMarker(self, name):
         if not self.server.erase(name):
-            rospy.logerr("Marker" + name + "did not exist on server")
+            rospy.logerr("Marker" + name + "did not exist on server")               
         self.addMaker(name, 
                       self.marker_info[name].pose, 
                       False, 
@@ -366,20 +486,21 @@ class InteractiveProbe(Plugin):
         
     def deselectMarker(self, name):
         if not self.server.erase(name):
-            rospy.logerr("Marker" + name + "did not exist on server")
+            rospy.logerr("Marker" + name + "did not exist on server")        
         self.addMaker(name, 
                       self.marker_info[name].pose, 
                       True, 
                       self.marker_info[name].length, 
                       self.marker_info[name].scale)
         self.marker_info[name].selected = False
+        self.selected_marker = ""
         
-    def selectOnlyOneMarker(self, name):
-        for key in self.marker_info:
-            if self.marker_info[key].selected:
-                rospy.loginfo("deselect " + key)
+    def selectOnlyOneMarker(self, name):        
+        for key in self.marker_info:            
+            if self.marker_info[key].selected:                
                 self.deselectMarker(key)
         self.selectMarker(name)
+        
         
     def makeBox(self, msg, color):
         marker = Marker()    
@@ -469,3 +590,4 @@ class InteractiveProbe(Plugin):
         
         
         
+

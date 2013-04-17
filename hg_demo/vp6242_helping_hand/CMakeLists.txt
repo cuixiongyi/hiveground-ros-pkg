@@ -4,10 +4,19 @@ project(vp6242_helping_hand)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS hg_controller_manager hg_realtime_tools roscpp denso_common urdf)
+find_package(catkin REQUIRED COMPONENTS 
+    hg_controller_manager
+    hg_realtime_tools 
+    roscpp 
+    denso_common 
+    urdf 
+    moveit_core moveit_ros_planning 
+    moveit_ros_planning_interface 
+    pluginlib)
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen REQUIRED)
+find_package(Boost REQUIRED system filesystem date_time thread)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -51,7 +60,10 @@ catkin_package(
 #   INCLUDE_DIRS include
 #  LIBRARIES vp6242_helping_hand
 #  CATKIN_DEPENDS hg_controller_manager roscpp
-#  DEPENDS system_lib
+   CATKIN_DEPENDS 
+    moveit_core
+    moveit_ros_planning_interface
+    interactive_markers
 )
 
 ###########
@@ -72,6 +84,7 @@ include_directories(include
 ## Declare a cpp executable
 add_executable(vp6242_helping_hand_node src/vp6242_helping_hand_node.cpp)
 add_executable(vp6242_dual_helping_hand_node src/vp6242_dual_helping_hand_node.cpp)
+add_executable(vp6242_helping_hand_moveit src/vp6242_helping_hand_moveit.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -88,6 +101,10 @@ target_link_libraries(vp6242_dual_helping_hand_node
   ${catkin_LIBRARIES}
   denso_common
   hg_controller_manager  
+)
+
+target_link_libraries(vp6242_helping_hand_moveit
+  ${catkin_LIBRARIES}    
 )
 
 #############

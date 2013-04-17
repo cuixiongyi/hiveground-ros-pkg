@@ -32,7 +32,7 @@
  * Based on Denso b-Cap example
  */
 
-#include <bcap/bcap_net.h>
+#include <denso_common/bcap/bcap_net.h>
 using namespace boost;
 using namespace boost::asio::ip;
 

@@ -35,7 +35,7 @@
 #ifndef BCAP_SERIAL_H_
 #define BCAP_SERIAL_H_
 
-#include <bcap/bcap_base.h>
+#include <denso_common/bcap/bcap_base.h>
 #include <boost/asio.hpp>
 
 class BCapNet : public BCap

@@ -1,4 +1,4 @@
-#include <bcap/crc16.h>
+#include <denso_common/bcap/crc16.h>
 #include <stdio.h>
 /*
  CRC-16
