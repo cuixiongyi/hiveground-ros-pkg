@@ -25,6 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////////
 
+//Modify by Mahisorn Wongphati HiveGround Co., Ltd. 2013-04
 
 #ifndef HG_ROBOT_HARDWARE_H_
 #define HG_ROBOT_HARDWARE_H_

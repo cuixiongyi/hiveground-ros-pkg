@@ -29,6 +29,8 @@
  * Author: Wim Meeussen
  */
 
+//Modify by Mahisorn Wongphati HiveGround Co., Ltd. 2013-04
+
 #ifndef CONTROLLER_INTERFACE_CONTROLLER_H
 #define CONTROLLER_INTERFACE_CONTROLLER_H
 

@@ -25,6 +25,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////////
 
+//Modify by Mahisorn Wongphati HiveGround Co., Ltd. 2013-04
+
 #ifndef HG_JOINT_STATE_INTERFACE_H_
 #define HG_JOINT_STATE_INTERFACE_H_
 
