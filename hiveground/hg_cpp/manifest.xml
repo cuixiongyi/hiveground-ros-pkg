@@ -19,6 +19,7 @@
   <depend package="control_msgs"/>
   <depend package="trajectory_msgs"/>
   <depend package="spline_smoother"/>
+  <depend package="realtime_tools"/>
   
   
   <export>

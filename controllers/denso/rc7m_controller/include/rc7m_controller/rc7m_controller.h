@@ -40,13 +40,14 @@
 #include <boost/thread.hpp>
 #include <queue>
 
-#include <hg_cpp/follow_joint_controller.h>
+//#include <hg_cpp/follow_joint_controller.h>
+#include <hg_cpp/follow_joint_controller2.h>
 #include <bcap/bcap_net.h>
 
 namespace hg_controller
 {
 
-class RC7MController : public hg::FollowJointController
+class RC7MController : public hg::FollowJointController2
 {
 
 public:
@@ -109,7 +110,6 @@ private:
 
 
   bool is_running_;
-  boost::thread control_thread_;
   boost::mutex control_mutex_;
   bool motor_on_;
 
@@ -119,7 +119,6 @@ private:
   uint32_t h_joint_angle_variable_;
 
   ros::Subscriber subscriber_motor_;
-
 
 };
 

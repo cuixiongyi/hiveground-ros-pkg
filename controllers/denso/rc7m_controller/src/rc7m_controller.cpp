@@ -42,7 +42,7 @@ using namespace hg_controller;
 PLUGINLIB_DECLARE_CLASS(controller_plugins, RC7MController, hg_controller::RC7MController, hg::Controller)
 
 RC7MController::RC7MController() :
-    hg::FollowJointController(), motor_on_(false)
+    hg::FollowJointController2(), motor_on_(false)
 {
 
 }
@@ -60,7 +60,7 @@ RC7MController::~RC7MController()
  */
 void RC7MController::initilize(hg::ControllerNode* node, const std::string& name)
 {
-  FollowJointController::initilize(node, name);
+  FollowJointController2::initilize(node, name);
 
   ROS_ASSERT(node_->nh_private_.getParam("controllers/" + name_ + "/address", address_));
   node_->nh_private_.param("controllers/" + name_ + "/port", port_, std::string("5007"));
@@ -118,11 +118,94 @@ void RC7MController::startup()
     startSlaveMode(false);
   }
 
+  starting(ros::Time::now());
+  action_server_follow_.reset(new FJTAS(node_->nh_private_, "follow_joint_trajectory",
+                                        boost::bind(&RC7MController::goalCBFollow, this, _1),
+                                        boost::bind(&RC7MController::cancelCBFollow, this, _1),
+                                        false));
+  action_server_follow_->start();
+}
 
-  //create control thread
-  control_thread_ = boost::thread(&RC7MController::control, this);
+/**
+ * Do any read/writes to device.
+ */
+void RC7MController::update()
+{
+  FollowJointController2::update(ros::Time::now(), ros::Duration(1/rate_));
+  int i = 0;
+
+  std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
+  double command[7];
+  float command_degree[7], command_result[7];
+  std::vector<float> joint_angle;
+
+  for (it = joints_.begin(); it != joints_.end(); it++)
+  {
+    command[i] = (*it)->interpolate(1.0 / rate_);
+    command_degree[i] = (command[i] * 180.0) / M_PI;
+    i++;
+  }
 
   if (!node_->is_simulated_)
+  {
+    if (motor_on_)
+    {
+      //boost::unique_lock<boost::mutex> lock(control_mutex_);
+      BCAP_HRESULT hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
+      if(FAILED(hr))
+      {
+        ROS_FATAL("b-Cap error in control loop!!");
+        shutdown();
+        ros::shutdown();
+        return;
+      }
+    }
+    else
+    {
+      getJointFeedback(joint_angle);
+    }
+    //update joint information
+    int i = 0;
+    double radian = 0;
+    for (it = joints_.begin(); it != joints_.end(); it++)
+    {
+      //convert to radian
+      if (motor_on_)
+        radian = (command_result[i] * M_PI) / 180.0;
+      else
+        radian = (joint_angle[i] * M_PI) / 180.0;
+      if (!motor_on_)
+      {
+        //prevent the arm to abruptly move back to a position before turning off the motor
+        (*it)->desired_position_ = radian;
+        (*it)->last_commanded_position_ = radian;
+      }
+
+      (*it)->setFeedbackData(radian);
+      i++;
+    }
+  }
+  else
+  {
+    int i = 0;
+    for (it = joints_.begin(); it != joints_.end(); it++)
+    {
+      (*it)->setFeedbackData(command[i]);
+      i++;
+    }
+  }
+}
+
+/**
+ * Control loop of RC7M.
+ * Execute in separated thread.
+ */
+
+void RC7MController::control()
+{
+}
+#if 0
+  //if (!node_->is_simulated_)
   {
     //set priority
 #ifdef WIN32
@@ -173,29 +256,10 @@ void RC7MController::startup()
 
   is_running_ = true;
 
-  //start action server
-  action_server_ = hg::FollowJointTrajectoryActionServerPtr(
-      new hg::FollowJointTrajectoryActionServer(
-          node_->nh_private_, "follow_joint_trajectory",
-          boost::bind(&FollowJointController::followJointGoalActionCallback, this, _1), false));
-  action_server_->start();
 
-}
 
-/**
- * Do any read/writes to device.
- */
-void RC7MController::update()
-{
 
-}
 
-/**
- * Control loop of RC7M.
- * Execute in separated thread.
- */
-void RC7MController::control()
-{
   ros::Rate rate(rate_);
   std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
   double command[7];
@@ -207,7 +271,10 @@ void RC7MController::control()
   ros::Time startTime = ros::Time::now();
   while (is_running_)
   {
+    ROS_INFO_THROTTLE(1.0, "A");
+    FollowJointController2::update(ros::Time::now(), rate.expectedCycleTime());
 
+    ROS_INFO_THROTTLE(1.0, "B");
     int i = 0;
     for (it = joints_.begin(); it != joints_.end(); it++)
     {
@@ -215,37 +282,34 @@ void RC7MController::control()
       command_degree[i] = (command[i] * 180.0) / M_PI;
       i++;
     }
+    ROS_INFO_THROTTLE(1.0, "C");
+
+    dt_sum += (ros::Time(ros::Time::now().toSec()) - startTime).toSec();
+    dt_count++;
+    if (dt_count == rate_)
+    {
+      static int cnt = 0;
+      ROS_INFO("%d dt %f", cnt++, dt_sum / rate_);
+      dt_count = 0;
+      dt_sum = 0.0;
+    }
+    startTime = ros::Time(ros::WallTime::now().toSec());
+
 
     if (!node_->is_simulated_)
     {
+      ROS_INFO_THROTTLE(1.0, "D");
       if (motor_on_)
       {
-        dt_sum += (ros::Time(ros::Time::now().toSec()) - startTime).toSec();
-        dt_count++;
-        if(dt_count == rate_)
-        {
-          static int cnt = 0;
-          ROS_INFO("%d dt %f", cnt++, dt_sum / rate_);
-          dt_count = 0;
-          dt_sum = 0.0;
-        }
-
-        startTime = ros::Time(ros::WallTime::now().toSec());
-        boost::unique_lock<boost::mutex> lock(control_mutex_);
+        //boost::unique_lock<boost::mutex> lock(control_mutex_);
         hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
         ROS_ASSERT(!FAILED(hr));
-
-        ROS_DEBUG_THROTTLE(1.0, "a %f %f %f %f %f %f",
-                          command_degree[0], command_degree[1], command_degree[2],
-                          command_degree[3], command_degree[4], command_degree[5]);
-        ROS_DEBUG_THROTTLE(1.0, "b %f %f %f %f %f %f",
-                          command_result[0], command_result[1], command_result[2],
-                          command_result[3], command_result[4], command_result[5]);
       }
       else
       {
         getJointFeedback(joint_angle);
       }
+      ROS_INFO_THROTTLE(1.0, "E");
 
       //update joint information
       int i = 0;
@@ -267,6 +331,7 @@ void RC7MController::control()
         (*it)->setFeedbackData(radian);
         i++;
       }
+      ROS_INFO_THROTTLE(1.0, "F");
     }
     else
     {
@@ -278,20 +343,21 @@ void RC7MController::control()
       }
     }
 
-    if(!rate.sleep())
-    {
-    	ROS_ERROR("Loop late error");
-    }
+
+
+    rate.sleep();
+
+    ROS_INFO_THROTTLE(1.0, "G");
   }
 }
-
+#endif
 /**
  * Stop the controller, do any hardware shutdown needed.
  */
 void RC7MController::shutdown()
 {
-  is_running_ = false;
-  control_thread_.join();
+  //is_running_ = false;
+  //control_thread_.join();
 
   if (!node_->is_simulated_)
   {
@@ -344,7 +410,7 @@ void RC7MController::turnOnMotor(bool on)
   motor_on_ = on;
   int mode = motor_on_ ? 1 : 0;
   int result = 0;
-  boost::unique_lock<boost::mutex> lock(control_mutex_);
+  //boost::unique_lock<boost::mutex> lock(control_mutex_);
   BCAP_HRESULT hr = bcap_->RobotExecute2(h_robot_, "Motor", VT_I2, 1, &mode, &result);
   ROS_ASSERT(!FAILED(hr));
   ros::Duration(5.0).sleep();
@@ -355,7 +421,7 @@ void RC7MController::getJointFeedback(std::vector<float>& joint_angle)
   if (joint_angle.size() != 8)
     joint_angle.resize(8);
   BCAP_HRESULT hr;
-  boost::unique_lock<boost::mutex> lock(control_mutex_);
+  //boost::unique_lock<boost::mutex> lock(control_mutex_);
   hr = bcap_->VariableGetValue(h_joint_angle_variable_, joint_angle.data());
   ROS_ASSERT(!FAILED(hr));
 }
