@@ -128,7 +128,6 @@ public:
 
   hg::ControllerNode* node_;
   std::string name_;
-  boost::recursive_mutex mutex_;
 
   hg::Controller* controller_;
   ros::Time last_update_;

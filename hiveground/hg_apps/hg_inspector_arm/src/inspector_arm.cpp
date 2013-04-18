@@ -537,6 +537,7 @@ void InspectorArm::on_pushButtonPlan_clicked()
   for(int i = 0; i < count; i++)
   {
     point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
+    point.time_from_start = ros::Duration(i+1);
     goal.trajectory.points.push_back(point);
   }
 
@@ -647,7 +648,9 @@ void InspectorArm::followPointSlot()
       else
       {
         point.positions = markers_[selected_markers_.back()]->jointState().position;
+
       }
+      point.time_from_start = ros::Duration(0.5);
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
     }

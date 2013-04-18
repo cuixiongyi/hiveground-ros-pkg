@@ -41,8 +41,20 @@
 #include <sensor_msgs/JointState.h>
 
 
+
 using namespace hg;
 using namespace std;
+
+bool g_quit = false;
+
+void quitRequested(int sig)
+{
+  g_quit = true;
+}
+
+boost::thread g_control_thread;
+
+
 
 ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private) :
     nh_(nh),
@@ -52,7 +64,8 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
     joint_publish_rate_(10.0),
     diagnostic_publish_rate_(10.0),
     controller_plugin_loader_("hg_cpp", "hg::Controller"),
-    joint_plugin_loader_("hg_cpp", "hg::Joint")
+    joint_plugin_loader_("hg_cpp", "hg::Joint"),
+    pub_joint_state_(nh, "/joint_states", 1)
 {
   ROS_ASSERT(urdf_model_.initParam("robot_description"));
   ROS_INFO("Successfully parsed urdf file");
@@ -94,6 +107,8 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
       joint->initilize(this, name);
       joints_.push_back(joint);
       ROS_INFO_STREAM("added joint " + name + " to " + nh_private_.getNamespace());
+      pub_joint_state_.msg_.name.push_back(joint->name_);
+
     }
     catch (pluginlib::PluginlibException& e)
     {
@@ -102,6 +117,9 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
       ROS_BREAK();
     }
   }
+  pub_joint_state_.msg_.position.resize(joints_.size());
+  pub_joint_state_.msg_.velocity.resize(joints_.size());
+  pub_joint_state_.msg_.effort.resize(joints_.size());
 
   //add controllers
   XmlRpc::XmlRpcValue controllers;
@@ -132,9 +150,11 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
   }
 
 
+
   //setup publisher
-  publisher_joint_state_ = nh_private_.advertise<sensor_msgs::JointState>("/joint_states", 1);
-  publisher_diagnostic_ = nh_private_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1);
+  //publisher_joint_state_ = nh_private_.advertise<sensor_msgs::JointState>("/joint_states", 1);
+  //publisher_diagnostic_ = nh_private_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1);
+
 
 }
 
@@ -143,8 +163,49 @@ ControllerNode::~ControllerNode()
 
 }
 
-void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
+void ControllerNode::run()
 {
+  //set priority
+#ifdef WIN32
+
+#else
+  int retcode;
+  int policy;
+  pthread_t thread_id = (pthread_t)g_control_thread.native_handle();
+  struct sched_param param;
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_getschedparam");
+    exit(EXIT_FAILURE);
+  }
+
+  ROS_INFO_STREAM(
+      "Control thread inherited: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+
+  policy = SCHED_FIFO;
+  param.sched_priority = sched_get_priority_max(policy);
+
+  if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
+  {
+    errno = retcode;
+    ROS_ERROR("pthread_setschedparam");
+    return;
+  }
+
+  ros::Duration(1.0).sleep();
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    ROS_ERROR("pthread_getschedparam");
+    return;
+  }
+
+  ROS_INFO_STREAM(
+      "Control thread changed: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+#endif
 
   //start all controllers
   std::vector<boost::shared_ptr<hg::Controller> >::iterator it;
@@ -153,22 +214,41 @@ void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
     (*it)->startup();
   }
 
-
-  ros::Rate loop_rate(loop_rate_);
-  while (!(*is_shutdown))
+  ros::Rate loop_rate(1000);
+  ros::Time last_joint_state_publish_time = ros::Time::now();
+  ROS_INFO("Start");
+  int count = 0;
+  while (ros::ok())
   {
-    //publish message
-    publish();
-
+    ROS_INFO_THROTTLE(1.0, "Loop %d", count++);
     //update all controllers
     for(it = controllers_.begin(); it != controllers_.end(); it++)
     {
       (*it)->update();
     }
 
-    ros::spinOnce();
+    //publish message
+    if((ros::Time::now() - last_joint_state_publish_time).toSec() > 0.01)
+    {
+      if(pub_joint_state_.trylock())
+      {
+        pub_joint_state_.msg_.header.stamp = ros::Time::now();
+        size_t i = 0;
+        std::vector<boost::shared_ptr<hg::Joint> >::iterator joint_it;
+        for(joint_it = joints_.begin(); joint_it != joints_.end(); joint_it++, i++)
+        {
+          pub_joint_state_.msg_.position[i] = (*joint_it)->position_;
+          pub_joint_state_.msg_.velocity[i] = (*joint_it)->velocity_;
+          pub_joint_state_.msg_.effort[i] = 0.0;
+        }
+        pub_joint_state_.unlockAndPublish();
+        last_joint_state_publish_time = ros::Time::now();
+      }
+    }
     loop_rate.sleep();
   }
+
+  printf("exit\n");
 
   //stop all controllers
   for(it = controllers_.begin(); it != controllers_.end(); it++)
@@ -176,87 +256,35 @@ void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
     (*it)->shutdown();
   }
 
+  printf("shutdown\n");
+
 }
 
 void ControllerNode::publish()
 {
-  if (ros::Time::now() > next_joint_publish_time_)
-  {
-    sensor_msgs::JointState message;
-    message.header.stamp = ros::Time::now();
-    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-    for(it = joints_.begin(); it != joints_.end(); it++)
-    {
-      message.name.push_back((*it)->name_);
-      message.position.push_back((*it)->position_);
-      message.velocity.push_back((*it)->velocity_);
-    }
-    publisher_joint_state_.publish(message);
-    next_joint_publish_time_ = ros::Time::now() + ros::Duration(1.0 / joint_publish_rate_);
-  }
 
-  if (ros::Time::now() > next_diagnostic_publish_time_)
-  {
-    next_diagnostic_publish_time_ = ros::Time::now() + ros::Duration(1.0 / diagnostic_publish_rate_);
-  }
 }
 
-
-/*
- * Override shutdown. Adopt from
- * http://answers.ros.org/question/27655/what-is-the-correct-way-to-do-stuff-before-a-node/
- */
-
-// Signal-safe flag for whether shutdown is requested
-sig_atomic_t volatile g_request_shutdown = 0;
-
-// Replacement SIGINT handler
-void mySigIntHandler(int sig)
-{
-  g_request_shutdown = 1;
-}
-
-// Replacement "shutdown" XMLRPC callback
-void shutdownCallback(XmlRpc::XmlRpcValue& params, XmlRpc::XmlRpcValue& result)
-{
-  int num_params = 0;
-  if (params.getType() == XmlRpc::XmlRpcValue::TypeArray)
-    num_params = params.size();
-  if (num_params > 1)
-  {
-    std::string reason = params[1];
-    ROS_WARN("Shutdown request received. Reason: [%s]", reason.c_str());
-    g_request_shutdown = 1; // Set flag
-  }
-
-  result = ros::xmlrpc::responseInt(1, "", 0);
-}
 
 int main(int argc, char** argv)
 {
+  ros::init(argc, argv, "hgROS");
+
   // Keep the kernel from swapping us out
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
     perror("mlockall");
     return -1;
   }
 
-
-
-
-  ros::init(argc, argv, "hgROS", ros::init_options::NoSigintHandler);
-  signal(SIGINT, mySigIntHandler);
-
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
-
-  // Override XMLRPC shutdown
-  ros::XMLRPCManager::instance()->unbind("shutdown");
-  ros::XMLRPCManager::instance()->bind("shutdown", shutdownCallback);
-
   hg::ControllerNode node(nh, nh_private);
-  node.run(&g_request_shutdown);
 
-  ros::shutdown();
+  g_control_thread = boost::thread(&ControllerNode::run, &node);
+
+  ros::spin();
+
+  g_control_thread.join();
 
   return 0;
 }
