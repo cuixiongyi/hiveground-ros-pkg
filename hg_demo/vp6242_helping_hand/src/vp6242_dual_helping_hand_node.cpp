@@ -33,7 +33,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 
-#include <denso_robots/vp6242_robot.h>
+#include <denso_common/robots/vp6242_robot.h>
 #include <hg_controller_manager/hg_controller_manager.h>
 
 #define REALTIME 1
