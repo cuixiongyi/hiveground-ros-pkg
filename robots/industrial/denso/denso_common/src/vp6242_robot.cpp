@@ -31,7 +31,7 @@
  */
 
 
-#include <denso_common/denso_robots/vp6242_robot.h>
+#include <denso_common/robots/vp6242_robot.h>
 #include <sstream>
 
 using namespace denso_common;
