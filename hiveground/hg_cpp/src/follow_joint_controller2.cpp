@@ -130,8 +130,8 @@ static void getCubicSplineCoefficients(double start_pos, double start_vel, doubl
 
 
 void FollowJointController2::sampleSplineWithTimeBounds(const std::vector<double>& coefficients, double duration,
-                                                               double time, double& position, double& velocity,
-                                                               double& acceleration)
+                                                        double time, double& position, double& velocity,
+                                                        double& acceleration)
 {
   if (time < 0)
   {
@@ -186,15 +186,12 @@ void FollowJointController2::initilize(hg::ControllerNode* node, const std::stri
     if (!found)
     {
       ROS_FATAL_STREAM("cannot find " + joint_name + " instance in node");
-      ROS_BREAK();
+      return;
     }
-
     ROS_DEBUG_STREAM("added " + joint_name + " to " + name_);
   }
 
-
   joint_count_ = joints_.size();
-
 
   q.resize(joint_count_);
   qd.resize(joint_count_);
@@ -306,7 +303,6 @@ static boost::shared_ptr<Member> share_member(boost::shared_ptr<Enclosure> enclo
 
 void FollowJointController2::goalCBFollow(GoalHandleFollow gh)
 {
-  ROS_DEBUG(__FUNCTION__);
   std::vector<std::string> joint_names(joint_count_);
   for (size_t j = 0; j < joint_count_; ++j)
   {
@@ -340,7 +336,6 @@ void FollowJointController2::goalCBFollow(GoalHandleFollow gh)
 
 void FollowJointController2::cancelCBFollow(GoalHandleFollow gh)
 {
-  ROS_DEBUG(__FUNCTION__);
   boost::shared_ptr<RTGoalHandleFollow> current_active_goal(rt_active_goal_follow_);
   if (current_active_goal && current_active_goal->gh_ == gh)
   {
@@ -359,7 +354,6 @@ void FollowJointController2::cancelCBFollow(GoalHandleFollow gh)
 
 void FollowJointController2::preemptActiveGoal()
 {
-  ROS_DEBUG(__FUNCTION__);
   boost::shared_ptr<RTGoalHandleFollow> current_active_goal_follow(rt_active_goal_follow_);
   if (current_active_goal_follow)
   {
@@ -371,7 +365,6 @@ void FollowJointController2::preemptActiveGoal()
 void FollowJointController2::commandTrajectory(const trajectory_msgs::JointTrajectory::ConstPtr &msg,
                                                       boost::shared_ptr<RTGoalHandleFollow> gh_follow)
 {
-  ROS_DEBUG(__FUNCTION__);
   ros::Time time = last_time_ + ros::Duration(0.01);
   ROS_DEBUG("Figuring out new trajectory at %.3lf, with data from %.3lf",
             time.toSec(), msg->header.stamp.toSec());
@@ -488,8 +481,6 @@ void FollowJointController2::commandTrajectory(const trajectory_msgs::JointTraje
   std::vector<double> positions;
   std::vector<double> velocities;
   std::vector<double> accelerations;
-
-  ROS_DEBUG_STREAM("msg->points.size() " << msg->points.size());
 
   std::vector<double> durations(msg->points.size());
   if (msg->points.size() > 0)

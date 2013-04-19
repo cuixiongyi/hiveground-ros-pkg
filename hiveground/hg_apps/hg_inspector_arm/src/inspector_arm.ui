@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>952</width>
-    <height>810</height>
+    <width>971</width>
+    <height>1049</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,6 +25,79 @@
         <string>Manual Control</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <widget class="QLabel" name="label_9">
+            <property name="text">
+             <string>Speed</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSlider" name="horizontalSlider">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinBoxMoveSpeed">
+            <property name="suffix">
+             <string>%</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonSTOP">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>28</pointsize>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>STOP</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../resource/resource.rc">
+            <normaloff>:/default/stop.png</normaloff>:/default/stop.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>48</width>
+            <height>48</height>
+           </size>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QPushButton" name="pushButtonPlan">
           <property name="text">
@@ -642,7 +715,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>952</width>
+     <width>971</width>
      <height>25</height>
     </rect>
    </property>
@@ -818,7 +891,9 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../resource/resource.rc"/>
+ </resources>
  <connections>
   <connection>
    <sender>actionExit</sender>
@@ -844,11 +919,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>356</x>
-     <y>158</y>
+     <y>200</y>
     </hint>
     <hint type="destinationlabel">
      <x>307</x>
-     <y>190</y>
+     <y>232</y>
     </hint>
    </hints>
   </connection>
@@ -860,11 +935,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>475</x>
-     <y>158</y>
+     <y>200</y>
     </hint>
     <hint type="destinationlabel">
-     <x>566</x>
-     <y>541</y>
+     <x>320</x>
+     <y>557</y>
     </hint>
    </hints>
   </connection>
@@ -875,12 +950,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>358</x>
-     <y>295</y>
+     <x>391</x>
+     <y>344</y>
     </hint>
     <hint type="destinationlabel">
-     <x>417</x>
-     <y>297</y>
+     <x>438</x>
+     <y>344</y>
     </hint>
    </hints>
   </connection>
@@ -891,12 +966,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>383</x>
-     <y>281</y>
+     <x>391</x>
+     <y>344</y>
     </hint>
     <hint type="destinationlabel">
-     <x>454</x>
-     <y>288</y>
+     <x>484</x>
+     <y>344</y>
     </hint>
    </hints>
   </connection>
@@ -907,12 +982,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>372</x>
-     <y>284</y>
+     <x>391</x>
+     <y>344</y>
     </hint>
     <hint type="destinationlabel">
-     <x>508</x>
-     <y>296</y>
+     <x>530</x>
+     <y>344</y>
     </hint>
    </hints>
   </connection>
@@ -923,12 +998,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>369</x>
-     <y>353</y>
+     <x>391</x>
+     <y>408</y>
     </hint>
     <hint type="destinationlabel">
-     <x>412</x>
-     <y>359</y>
+     <x>438</x>
+     <y>408</y>
     </hint>
    </hints>
   </connection>
@@ -939,12 +1014,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>373</x>
-     <y>346</y>
+     <x>391</x>
+     <y>408</y>
     </hint>
     <hint type="destinationlabel">
-     <x>452</x>
-     <y>354</y>
+     <x>484</x>
+     <y>408</y>
     </hint>
    </hints>
   </connection>
@@ -955,12 +1030,44 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>378</x>
-     <y>348</y>
+     <x>391</x>
+     <y>408</y>
     </hint>
     <hint type="destinationlabel">
-     <x>515</x>
-     <y>355</y>
+     <x>530</x>
+     <y>408</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSlider</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>spinBoxMoveSpeed</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>562</x>
+     <y>114</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>683</x>
+     <y>126</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxMoveSpeed</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>horizontalSlider</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>684</x>
+     <y>116</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>599</x>
+     <y>116</y>
     </hint>
    </hints>
   </connection>

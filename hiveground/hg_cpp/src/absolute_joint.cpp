@@ -95,26 +95,6 @@ double AbsoluteJoint::interpolate(double dt)
   //boost::recursive_mutex::scoped_lock(mutex_);
   if (touched_)
   {
-    /*
-    double command = desired_position_ - last_commanded_position_;
-
-    //check velocity limit
-    double move_limit_dt = joint_info_->limits->velocity * dt;
-
-    if (command > move_limit_dt)
-    {
-      command = move_limit_dt;
-    }
-    else if (command < -move_limit_dt)
-    {
-      command = -move_limit_dt;
-    }
-
-
-    //check position limit
-    command = last_commanded_position_ + command;
-    */
-
     double command = desired_position_;
 
     if (command > joint_info_->limits->upper)

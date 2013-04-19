@@ -246,7 +246,7 @@ bool CubicTrajectory::validSolution(const double &q0,
     return true;
   }
 
-bool CubicTrajectory::quadSolve(const double &a, 
+bool CubicTrajectory::quadSolve(const double &a,
                                 const double &b, 
                                 const double &c, 
                                 double &solution)

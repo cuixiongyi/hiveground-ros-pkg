@@ -40,10 +40,11 @@
 #include <diagnostic_msgs/DiagnosticArray.h>
 #include <sensor_msgs/JointState.h>
 
-
-
 using namespace hg;
 using namespace std;
+
+#define REAL_TIME 0
+
 
 bool g_quit = false;
 
@@ -165,10 +166,9 @@ ControllerNode::~ControllerNode()
 
 void ControllerNode::run()
 {
-  //set priority
-#ifdef WIN32
 
-#else
+#if REAL_TIME
+  //set priority
   int retcode;
   int policy;
   pthread_t thread_id = (pthread_t)g_control_thread.native_handle();
@@ -270,11 +270,13 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "hgROS");
 
+#if REAL_TIME
   // Keep the kernel from swapping us out
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
     perror("mlockall");
     return -1;
   }
+#endif
 
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
