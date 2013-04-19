@@ -11,16 +11,8 @@
   <depend package="roscpp"/>
   <depend package="rospy"/>  
   <depend package="hg_cpp"/>
-  <depend package="actionlib"/>
-  <depend package="joint_trajectory_action"/>  
-  <depend package="tf"/>
-  <depend package="pluginlib"/>  
   <depend package="planning_models"/>
   <depend package="planning_environment"/>
-  <depend package="ompl_ros_interface"/>
-  <depend package="kdl"/>
-  <depend package="kinematics_base"/>
-  <depend package="spline_smoother"/>
   
   <depend package="std_msgs"/>
   <depend package="control_msgs"/>

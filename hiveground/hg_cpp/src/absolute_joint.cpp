@@ -92,9 +92,10 @@ bool AbsoluteJoint::getJointInformationUrdf(const std::string& param)
 
 double AbsoluteJoint::interpolate(double dt)
 {
-  boost::recursive_mutex::scoped_lock(mutex_);
+  //boost::recursive_mutex::scoped_lock(mutex_);
   if (touched_)
   {
+    /*
     double command = desired_position_ - last_commanded_position_;
 
     //check velocity limit
@@ -109,8 +110,12 @@ double AbsoluteJoint::interpolate(double dt)
       command = -move_limit_dt;
     }
 
+
     //check position limit
     command = last_commanded_position_ + command;
+    */
+
+    double command = desired_position_;
 
     if (command > joint_info_->limits->upper)
     {
@@ -165,12 +170,8 @@ double AbsoluteJoint::setPosition(double position)
         name_ + " position [" << position << "] out of range [" << joint_info_->limits->lower << ", " << joint_info_->limits->upper << "]");
     return position_;
   }
-
-  mutex_.lock();
   desired_position_ = position;
   touched_ = true;
-  mutex_.unlock();
-
   return desired_position_;
 }
 
