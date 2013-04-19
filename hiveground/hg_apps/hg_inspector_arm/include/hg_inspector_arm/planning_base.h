@@ -44,6 +44,7 @@
 #include <planning_environment/models/collision_models.h>
 #include <planning_environment/models/model_utils.h>
 #include <planning_environment/monitors/joint_state_monitor.h>
+#include <arm_navigation_msgs/FilterJointTrajectoryWithConstraints.h>
 
 typedef std::map<std::string, planning_models::KinematicModel::GroupConfig> KinematicModelGroupConfigMap;
 
@@ -70,6 +71,7 @@ protected:
   std::map<std::string, ros::ServiceClient> ik_info_client_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
+  ros::ServiceClient trajectory_filter_client_;
 };
 
 

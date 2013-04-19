@@ -59,6 +59,8 @@
 
 #include <leptrino/ForceTorque.h>
 
+#include <spline_smoother/clamped_cubic_spline_smoother.h>
+#include <spline_smoother/cubic_spline_velocity_scaler.h>
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
@@ -171,8 +173,10 @@ private Q_SLOTS:
   void valueChanged(QtProperty *property, const QSize &value);
 
   //UI
+  void on_pushButtonSTOP_clicked();
   void on_pushButtonPlan_clicked();
   void on_pushButtonSetZeroForceTorque_clicked();
+
 
 
   //Menu action
@@ -272,6 +276,9 @@ private:
   std::map<std::string, FollowJointTrajectoryClientPtr> action_client_map_;
   ros::ServiceClient hg_cartesian_trajectory_client_;
   bool arm_is_active_;
+
+  //Maximum composite speed
+  double max_composite_speed_;
 
 
   //gesture

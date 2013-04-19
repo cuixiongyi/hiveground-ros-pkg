@@ -125,6 +125,7 @@ protected:
   QString name_;
   geometry_msgs::Pose pose_;
   sensor_msgs::JointState joint_state_;
+  ros::Duration duration_; //time to stop before move to next point
   double marker_scale_;
 
 
