@@ -29,6 +29,12 @@
          <layout class="QHBoxLayout" name="horizontalLayout_7">
           <item>
            <widget class="QLabel" name="label_9">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Speed</string>
             </property>
@@ -41,6 +47,9 @@
             </property>
             <property name="maximum">
              <number>100</number>
+            </property>
+            <property name="value">
+             <number>50</number>
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -60,6 +69,61 @@
             </property>
             <property name="maximum">
              <number>100</number>
+            </property>
+            <property name="value">
+             <number>50</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_13">
+          <item>
+           <widget class="QLabel" name="label_10">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Acceleration</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSlider" name="horizontalSlider_2">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="value">
+             <number>50</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinBoxMoveAcceleration">
+            <property name="suffix">
+             <string>%</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="value">
+             <number>50</number>
             </property>
            </widget>
           </item>
@@ -705,6 +769,8 @@
          </item>
         </layout>
        </widget>
+       <zorder>layoutWidget</zorder>
+       <zorder>label_6</zorder>
       </widget>
      </widget>
     </item>
@@ -743,6 +809,7 @@
      <string>Marker</string>
     </property>
     <addaction name="actionAddMarker"/>
+    <addaction name="actionAddMarkerHere"/>
     <addaction name="actionAddMarkerToTool"/>
     <addaction name="actionClearMarker"/>
     <addaction name="separator"/>
@@ -795,6 +862,7 @@
    <addaction name="actionExit"/>
    <addaction name="separator"/>
    <addaction name="actionAddMarker"/>
+   <addaction name="actionAddMarkerHere"/>
    <addaction name="actionAddMarkerToTool"/>
    <addaction name="actionLoadMarker"/>
    <addaction name="actionSaveMarker"/>
@@ -890,6 +958,14 @@
     <string>Add Marker to Tool</string>
    </property>
   </action>
+  <action name="actionAddMarkerHere">
+   <property name="text">
+    <string>Add Marker Here</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../resource/resource.rc"/>
@@ -919,11 +995,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>356</x>
-     <y>200</y>
+     <y>306</y>
     </hint>
     <hint type="destinationlabel">
      <x>307</x>
-     <y>232</y>
+     <y>338</y>
     </hint>
    </hints>
   </connection>
@@ -935,11 +1011,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>475</x>
-     <y>200</y>
+     <y>306</y>
     </hint>
     <hint type="destinationlabel">
      <x>320</x>
-     <y>557</y>
+     <y>663</y>
     </hint>
    </hints>
   </connection>
@@ -951,11 +1027,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>391</x>
-     <y>344</y>
+     <y>450</y>
     </hint>
     <hint type="destinationlabel">
      <x>438</x>
-     <y>344</y>
+     <y>450</y>
     </hint>
    </hints>
   </connection>
@@ -967,11 +1043,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>391</x>
-     <y>344</y>
+     <y>450</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
-     <y>344</y>
+     <y>450</y>
     </hint>
    </hints>
   </connection>
@@ -983,11 +1059,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>391</x>
-     <y>344</y>
+     <y>450</y>
     </hint>
     <hint type="destinationlabel">
      <x>530</x>
-     <y>344</y>
+     <y>450</y>
     </hint>
    </hints>
   </connection>
@@ -999,11 +1075,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>391</x>
-     <y>408</y>
+     <y>514</y>
     </hint>
     <hint type="destinationlabel">
      <x>438</x>
-     <y>408</y>
+     <y>514</y>
     </hint>
    </hints>
   </connection>
@@ -1015,11 +1091,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>391</x>
-     <y>408</y>
+     <y>514</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
-     <y>408</y>
+     <y>514</y>
     </hint>
    </hints>
   </connection>
@@ -1031,27 +1107,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>391</x>
-     <y>408</y>
+     <y>514</y>
     </hint>
     <hint type="destinationlabel">
      <x>530</x>
-     <y>408</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>horizontalSlider</sender>
-   <signal>sliderMoved(int)</signal>
-   <receiver>spinBoxMoveSpeed</receiver>
-   <slot>setValue(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>562</x>
-     <y>114</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>683</x>
-     <y>126</y>
+     <y>514</y>
     </hint>
    </hints>
   </connection>
@@ -1068,6 +1128,54 @@
     <hint type="destinationlabel">
      <x>599</x>
      <y>116</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxMoveSpeed</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>562</x>
+     <y>114</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>683</x>
+     <y>126</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSlider_2</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxMoveAcceleration</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>510</x>
+     <y>172</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>669</x>
+     <y>162</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxMoveAcceleration</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>horizontalSlider_2</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>662</x>
+     <y>163</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>575</x>
+     <y>167</y>
     </hint>
    </hints>
   </connection>

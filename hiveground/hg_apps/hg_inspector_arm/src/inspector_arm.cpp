@@ -42,7 +42,7 @@
 
 #include <planning_models/kinematic_state.h>
 #include <hg_inspector_arm/inspector_arm.h>
-#include <hg_cpp/hg_cubic_path.h>
+#include <hg_cpp/hg_trajectory.h>
 
 #include <std_msgs/Bool.h>
 
@@ -117,6 +117,7 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
   if(!initializeServiceClient()) return false;
 
   connect(this, SIGNAL(followPointSignal()), this, SLOT(followPointSlot()));
+  connect(this, SIGNAL(moveToMarkerSignal(QString)), this, SLOT(moveToMarker(QString)));
 
   return true;
 }
@@ -180,7 +181,7 @@ void InspectorArm::jointStateCallback(const sensor_msgs::JointStateConstPtr& mes
 }
 
 void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
-                                               const control_msgs::FollowJointTrajectoryResultConstPtr& result)
+                                          const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
   ROS_INFO_STREAM_THROTTLE(1.0, "trajectory done");
   arm_is_active_ = false;
@@ -208,6 +209,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr& messag
       goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
       trajectory_msgs::JointTrajectoryPoint point;
       point.positions = joint_state.position;
+      point.time_from_start = ros::Duration(0.5);
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
       arm_is_active_ = true;
@@ -536,63 +538,30 @@ void InspectorArm::on_pushButtonPlan_clicked()
   if(markers_.size() == 0)
     return;
 
-  control_msgs::FollowJointTrajectoryGoal goal;
-  goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(0.1);
-  goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
-
-  tf::StampedTransform stf;
-  listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), stf);
+  trajectory_msgs::JointTrajectory trajectory;
 
 
-  double max_ee_move_speed = max_composite_speed_ * ui.spinBoxMoveSpeed->value() * 0.01;
-  ROS_INFO("max speed %f", max_ee_move_speed);
 
+  trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
 
-   int count = ui.listWidgetMarker->count();
+  int count = ui.listWidgetMarker->count();
   std::vector<tf::Transform> tfs(count);
   trajectory_msgs::JointTrajectoryPoint point;
 
+  action_client_map_["manipulator"]->cancelAllGoals();
+  ros::Duration(0.5).sleep();
 
   //current position
   point.positions = latest_joint_state_.position;
   point.velocities.resize(point.positions.size());
   point.accelerations.resize(point.positions.size());
-  goal.trajectory.points.push_back(point);
+  trajectory.points.push_back(point);
 
-/*
-  //the first marker in list
-  tf::poseMsgToTF(markers_[ui.listWidgetMarker->item(0)->text().toStdString()]->pose(), tfs[0]);
-  point.positions = markers_[ui.listWidgetMarker->item(0)->text().toStdString()]->jointState().position;
-
-
-  std::vector<double> time_from_start(count);
-  double ds = (tfs[0].getOrigin() - stf.getOrigin()).length();
-  double d_theta = tfs[0].getRotation().dot(stf.getRotation());
-  time_from_start[0] = ds / max_ee_move_speed;
-  ROS_INFO("ds %f d_theta %f %f", ds, d_theta, time_from_start[0]);
-
-  point.time_from_start = ros::Duration(time_from_start[0]);
-  goal.trajectory.points.push_back(point);
-  double min_time = 0;
-*/
   for(int i = 0; i < count; i++)
   {
-    /*
-    tf::poseMsgToTF(markers_[ui.listWidgetMarker->item(i+1)->text().toStdString()]->pose(), tfs[i+1]);
-    ds = (tfs[i+1].getOrigin() - tfs[i].getOrigin()).length();
-    min_time = ds / max_ee_move_speed;
-    ROS_INFO("ds: %f, min time:%f", ds, min_time);
-    time_from_start[i+1] = time_from_start[i] + min_time;
-    */
-
     point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
-    //point.time_from_start = ros::Duration(0);
-    goal.trajectory.points.push_back(point);
+    trajectory.points.push_back(point);
   }
-
-
-  //hg_cubic_path::clamp_path_velocity_with_tanget(goal.trajectory);
-
 
   std::vector<arm_navigation_msgs::JointLimits> limits;
   arm_navigation_msgs::JointLimits limit;
@@ -602,49 +571,23 @@ void InspectorArm::on_pushButtonPlan_clicked()
     limit.max_position = 0;  //not use
     limit.min_position = 0;  //not use
     limit.has_velocity_limits = 1;
-    limit.max_velocity = 3.0 * ui.spinBoxMoveSpeed->value() * 0.01;
+    limit.max_velocity = 6.0 * ui.spinBoxMoveSpeed->value() * 0.01;
     limit.has_acceleration_limits = 1;
-    limit.max_acceleration = 6.0;
+    limit.max_acceleration = 6.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
     limits.push_back(limit);
   }
 
-  //ROS_INFO_STREAM(goal.trajectory);
-
-  spline_smoother::SplineTrajectory spline_trajectory;
-  spline_smoother::CubicTrajectory trajectory_generator;
-  trajectory_generator.parameterize(goal.trajectory, limits, spline_trajectory);
-
-  //ROS_INFO("A");
-  double a0, a1, a2, a3, t;
-  for (size_t i = 0; i < spline_trajectory.segments.size(); i++)
+  control_msgs::FollowJointTrajectoryGoal goal;
+  if(!hg_trajectory::cubicSmoothWaypointsTrajectory(trajectory, limits, goal.trajectory))
   {
-      for (int j = 0; j < 6; j++)
-      {
-        t = spline_trajectory.segments[i].duration.toSec();
-        a0 = spline_trajectory.segments[i].joints[j].coefficients[0];
-        a1 = spline_trajectory.segments[i].joints[j].coefficients[1];
-        a2 = spline_trajectory.segments[i].joints[j].coefficients[2];
-        a3 = spline_trajectory.segments[i].joints[j].coefficients[3];
-        //goal.trajectory.points[i+1].positions[j] = a0 + (a1 * t) + (a2 * t * t) + (a3 * t * t * t);
-        goal.trajectory.points[i+1].velocities[j] = a1 + (2 * a2 * t) + (3 * a3 * t * t);
-        goal.trajectory.points[i+1].accelerations[j] = 2 * a2 + (6 * a3 * t);
-      }
-      goal.trajectory.points[i+1].time_from_start = goal.trajectory.points[i].time_from_start +  spline_trajectory.segments[i].duration;
-      //ROS_INFO("B %d", i);
+    ROS_ERROR("cannot smooth waypoints");
+    return;
   }
-  //ROS_INFO("C");
-
-  //ROS_INFO_STREAM(goal.trajectory);
-
-  hg_cubic_path::clamp_path_velocity_with_tanget(goal.trajectory);
-
-  //ROS_INFO_STREAM(goal.trajectory);
+  ROS_INFO("Before %d points ==========================", trajectory.points.size());
+  ROS_INFO("After %d points ==========================", goal.trajectory.points.size());
 
 
-
-
-
-
+  goal.trajectory.header.stamp = ros::Time::now();
   action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
   arm_is_active_ = true;
 }
@@ -669,6 +612,28 @@ void InspectorArm::on_actionAddMarker_triggered()
 {
   //ROS_INFO(__FUNCTION__);
   addMarkerAtEndEffector();
+}
+
+void InspectorArm::on_actionAddMarkerHere_triggered()
+{
+  if(selected_markers_.size() == 0)
+    return;
+  std::string name;
+  if (selected_markers_.back().rfind("marker_ee") != std::string::npos)
+  {
+    name = getMarkerName("marker_ee");
+  }
+  else if (selected_markers_.back().rfind("marker_tool") != std::string::npos)
+  {
+    name = getMarkerName("marker_tool");
+  }
+
+
+  addMarker(name, markers_[selected_markers_.back()]->pose(), true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+  addInspectionPointFrom(name, markers_[selected_markers_.back()]);
+
+  selectOnlyOneMarker(name);
+  Q_EMIT inspectionPointClickedSignal(markers_[name]);
 }
 
 void InspectorArm::on_actionAddMarkerToTool_triggered()
@@ -763,6 +728,61 @@ void InspectorArm::followPointSlot()
   }
 }
 
+void InspectorArm::moveToMarker(const QString& name)
+{
+  if (markers_.size() == 0)
+    return;
+
+  if(markers_.find(name.toStdString()) == markers_.end())
+  {
+    return;
+  }
+
+  trajectory_msgs::JointTrajectory trajectory;
+  trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+
+  trajectory_msgs::JointTrajectoryPoint point;
+
+  action_client_map_["manipulator"]->cancelAllGoals();
+  ros::Duration(0.5).sleep();
+
+  //current position
+  point.positions = latest_joint_state_.position;
+  point.velocities.resize(point.positions.size());
+  point.accelerations.resize(point.positions.size());
+  trajectory.points.push_back(point);
+
+
+  point.positions = markers_[name.toStdString()]->jointState().position;
+  trajectory.points.push_back(point);
+
+
+  std::vector<arm_navigation_msgs::JointLimits> limits;
+  arm_navigation_msgs::JointLimits limit;
+  for (int i = 0; i < 6; i++)
+  {
+    limit.has_position_limits = 0; //not use
+    limit.max_position = 0; //not use
+    limit.min_position = 0; //not use
+    limit.has_velocity_limits = 1;
+    limit.max_velocity = 6.0 * ui.spinBoxMoveSpeed->value() * 0.01;
+    limit.has_acceleration_limits = 1;
+    limit.max_acceleration = 6.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
+    limits.push_back(limit);
+  }
+
+  control_msgs::FollowJointTrajectoryGoal goal;
+  if (!hg_trajectory::cubicSmoothWaypointsTrajectory(trajectory, limits, goal.trajectory))
+  {
+    ROS_ERROR("cannot smooth waypoints");
+    return;
+  }
+
+  goal.trajectory.header.stamp = ros::Time::now();
+  action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+  arm_is_active_ = true;
+}
+
 void InspectorArm::onMarkerArrayPublisherTimer()
 {
   QMutexLocker lock(&mutex_marker_array_);
@@ -800,7 +820,7 @@ void InspectorArm::on_listWidgetMarker_itemClicked( QListWidgetItem * item )
   {
     selectOnlyOneMarker(item->text().toStdString());
     inspectionPointClicked(markers_[item->text().toStdString()]);
-    Q_EMIT followPointSignal();
+    moveToMarker(item->text());
   }
 }
 

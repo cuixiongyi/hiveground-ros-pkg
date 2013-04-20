@@ -94,7 +94,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       {
         //ROS_INFO_STREAM("click : " << feedback->marker_name);
         selectOnlyOneMarker(feedback->marker_name);
-        Q_EMIT followPointSignal();
+        Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:

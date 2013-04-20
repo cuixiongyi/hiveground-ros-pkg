@@ -160,6 +160,7 @@ Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
   void inspectionPointMovedSignal(InspectionPointItem *item);
   void followPointSignal();
+  void moveToMarkerSignal(QString name);
 
 private Q_SLOTS:
   //Inspection point property
@@ -184,6 +185,7 @@ private Q_SLOTS:
 
   //Path Menu
   void on_actionAddMarker_triggered();
+  void on_actionAddMarkerHere_triggered();
   void on_actionAddMarkerToTool_triggered();
   void on_actionClearMarker_triggered();
   void on_actionLoadMarker_triggered();
@@ -192,6 +194,7 @@ private Q_SLOTS:
 
   //Follow point
   void followPointSlot();
+  void moveToMarker(const QString& name);
 
   //Marker
   void onMarkerArrayPublisherTimer();
