@@ -219,19 +219,31 @@ inline bool cubicSmoothWaypointsTrajectory(const trajectory_msgs::JointTrajector
     return false;
   }
 
+  //ROS_INFO("======spline=====");
+  //ROS_INFO_STREAM(spline);
+
   if(!getWaypoints(spline, out))
   {
     return false;
   }
 
+
   refineTrajectory(out, limits);
+
+
   //ROS_INFO("======Input=====");
   //ROS_INFO_STREAM(in);
-  //ROS_INFO("======Before=====");
+  //ROS_INFO("======Before refine=====");
   //ROS_INFO_STREAM(out);
-  //ROS_INFO("======After=====");
+
+  refineTrajectory(out, limits);
+  //ROS_INFO("======After refine=====");
   //ROS_INFO_STREAM(out);
+
   discretizeTrajectory(spline, discretization, out);
+  //ROS_INFO("======After discretize=====");
+  //ROS_INFO_STREAM(out);
+
 
 
 

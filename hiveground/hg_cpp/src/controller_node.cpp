@@ -43,7 +43,7 @@
 using namespace hg;
 using namespace std;
 
-#define REAL_TIME 0
+#define REAL_TIME 1
 
 
 bool g_quit = false;
@@ -164,6 +164,25 @@ ControllerNode::~ControllerNode()
 
 }
 
+static const int NSEC_PER_SECOND = 1e+9;
+static const int USEC_PER_SECOND = 1e6;
+static inline double now()
+{
+  struct timespec n;
+  clock_gettime(CLOCK_MONOTONIC, &n);
+  return double(n.tv_nsec) / NSEC_PER_SECOND + n.tv_sec;
+}
+
+static void timespecInc(struct timespec &tick, int nsec)
+{
+  tick.tv_nsec += nsec;
+  while (tick.tv_nsec >= NSEC_PER_SECOND)
+  {
+    tick.tv_nsec -= NSEC_PER_SECOND;
+    tick.tv_sec++;
+  }
+}
+
 void ControllerNode::run()
 {
 
@@ -214,10 +233,21 @@ void ControllerNode::run()
     (*it)->startup();
   }
 
-  ros::Rate loop_rate(1000);
-  ros::Time last_joint_state_publish_time = ros::Time::now();
+  struct timespec tick;
+  clock_gettime(CLOCK_REALTIME, &tick);
+  int period = 1e+6; // 1 ms in nanoseconds
+
+  // Snap to the nearest second
+  tick.tv_sec = tick.tv_sec;
+  tick.tv_nsec = (tick.tv_nsec / period + 1) * period;
+  clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+
+
+
+
   ROS_INFO("Start");
   int count = 0;
+  int publish_count = 0;
   while (ros::ok())
   {
     ROS_INFO_THROTTLE(1.0, "Loop %d", count++);
@@ -227,11 +257,16 @@ void ControllerNode::run()
       (*it)->update();
     }
 
+    ROS_INFO_THROTTLE(1.0, "A");
+
     //publish message
-    if((ros::Time::now() - last_joint_state_publish_time).toSec() > 0.01)
+    publish_count++;
+    if(publish_count >= 10)
     {
+      ROS_INFO_THROTTLE(1.0, "B");
       if(pub_joint_state_.trylock())
       {
+        ROS_INFO_THROTTLE(1.0, "C");
         pub_joint_state_.msg_.header.stamp = ros::Time::now();
         size_t i = 0;
         std::vector<boost::shared_ptr<hg::Joint> >::iterator joint_it;
@@ -241,11 +276,34 @@ void ControllerNode::run()
           pub_joint_state_.msg_.velocity[i] = (*joint_it)->velocity_;
           pub_joint_state_.msg_.effort[i] = 0.0;
         }
+        ROS_INFO_THROTTLE(1.0, "D");
         pub_joint_state_.unlockAndPublish();
-        last_joint_state_publish_time = ros::Time::now();
+        ROS_INFO_THROTTLE(1.0, "E");
+        publish_count = 0;
       }
     }
-    loop_rate.sleep();
+
+
+
+    timespecInc(tick, period);
+    struct timespec before;
+    clock_gettime(CLOCK_REALTIME, &before);
+    if ((before.tv_sec + double(before.tv_nsec) / NSEC_PER_SECOND)
+        > (tick.tv_sec + double(tick.tv_nsec) / NSEC_PER_SECOND))
+    {
+      ROS_INFO_THROTTLE(1.0, "Overrun");
+      // We overran, snap to next "period"
+      tick.tv_sec = before.tv_sec;
+      tick.tv_nsec = (before.tv_nsec / period) * period;
+      timespecInc(tick, period);
+    }
+
+    // Sleep until end of period
+    clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+
+    //ROS_INFO_THROTTLE(1.0, "F");
+    //loop_rate.sleep();
+    //ROS_INFO_THROTTLE(1.0, "G");
   }
 
   printf("exit\n");

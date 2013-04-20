@@ -93,9 +93,9 @@ bool PlanningBase::initialize(const std::string& param_server_prefix)
     ik_none_collision_client_map_[it->first] = nh_.serviceClient<kinematics_msgs::GetPositionIK>(ik_none_collision_aware_name);
   }
 
-  std::string trajectory_filter_name = "trajectory_filter_server/filter_trajectory_with_constraints";
-  while (!ros::service::waitForService(trajectory_filter_name, ros::Duration(1.0))) { }
-  trajectory_filter_client_ = nh_.serviceClient<arm_navigation_msgs::FilterJointTrajectoryWithConstraints>(trajectory_filter_name, true);
+  //std::string trajectory_filter_name = "trajectory_filter_server/filter_trajectory_with_constraints";
+  //while (!ros::service::waitForService(trajectory_filter_name, ros::Duration(1.0))) { }
+  //trajectory_filter_client_ = nh_.serviceClient<arm_navigation_msgs::FilterJointTrajectoryWithConstraints>(trajectory_filter_name, true);
 
   return true;
 }

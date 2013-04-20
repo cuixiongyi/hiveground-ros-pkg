@@ -155,6 +155,7 @@ protected:
 
   //utility functions
   void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
+  bool executeTrajectory(trajectory_msgs::JointTrajectory& trajectory);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
