@@ -71,7 +71,7 @@ protected:
   std::map<std::string, ros::ServiceClient> ik_info_client_map_;
   std::map<std::string, ros::ServiceClient> ik_client_map_;
   std::map<std::string, ros::ServiceClient> ik_none_collision_client_map_;
-  ros::ServiceClient trajectory_filter_client_;
+  //ros::ServiceClient trajectory_filter_client_;
 };
 
 

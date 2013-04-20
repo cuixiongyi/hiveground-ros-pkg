@@ -348,14 +348,14 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
 
 void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message)
 {
-  if((ros::Time::now() - space_navigator_last_update_).toSec() < 0.05)
-  {
+  tf::Vector3 linear;
+  tf::vector3MsgToTF(message->linear, linear);
+  tf::Vector3 angular;
+  tf::vector3MsgToTF(message->angular, angular);
+
+  if((linear.length2() == 0) && (angular.length2() == 0))
     return;
-  }
-  else
-  {
-    space_navigator_last_update_ = ros::Time::now();
-  }
+
 
   //ROS_INFO_STREAM_THROTTLE(1.0, *message);
   if(!ui.checkBox3DMouse->isChecked()) return;
@@ -363,10 +363,6 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& me
 
   if(markers_.find(selected_markers_.back()) != markers_.end())
   {
-    tf::Vector3 linear;
-    tf::vector3MsgToTF(message->linear, linear);
-    tf::Vector3 angular;
-    tf::vector3MsgToTF(message->angular, angular);
 
     linear.setX(-linear.x());
     linear.setY(-linear.y());
@@ -526,43 +522,8 @@ void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, doub
            //result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
 }
 
-void InspectorArm::on_pushButtonSTOP_clicked()
+bool InspectorArm::executeTrajectory(trajectory_msgs::JointTrajectory& trajectory)
 {
-  ROS_ERROR("STOP Trajectory!!");
-  action_client_map_["manipulator"]->cancelAllGoals();
-
-}
-
-void InspectorArm::on_pushButtonPlan_clicked()
-{
-  if(markers_.size() == 0)
-    return;
-
-  trajectory_msgs::JointTrajectory trajectory;
-
-
-
-  trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
-
-  int count = ui.listWidgetMarker->count();
-  std::vector<tf::Transform> tfs(count);
-  trajectory_msgs::JointTrajectoryPoint point;
-
-  action_client_map_["manipulator"]->cancelAllGoals();
-  ros::Duration(0.5).sleep();
-
-  //current position
-  point.positions = latest_joint_state_.position;
-  point.velocities.resize(point.positions.size());
-  point.accelerations.resize(point.positions.size());
-  trajectory.points.push_back(point);
-
-  for(int i = 0; i < count; i++)
-  {
-    point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
-    trajectory.points.push_back(point);
-  }
-
   std::vector<arm_navigation_msgs::JointLimits> limits;
   arm_navigation_msgs::JointLimits limit;
   for (int i = 0; i < 6; i++)
@@ -573,7 +534,7 @@ void InspectorArm::on_pushButtonPlan_clicked()
     limit.has_velocity_limits = 1;
     limit.max_velocity = 6.0 * ui.spinBoxMoveSpeed->value() * 0.01;
     limit.has_acceleration_limits = 1;
-    limit.max_acceleration = 6.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
+    limit.max_acceleration = 2.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
     limits.push_back(limit);
   }
 
@@ -581,15 +542,93 @@ void InspectorArm::on_pushButtonPlan_clicked()
   if(!hg_trajectory::cubicSmoothWaypointsTrajectory(trajectory, limits, goal.trajectory))
   {
     ROS_ERROR("cannot smooth waypoints");
-    return;
+    return false;
   }
-  ROS_INFO("Before %d points ==========================", trajectory.points.size());
-  ROS_INFO("After %d points ==========================", goal.trajectory.points.size());
+  //ROS_INFO("Before %d points ==========================", trajectory.points.size());
+  //ROS_INFO_STREAM(trajectory);
+  //ROS_INFO("After %d points ==========================", goal.trajectory.points.size());
+  //ROS_INFO_STREAM(goal.trajectory);
+
+  if(arm_is_active_)
+  {
+    ROS_INFO("Arm is moving!");
+    for(size_t i = 0; i < goal.trajectory.points.size(); i++)
+    {
+      goal.trajectory.points[i].time_from_start += ros::Duration(4.0);
+    }
+  }
+
+
 
 
   goal.trajectory.header.stamp = ros::Time::now();
   action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
   arm_is_active_ = true;
+  return true;
+}
+
+void InspectorArm::on_pushButtonSTOP_clicked()
+{
+  ROS_ERROR("STOP Trajectory!!");
+  action_client_map_["manipulator"]->cancelAllGoals();
+}
+
+void InspectorArm::on_pushButtonPlan_clicked()
+{
+  if(markers_.size() == 0)
+    return;
+
+
+  trajectory_msgs::JointTrajectory trajectory;
+  trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+
+  int count = ui.listWidgetMarker->count();
+  trajectory_msgs::JointTrajectoryPoint point;
+
+  //current position
+  mutex_joint_state_.lock();
+  point.positions = latest_joint_state_.position;
+  mutex_joint_state_.unlock();
+
+  if (!arm_is_active_)
+  {
+    trajectory.points.push_back(point);
+    for (int i = 0; i < count; i++)
+    {
+      point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
+      trajectory.points.push_back(point);
+    }
+
+    bool diff = false;
+    for (int i = 0; i < 6; i++)
+    {
+      if (trajectory.points[1].positions[i] - trajectory.points[0].positions[i] != 0.0)
+      {
+        diff = true;
+      }
+    }
+
+    if (!diff)
+    {
+      trajectory.points.erase(trajectory.points.begin());
+      if (trajectory.points.size() == 1)
+      {
+        ROS_INFO("Trying to not to move??");
+        return;
+      }
+    }
+  }
+  else
+  {
+    for (int i = 0; i < count; i++)
+    {
+      point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
+      trajectory.points.push_back(point);
+    }
+  }
+
+  executeTrajectory(trajectory);
+
 }
 
 void InspectorArm::on_pushButtonSetZeroForceTorque_clicked()
@@ -738,16 +777,28 @@ void InspectorArm::moveToMarker(const QString& name)
     return;
   }
 
+  if (arm_is_active_)
+  {
+    ROS_INFO("Hey! Arm is moving!!");
+    control_msgs::FollowJointTrajectoryGoal goal;
+    goal.trajectory.header.stamp = ros::Time::now();
+    goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+    goal.trajectory.points.resize(1);
+    goal.trajectory.points[0].positions = markers_[name.toStdString()]->jointState().position;
+    goal.trajectory.points[0].time_from_start = ros::Duration(4.0);
+    action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+    arm_is_active_ = true;
+    return;
+  }
+
   trajectory_msgs::JointTrajectory trajectory;
   trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
-
   trajectory_msgs::JointTrajectoryPoint point;
 
-  action_client_map_["manipulator"]->cancelAllGoals();
-  ros::Duration(0.5).sleep();
-
   //current position
+  mutex_joint_state_.lock();
   point.positions = latest_joint_state_.position;
+  mutex_joint_state_.unlock();
   point.velocities.resize(point.positions.size());
   point.accelerations.resize(point.positions.size());
   trajectory.points.push_back(point);
@@ -757,30 +808,26 @@ void InspectorArm::moveToMarker(const QString& name)
   trajectory.points.push_back(point);
 
 
-  std::vector<arm_navigation_msgs::JointLimits> limits;
-  arm_navigation_msgs::JointLimits limit;
+  bool diff = false;
   for (int i = 0; i < 6; i++)
   {
-    limit.has_position_limits = 0; //not use
-    limit.max_position = 0; //not use
-    limit.min_position = 0; //not use
-    limit.has_velocity_limits = 1;
-    limit.max_velocity = 6.0 * ui.spinBoxMoveSpeed->value() * 0.01;
-    limit.has_acceleration_limits = 1;
-    limit.max_acceleration = 6.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
-    limits.push_back(limit);
+    if (trajectory.points[1].positions[i] - trajectory.points[0].positions[i] != 0.0)
+    {
+      diff = true;
+    }
   }
 
-  control_msgs::FollowJointTrajectoryGoal goal;
-  if (!hg_trajectory::cubicSmoothWaypointsTrajectory(trajectory, limits, goal.trajectory))
+  if (!diff)
   {
-    ROS_ERROR("cannot smooth waypoints");
-    return;
+    trajectory.points.erase(trajectory.points.begin());
+    if (trajectory.points.size() == 1)
+    {
+      ROS_INFO("Trying to not to move??");
+      return;
+    }
   }
 
-  goal.trajectory.header.stamp = ros::Time::now();
-  action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
-  arm_is_active_ = true;
+  executeTrajectory(trajectory);
 }
 
 void InspectorArm::onMarkerArrayPublisherTimer()

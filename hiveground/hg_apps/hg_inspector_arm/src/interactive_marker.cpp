@@ -93,8 +93,18 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::BUTTON_CLICK:
       {
         //ROS_INFO_STREAM("click : " << feedback->marker_name);
-        selectOnlyOneMarker(feedback->marker_name);
-        Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
+        if(selected_markers_.back() != feedback->marker_name)
+        {
+          selectOnlyOneMarker(feedback->marker_name);
+          if(ui.checkBoxFollowPoint->isChecked())
+          {
+            Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
+          }
+        }
+        else
+        {
+          Q_EMIT followPointSignal();
+        }
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -463,7 +473,13 @@ void InspectorArm::addMarker(const std::string& name,
 
 void InspectorArm::addMarkerAtEndEffector()
 {
+  
+
   tf::StampedTransform transform;
+  if(!listener_.waitForTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), ros::Duration(1.0)))
+  {
+    return;
+  }
   listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(transform, pose);
