@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find hg_demo)/launch/vp6242_force_sensor_soldering_lead/vp6242_force_sensor_soldering_lead_kinect_center.launch"/> 
+  <include file="$(find hg_demo)/launch/vp6242_force_sensor_soldering_lead/vp6242_force_sensor_soldering_lead_self_filter.launch"/>
+</launch>

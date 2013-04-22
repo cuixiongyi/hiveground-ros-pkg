@@ -42,7 +42,9 @@
 
 #include <planning_models/kinematic_state.h>
 #include <hg_inspector_arm/inspector_arm.h>
-#include <spline_smoother/cubic_trajectory.h>
+#include <hg_cpp/hg_trajectory.h>
+
+#include <std_msgs/Bool.h>
 
 using namespace visualization_msgs;
 using namespace hg_user_interaction;
@@ -93,6 +95,9 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
   nh_private_.getParam("gesture_rotation_scale", d);
   ui.doubleSpinBoxGestureRotationScale->setValue(d);
 
+  //HACKKKKK
+  max_composite_speed_= 1.0; //3.9 m/s for Denso VP6242G
+
 
 
   KinematicModelGroupConfigMap::const_iterator it;
@@ -112,6 +117,7 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
   if(!initializeServiceClient()) return false;
 
   connect(this, SIGNAL(followPointSignal()), this, SLOT(followPointSlot()));
+  connect(this, SIGNAL(moveToMarkerSignal(QString)), this, SLOT(moveToMarker(QString)));
 
   return true;
 }
@@ -150,8 +156,12 @@ bool InspectorArm::initializeServiceClient()
   hand_gestures_subscriber_ = nh_.subscribe("hand_gestures_message", 1, &InspectorArm::handGestureCallBack, this);
   body_gestures_subscriber_ = nh_.subscribe("body_gestures_message", 1, &InspectorArm::bodyGestureCallBack, this);
   space_navigator_subscriber_ = nh_.subscribe("space_navigator_message", 1, &InspectorArm::spaceNavigatorCallBack, this);
+  force_torque_subscriber_ = nh_.subscribe("force_torque_message", 1, &InspectorArm::forceTorqueCallBack, this);
+
 
   marker_array_publisher_ = nh_private_.advertise<MarkerArray>("marker_array", 128);
+  force_torque_set_zero_publisher_ = nh_.advertise<std_msgs::Bool>("/leptrino/reset", 1);
+  force_torque_direction_publisher_ = nh_private_.advertise<MarkerArray>("force_torque_direction_marker", 128);
 
 //  ros::service::waitForService("plan_cartesian_path");
 //  hg_cartesian_trajectory_client_ =
@@ -171,14 +181,14 @@ void InspectorArm::jointStateCallback(const sensor_msgs::JointStateConstPtr& mes
 }
 
 void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
-                                               const control_msgs::FollowJointTrajectoryResultConstPtr& result)
+                                          const control_msgs::FollowJointTrajectoryResultConstPtr& result)
 {
-  //ROS_INFO("trajectory done");
+  ROS_INFO_STREAM_THROTTLE(1.0, "trajectory done");
   arm_is_active_ = false;
 }
 
 
-void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message)
+void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr& message)
 {
   if(message->hands.empty()) return;
 
@@ -199,6 +209,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
       goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
       trajectory_msgs::JointTrajectoryPoint point;
       point.positions = joint_state.position;
+      point.time_from_start = ros::Duration(0.5);
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
       arm_is_active_ = true;
@@ -207,7 +218,7 @@ void InspectorArm::handsCallBack(const hg_object_tracking::HandsConstPtr message
 }
 
 
-void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstPtr message)
+void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstPtr& message)
 {
   //ROS_INFO_THROTTLE(1, __FUNCTION__);
   if(ui.checkBoxEnableHandGesture->isChecked())
@@ -220,11 +231,8 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
         {
           if(message->gestures[i].type == Gesture::GESTURE_HAND_PUSH_PULL)
           {
-            tf::Transform pose;
-            tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
-            double rx, ry, rz;
-            rx = ry = rz = 0;
             tf::Vector3 linear(0, 0, 0);
+            tf::Vector3 angular(0, 0, 0);
 
             //message->gestures[i].hand_count
             double hand_distance = 0.0;
@@ -257,31 +265,20 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
               case Gesture::DIR_Z_NEG:
                 linear.m_floats[2] -= translation_scale;
                 break;
-              case Gesture::ROT_X_POS: rx = rotation_scale; break;
-              case Gesture::ROT_X_NEG: rx = -rotation_scale; break;
-              case Gesture::ROT_Y_POS: ry = rotation_scale; break;
-              case Gesture::ROT_Y_NEG: ry = -rotation_scale; break;
-              case Gesture::ROT_Z_POS: rz = rotation_scale; break;
-              case Gesture::ROT_Z_NEG: rz = -rotation_scale; break;
+              case Gesture::ROT_X_POS: angular.m_floats[0] = rotation_scale; break;
+              case Gesture::ROT_X_NEG: angular.m_floats[0] = -rotation_scale; break;
+              case Gesture::ROT_Y_POS: angular.m_floats[1] = rotation_scale; break;
+              case Gesture::ROT_Y_NEG: angular.m_floats[1] = -rotation_scale; break;
+              case Gesture::ROT_Z_POS: angular.m_floats[2] = rotation_scale; break;
+              case Gesture::ROT_Z_NEG: angular.m_floats[2] = -rotation_scale; break;
                 break;
               default: break;
             }
 
-            if (ui.checkBoxUseWorldCoordinate->isChecked())
-            {
-              pose.setOrigin(pose.getOrigin() + linear);
-            }
-            else
-            {
-              tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
-              offset = pose * offset;
-              pose = offset;
-            }
+            tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, linear);
 
-            tf::Quaternion q;
-            q.setRPY(rx, ry, rz);
-            pose.setRotation(pose.getRotation() * q);
-            markers_[selected_markers_.back()]->setPose(pose, true);
+            if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
+              updateMarkerCallbBack(selected_markers_.back(), pose);
           }
         }
       }
@@ -289,29 +286,31 @@ void InspectorArm::handGestureCallBack(const hg_user_interaction::GesturesConstP
   }
 }
 
-void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message)
+void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr& message)
 {
   //ROS_INFO_THROTTLE(1, __FUNCTION__);
   if (ui.checkBoxEnableBodyGesture->isChecked())
   {
-    if(markers_.find(selected_markers_.back()) != markers_.end())
+    for (size_t i = 0; i < message->gestures.size(); i++)
     {
-      for(size_t i = 0; i < message->gestures.size(); i++)
+      //ROS_INFO("Type %d", message->gestures[i].type);
+      if (message->gestures[i].type == Gesture::GESTURE_ELBOW_TOGGLE)
       {
-        if(message->gestures[i].type == Gesture::GESTURE_BODY_MOVE)
+        ui.checkBoxUseWorldCoordinate->toggle();
+      }
+
+      if (message->gestures[i].type == Gesture::GESTURE_BODY_MOVE)
+      {
+        if (markers_.find(selected_markers_.back()) != markers_.end())
         {
-          tf::Transform pose;
-          tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
-          double rx, ry, rz;
-          rx = ry = rz = 0;
           tf::Vector3 linear(0, 0, 0);
 
           //message->gestures[i].hand_count
-          double hand_distance = message->gestures[i].vars[0] * 0.1;
+          double move_distance = message->gestures[i].vars[0] * 0.1;
 
-          double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * hand_distance;
-          double rotation_scale = ui.doubleSpinBoxGestureRotationScale->value() * hand_distance;
-          switch(message->gestures[i].direction)
+          double translation_scale = ui.doubleSpinBoxGestureTranslationScale->value() * move_distance;
+
+          switch (message->gestures[i].direction)
           {
             case Gesture::DIR_X_POS:
               linear.m_floats[0] += translation_scale;
@@ -331,32 +330,15 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
             case Gesture::DIR_Z_NEG:
               linear.m_floats[2] -= translation_scale;
               break;
-            case Gesture::ROT_X_POS: rx = rotation_scale; break;
-            case Gesture::ROT_X_NEG: rx = -rotation_scale; break;
-            case Gesture::ROT_Y_POS: ry = rotation_scale; break;
-            case Gesture::ROT_Y_NEG: ry = -rotation_scale; break;
-            case Gesture::ROT_Z_POS: rz = rotation_scale; break;
-            case Gesture::ROT_Z_NEG: rz = -rotation_scale; break;
+            default:
               break;
-            default: break;
           }
 
+          tf::Transform pose = moveSelectedMarker(selected_markers_.back(), tf::Vector3(0, 0, 0), linear);
 
-          if (ui.checkBoxUseWorldCoordinate->isChecked())
-          {
-            pose.setOrigin(pose.getOrigin() + linear);
-          }
-          else
-          {
-            tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
-            offset = pose * offset;
-            pose = offset;
-          }
+          if (ui.checkBoxEnableTranslation->isChecked())
+            updateMarkerCallbBack(selected_markers_.back(), pose);
 
-          tf::Quaternion q;
-          q.setRPY(rx, ry, rz);
-          pose.setRotation(pose.getRotation() * q);
-          markers_[selected_markers_.back()]->setPose(pose, true);
         }
       }
     }
@@ -364,16 +346,16 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
 }
 
 
-void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message)
+void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message)
 {
-  if((ros::Time::now() - space_navigator_last_update_).toSec() < 0.05)
-  {
+  tf::Vector3 linear;
+  tf::vector3MsgToTF(message->linear, linear);
+  tf::Vector3 angular;
+  tf::vector3MsgToTF(message->angular, angular);
+
+  if((linear.length2() == 0) && (angular.length2() == 0))
     return;
-  }
-  else
-  {
-    space_navigator_last_update_ = ros::Time::now();
-  }
+
 
   //ROS_INFO_STREAM_THROTTLE(1.0, *message);
   if(!ui.checkBox3DMouse->isChecked()) return;
@@ -381,10 +363,6 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
 
   if(markers_.find(selected_markers_.back()) != markers_.end())
   {
-    tf::Vector3 linear;
-    tf::vector3MsgToTF(message->linear, linear);
-    tf::Vector3 angular;
-    tf::vector3MsgToTF(message->angular, angular);
 
     linear.setX(-linear.x());
     linear.setY(-linear.y());
@@ -392,37 +370,142 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr mes
     linear = linear * (1/350.0) * ui.doubleSpinBoxLinearScale->value();
     angular = angular * (1/350.0) * ui.doubleSpinBoxAngularScale->value();
 
-    tf::Quaternion q;
-    if (ui.checkBoxSwapRxRz->isChecked())
-      q.setRPY(angular.z(), angular.y(), angular.x());
-    else
-      q.setRPY(angular.x(), angular.y(), angular.z());
+    tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, linear);
 
-    tf::Transform pose;
-    tf::poseMsgToTF(markers_[selected_markers_.back()]->pose(), pose);
-
-    if (ui.checkBox3DMouseTranslation->isChecked())
+    if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
     {
-      if (ui.checkBoxUseWorldCoordinate->isChecked())
-      {
-        pose.setOrigin(pose.getOrigin() + linear);
-      }
-      else
-      {
-        tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
-        offset = pose * offset;
-        pose = offset;
-      }
+      updateMarkerCallbBack(selected_markers_.back(), pose);
     }
 
-    if (ui.checkBox3DMouseRotation->isChecked())
+  }
+}
+
+void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& message)
+{
+  static int count = 0;
+  //static tf::Vector3 force_sum(0, 0, 0);
+  //static tf::Vector3 torque_sum(0, 0, 0);
+
+
+  tf::Vector3 fx(0, -0.707106781, 0.707106781);
+  tf::Vector3 fy(0, 0.707106781, 0.707106781);
+  tf::Vector3 mx(0, -0.707106781, 0.707106781);
+  tf::Vector3 my(0, 0.707106781, 0.707106781);
+
+  fx = fx * -message->fx;
+  fy = fy * message->fy;
+  mx = mx * message->mx;
+  my = my * message->my;
+
+
+  tf::Vector3 force(message->fz, fx.y() + fy.y(), fx.z()+ fy.z());
+  tf::Vector3 torque(message->mz, mx.z() + my.z(), mx.y()+ my.y());
+
+  QMutexLocker lock(&force_torque_mutex_);
+
+
+  if(ui.checkBoxEnableForceTorque->isChecked())
+  {
+
+    if((force.length() > 3) || (torque.length() > 0.25))
     {
-      pose.setRotation(pose.getRotation() * q);
+      count = 0;
+      tf::Vector3 liner = force.normalized() * ui.doubleSpinBoxForceTranslationScale->value();
+      tf::Vector3 angular = torque.normalized() * ui.doubleSpinBoxForceRotationScale->value();
+      tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, liner);
+      if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
+        updateMarkerCallbBack(selected_markers_.back(), pose);
     }
+  }
 
 
-    if(ui.checkBox3DMouseTranslation->isChecked() || ui.checkBox3DMouseRotation->isChecked())
-      markers_[selected_markers_.back()]->setPose(pose, true);
+
+
+
+  if (force_torque_direction_publisher_.getNumSubscribers() != 0)
+  {
+
+    MarkerArray markers;
+    Marker arrow = makeArrow();
+    arrow.id = 0;
+    arrow.ns = "sensor";
+    arrow.lifetime = ros::Duration(0.1);
+    arrow.header.frame_id = world_frame_;
+    tf::StampedTransform stf;
+    listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), stf);
+
+    tf::Pose pose = stf;
+    Eigen::Quaternionf q;
+
+    arrow.color.r = 1;
+    arrow.color.g = 0;
+    arrow.color.b = 0;
+    arrow.scale.x = torque.x();
+    arrow.scale.y = torque.x();
+    arrow.scale.z = (force.x() / 20.0);
+    tf::poseTFToMsg(pose, arrow.pose);
+    markers.markers.push_back(arrow);
+    arrow.id++;
+
+    arrow.color.r = 0;
+    arrow.color.g = 1;
+    arrow.color.b = 0;
+    arrow.scale.x = torque.y();
+    arrow.scale.y = torque.y();
+    arrow.scale.z = (force.y() / 20.0);
+    q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0, 1, 0));
+    tf::Transform arrow_tf(tf::Quaternion(q.x(), q.y(), q.z(), q.w()), tf::Vector3(0, 0, 0));
+    tf::poseTFToMsg(pose * arrow_tf, arrow.pose);
+    markers.markers.push_back(arrow);
+    arrow.id++;
+
+    arrow.color.r = 0;
+    arrow.color.g = 0;
+    arrow.color.b = 1;
+    arrow.scale.x = torque.z();
+    arrow.scale.y = torque.z();
+    arrow.scale.z = (force.z() / 20.0);
+    q.setFromTwoVectors(Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0, 0, 1));
+    arrow_tf.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
+    tf::poseTFToMsg(pose * arrow_tf, arrow.pose);
+    markers.markers.push_back(arrow);
+    arrow.id++;
+
+
+
+
+    force_torque_direction_publisher_.publish(markers);
+  }
+
+
+
+
+}
+
+void InspectorArm::updateMarkerCallbBack(const std::string& name, const geometry_msgs::Pose& pose)
+{
+  tf::Transform tf;
+  tf::poseMsgToTF(pose, tf);
+  updateMarkerCallbBack(name, tf);
+}
+
+void InspectorArm::updateMarkerCallbBack(const std::string& name, const tf::Transform& pose)
+{
+  if (name.rfind("marker_tool") != std::string::npos)
+  {
+    tf::StampedTransform tf;
+    listener_.lookupTransform(tool_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), tf);
+    tf::Transform pose_ee = pose * tf;
+    sensor_msgs::JointState joint_state = markers_[name]->jointState();
+    if (checkIKConstraintAware(pose_ee, joint_state))
+    {
+      markers_[name]->setJointState(joint_state);
+      markers_[name]->setPose(pose, false);
+    }
+  }
+  else if (name.rfind("marker_ee") != std::string::npos)
+  {
+    markers_[selected_markers_.back()]->setPose(pose, true);
   }
 }
 
@@ -439,32 +522,162 @@ void InspectorArm::lookAt(const tf::Vector3& at, const tf::Transform& from, doub
            //result.getRotation().x(), result.getRotation().y(), result.getRotation().z(), result.getRotation().w());
 }
 
+bool InspectorArm::executeTrajectory(trajectory_msgs::JointTrajectory& trajectory)
+{
+  std::vector<arm_navigation_msgs::JointLimits> limits;
+  arm_navigation_msgs::JointLimits limit;
+  for (int i = 0; i < 6; i++)
+  {
+    limit.has_position_limits = 0; //not use
+    limit.max_position = 0;  //not use
+    limit.min_position = 0;  //not use
+    limit.has_velocity_limits = 1;
+    limit.max_velocity = 6.0 * ui.spinBoxMoveSpeed->value() * 0.01;
+    limit.has_acceleration_limits = 1;
+    limit.max_acceleration = 2.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
+    limits.push_back(limit);
+  }
+
+  control_msgs::FollowJointTrajectoryGoal goal;
+  if(!hg_trajectory::cubicSmoothWaypointsTrajectory(trajectory, limits, goal.trajectory))
+  {
+    ROS_ERROR("cannot smooth waypoints");
+    return false;
+  }
+  //ROS_INFO("Before %d points ==========================", trajectory.points.size());
+  //ROS_INFO_STREAM(trajectory);
+  //ROS_INFO("After %d points ==========================", goal.trajectory.points.size());
+  //ROS_INFO_STREAM(goal.trajectory);
+
+  if(arm_is_active_)
+  {
+    ROS_INFO("Arm is moving!");
+    for(size_t i = 0; i < goal.trajectory.points.size(); i++)
+    {
+      goal.trajectory.points[i].time_from_start += ros::Duration(4.0);
+    }
+  }
+
+
+
+
+  goal.trajectory.header.stamp = ros::Time::now();
+  action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+  arm_is_active_ = true;
+  return true;
+}
+
+void InspectorArm::on_pushButtonSTOP_clicked()
+{
+  ROS_ERROR("STOP Trajectory!!");
+  action_client_map_["manipulator"]->cancelAllGoals();
+}
+
 void InspectorArm::on_pushButtonPlan_clicked()
 {
   if(markers_.size() == 0)
     return;
 
-  control_msgs::FollowJointTrajectoryGoal goal;
-  goal.trajectory.header.stamp = ros::Time::now();
-  goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
 
-  std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
+  trajectory_msgs::JointTrajectory trajectory;
+  trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+
+  int count = ui.listWidgetMarker->count();
   trajectory_msgs::JointTrajectoryPoint point;
-  //point.velocities.resize(ik_solver_info_.kinematic_solver_info.joint_names.size(), 0);
-  while (it != markers_.end())
+
+  //current position
+  mutex_joint_state_.lock();
+  point.positions = latest_joint_state_.position;
+  mutex_joint_state_.unlock();
+
+  if (!arm_is_active_)
   {
-    point.positions = it->second->jointState().position;
-    goal.trajectory.points.push_back(point);
-    it++;
+    trajectory.points.push_back(point);
+    for (int i = 0; i < count; i++)
+    {
+      point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
+      trajectory.points.push_back(point);
+    }
+
+    bool diff = false;
+    for (int i = 0; i < 6; i++)
+    {
+      if (trajectory.points[1].positions[i] - trajectory.points[0].positions[i] != 0.0)
+      {
+        diff = true;
+      }
+    }
+
+    if (!diff)
+    {
+      trajectory.points.erase(trajectory.points.begin());
+      if (trajectory.points.size() == 1)
+      {
+        ROS_INFO("Trying to not to move??");
+        return;
+      }
+    }
+  }
+  else
+  {
+    for (int i = 0; i < count; i++)
+    {
+      point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
+      trajectory.points.push_back(point);
+    }
   }
 
-  action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+  executeTrajectory(trajectory);
+
+}
+
+void InspectorArm::on_pushButtonSetZeroForceTorque_clicked()
+{
+  QMutexLocker lock(&force_torque_mutex_);
+  ui.checkBoxEnableForceTorque->setChecked(false);
+  std_msgs::Bool msg;
+  if(ui.pushButtonSetZeroForceTorque->isChecked())
+  {
+    msg.data = true;
+  }
+  else
+  {
+    msg.data = false;
+  }
+  force_torque_set_zero_publisher_.publish(msg);
 }
 
 void InspectorArm::on_actionAddMarker_triggered()
 {
   //ROS_INFO(__FUNCTION__);
   addMarkerAtEndEffector();
+}
+
+void InspectorArm::on_actionAddMarkerHere_triggered()
+{
+  if(selected_markers_.size() == 0)
+    return;
+  std::string name;
+  if (selected_markers_.back().rfind("marker_ee") != std::string::npos)
+  {
+    name = getMarkerName("marker_ee");
+  }
+  else if (selected_markers_.back().rfind("marker_tool") != std::string::npos)
+  {
+    name = getMarkerName("marker_tool");
+  }
+
+
+  addMarker(name, markers_[selected_markers_.back()]->pose(), true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+  addInspectionPointFrom(name, markers_[selected_markers_.back()]);
+
+  selectOnlyOneMarker(name);
+  Q_EMIT inspectionPointClickedSignal(markers_[name]);
+}
+
+void InspectorArm::on_actionAddMarkerToTool_triggered()
+{
+  addMarkerAtTool();
 }
 
 void InspectorArm::on_actionClearMarker_triggered()
@@ -544,11 +757,77 @@ void InspectorArm::followPointSlot()
       else
       {
         point.positions = markers_[selected_markers_.back()]->jointState().position;
+
       }
+      point.time_from_start = ros::Duration(0.5);
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+      arm_is_active_ = true;
     }
   }
+}
+
+void InspectorArm::moveToMarker(const QString& name)
+{
+  if (markers_.size() == 0)
+    return;
+
+  if(markers_.find(name.toStdString()) == markers_.end())
+  {
+    return;
+  }
+
+  if (arm_is_active_)
+  {
+    ROS_INFO("Hey! Arm is moving!!");
+    control_msgs::FollowJointTrajectoryGoal goal;
+    goal.trajectory.header.stamp = ros::Time::now();
+    goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+    goal.trajectory.points.resize(1);
+    goal.trajectory.points[0].positions = markers_[name.toStdString()]->jointState().position;
+    goal.trajectory.points[0].time_from_start = ros::Duration(4.0);
+    action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+    arm_is_active_ = true;
+    return;
+  }
+
+  trajectory_msgs::JointTrajectory trajectory;
+  trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+  trajectory_msgs::JointTrajectoryPoint point;
+
+  //current position
+  mutex_joint_state_.lock();
+  point.positions = latest_joint_state_.position;
+  mutex_joint_state_.unlock();
+  point.velocities.resize(point.positions.size());
+  point.accelerations.resize(point.positions.size());
+  trajectory.points.push_back(point);
+
+
+  point.positions = markers_[name.toStdString()]->jointState().position;
+  trajectory.points.push_back(point);
+
+
+  bool diff = false;
+  for (int i = 0; i < 6; i++)
+  {
+    if (trajectory.points[1].positions[i] - trajectory.points[0].positions[i] != 0.0)
+    {
+      diff = true;
+    }
+  }
+
+  if (!diff)
+  {
+    trajectory.points.erase(trajectory.points.begin());
+    if (trajectory.points.size() == 1)
+    {
+      ROS_INFO("Trying to not to move??");
+      return;
+    }
+  }
+
+  executeTrajectory(trajectory);
 }
 
 void InspectorArm::onMarkerArrayPublisherTimer()
@@ -570,17 +849,25 @@ void InspectorArm::onMarkerArrayPublisherTimer()
       target_robot_state_->setKinematicState(joint_state_map);
       //collision_models_interface_->getAllCollisionPointMarkers(*target_robot_state_, marker_array_, bad_color_, ros::Duration(0.1));
       collision_models_interface_->getGroupAndUpdatedJointMarkersGivenState(*target_robot_state_,
-                                                                                  marker_array_,
-                                                                                  "manipulator", start_color_, end_color_,
-                                                                                  ros::Duration(0.1));
-
-
+                                                                            marker_array_,
+                                                                            "manipulator", start_color_, end_color_,
+                                                                            ros::Duration(0.1));
     }
-
-
 
     marker_array_publisher_.publish(marker_array_);
     marker_array_.markers.clear();
+  }
+}
+
+void InspectorArm::on_listWidgetMarker_itemClicked( QListWidgetItem * item )
+{
+  if(selected_markers_.back() == item->text().toStdString()) return;
+
+  if(markers_.find(item->text().toStdString()) != markers_.end())
+  {
+    selectOnlyOneMarker(item->text().toStdString());
+    inspectionPointClicked(markers_[item->text().toStdString()]);
+    moveToMarker(item->text());
   }
 }
 

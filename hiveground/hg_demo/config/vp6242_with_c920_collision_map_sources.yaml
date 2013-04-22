@@ -1,5 +1,0 @@
-cloud_sources:
-  - name: /vp6242_with_c920/self_filtered_cloud
-    frame_subsample: 1
-    point_subsample: 1
-    sensor_frame: kinect_center_rgb_optical_frame

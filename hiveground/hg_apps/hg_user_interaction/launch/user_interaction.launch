@@ -19,7 +19,10 @@
       body_movement_gesture_r2: 0.06
       body_movement_gesture_r3: 0.08
       body_movement_gesture_timeout: 0.1
-      body_movement_gesture_activating_time: 1.0      
+      body_movement_gesture_activating_time: 1.0
+      elbow_switch_gesture_max_frame: 20      
+      elbow_switch_gesture_min_length: 0.08
+      elbow_switch_gesture_max_detecting_rate: 1
    </rosparam> 	  	    
   </node>
 </launch>  

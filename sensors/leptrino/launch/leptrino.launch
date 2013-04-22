@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="leptrino" type="leptrino" name="leptrino" output="screen">
+  	<param name="com_port" value="/dev/ttyUSB0" />  	  	
+  </node>
+</launch>  
+ 

@@ -32,15 +32,30 @@
  */
 
 #include <signal.h>
+#include <sys/mman.h>
+
 #include <ros/ros.h>
 #include <ros/xmlrpc_manager.h>
 #include <hg_cpp/controller_node.h>
 #include <diagnostic_msgs/DiagnosticArray.h>
 #include <sensor_msgs/JointState.h>
 
-
 using namespace hg;
 using namespace std;
+
+#define REAL_TIME 1
+
+
+bool g_quit = false;
+
+void quitRequested(int sig)
+{
+  g_quit = true;
+}
+
+boost::thread g_control_thread;
+
+
 
 ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private) :
     nh_(nh),
@@ -50,7 +65,8 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
     joint_publish_rate_(10.0),
     diagnostic_publish_rate_(10.0),
     controller_plugin_loader_("hg_cpp", "hg::Controller"),
-    joint_plugin_loader_("hg_cpp", "hg::Joint")
+    joint_plugin_loader_("hg_cpp", "hg::Joint"),
+    pub_joint_state_(nh, "/joint_states", 1)
 {
   ROS_ASSERT(urdf_model_.initParam("robot_description"));
   ROS_INFO("Successfully parsed urdf file");
@@ -92,6 +108,8 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
       joint->initilize(this, name);
       joints_.push_back(joint);
       ROS_INFO_STREAM("added joint " + name + " to " + nh_private_.getNamespace());
+      pub_joint_state_.msg_.name.push_back(joint->name_);
+
     }
     catch (pluginlib::PluginlibException& e)
     {
@@ -100,6 +118,9 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
       ROS_BREAK();
     }
   }
+  pub_joint_state_.msg_.position.resize(joints_.size());
+  pub_joint_state_.msg_.velocity.resize(joints_.size());
+  pub_joint_state_.msg_.effort.resize(joints_.size());
 
   //add controllers
   XmlRpc::XmlRpcValue controllers;
@@ -130,9 +151,11 @@ ControllerNode::ControllerNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
   }
 
 
+
   //setup publisher
-  publisher_joint_state_ = nh_private_.advertise<sensor_msgs::JointState>("/joint_states", 1);
-  publisher_diagnostic_ = nh_private_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1);
+  //publisher_joint_state_ = nh_private_.advertise<sensor_msgs::JointState>("/joint_states", 1);
+  //publisher_diagnostic_ = nh_private_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1);
+
 
 }
 
@@ -141,8 +164,67 @@ ControllerNode::~ControllerNode()
 
 }
 
-void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
+static const int NSEC_PER_SECOND = 1e+9;
+static const int USEC_PER_SECOND = 1e6;
+static inline double now()
 {
+  struct timespec n;
+  clock_gettime(CLOCK_MONOTONIC, &n);
+  return double(n.tv_nsec) / NSEC_PER_SECOND + n.tv_sec;
+}
+
+static void timespecInc(struct timespec &tick, int nsec)
+{
+  tick.tv_nsec += nsec;
+  while (tick.tv_nsec >= NSEC_PER_SECOND)
+  {
+    tick.tv_nsec -= NSEC_PER_SECOND;
+    tick.tv_sec++;
+  }
+}
+
+void ControllerNode::run()
+{
+
+#if REAL_TIME
+  //set priority
+  int retcode;
+  int policy;
+  pthread_t thread_id = (pthread_t)g_control_thread.native_handle();
+  struct sched_param param;
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    perror("pthread_getschedparam");
+    exit(EXIT_FAILURE);
+  }
+
+  ROS_INFO_STREAM(
+      "Control thread inherited: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+
+  policy = SCHED_FIFO;
+  param.sched_priority = sched_get_priority_max(policy);
+
+  if ((retcode = pthread_setschedparam(thread_id, policy, &param)) != 0)
+  {
+    errno = retcode;
+    ROS_ERROR("pthread_setschedparam");
+    return;
+  }
+
+  ros::Duration(1.0).sleep();
+
+  if ((retcode = pthread_getschedparam(thread_id, &policy, &param)) != 0)
+  {
+    errno = retcode;
+    ROS_ERROR("pthread_getschedparam");
+    return;
+  }
+
+  ROS_INFO_STREAM(
+      "Control thread changed: policy= " << ((policy == SCHED_FIFO) ? "SCHED_FIFO" : (policy == SCHED_RR) ? "SCHED_RR" : (policy == SCHED_OTHER) ? "SCHED_OTHER" : "???") << ", priority=" << param.sched_priority);
+#endif
 
   //start all controllers
   std::vector<boost::shared_ptr<hg::Controller> >::iterator it;
@@ -151,22 +233,80 @@ void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
     (*it)->startup();
   }
 
+  struct timespec tick;
+  clock_gettime(CLOCK_REALTIME, &tick);
+  int period = 1e+6; // 1 ms in nanoseconds
 
-  ros::Rate loop_rate(loop_rate_);
-  while (!(*is_shutdown))
+  // Snap to the nearest second
+  tick.tv_sec = tick.tv_sec;
+  tick.tv_nsec = (tick.tv_nsec / period + 1) * period;
+  clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+
+
+
+
+  ROS_INFO("Start");
+  int count = 0;
+  int publish_count = 0;
+  while (ros::ok())
   {
-    //publish message
-    publish();
-
+    ROS_INFO_THROTTLE(1.0, "Loop %d", count++);
     //update all controllers
     for(it = controllers_.begin(); it != controllers_.end(); it++)
     {
       (*it)->update();
     }
 
-    ros::spinOnce();
-    loop_rate.sleep();
+    ROS_INFO_THROTTLE(1.0, "A");
+
+    //publish message
+    publish_count++;
+    if(publish_count >= 10)
+    {
+      ROS_INFO_THROTTLE(1.0, "B");
+      if(pub_joint_state_.trylock())
+      {
+        ROS_INFO_THROTTLE(1.0, "C");
+        pub_joint_state_.msg_.header.stamp = ros::Time::now();
+        size_t i = 0;
+        std::vector<boost::shared_ptr<hg::Joint> >::iterator joint_it;
+        for(joint_it = joints_.begin(); joint_it != joints_.end(); joint_it++, i++)
+        {
+          pub_joint_state_.msg_.position[i] = (*joint_it)->position_;
+          pub_joint_state_.msg_.velocity[i] = (*joint_it)->velocity_;
+          pub_joint_state_.msg_.effort[i] = 0.0;
+        }
+        ROS_INFO_THROTTLE(1.0, "D");
+        pub_joint_state_.unlockAndPublish();
+        ROS_INFO_THROTTLE(1.0, "E");
+        publish_count = 0;
+      }
+    }
+
+
+
+    timespecInc(tick, period);
+    struct timespec before;
+    clock_gettime(CLOCK_REALTIME, &before);
+    if ((before.tv_sec + double(before.tv_nsec) / NSEC_PER_SECOND)
+        > (tick.tv_sec + double(tick.tv_nsec) / NSEC_PER_SECOND))
+    {
+      ROS_INFO_THROTTLE(1.0, "Overrun");
+      // We overran, snap to next "period"
+      tick.tv_sec = before.tv_sec;
+      tick.tv_nsec = (before.tv_nsec / period) * period;
+      timespecInc(tick, period);
+    }
+
+    // Sleep until end of period
+    clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+
+    //ROS_INFO_THROTTLE(1.0, "F");
+    //loop_rate.sleep();
+    //ROS_INFO_THROTTLE(1.0, "G");
   }
+
+  printf("exit\n");
 
   //stop all controllers
   for(it = controllers_.begin(); it != controllers_.end(); it++)
@@ -174,78 +314,37 @@ void ControllerNode::run(sig_atomic_t volatile *is_shutdown)
     (*it)->shutdown();
   }
 
+  printf("shutdown\n");
+
 }
 
 void ControllerNode::publish()
 {
-  if (ros::Time::now() > next_joint_publish_time_)
-  {
-    sensor_msgs::JointState message;
-    message.header.stamp = ros::Time::now();
-    std::vector<boost::shared_ptr<hg::Joint> >::iterator it;
-    for(it = joints_.begin(); it != joints_.end(); it++)
-    {
-      message.name.push_back((*it)->name_);
-      message.position.push_back((*it)->position_);
-      message.velocity.push_back((*it)->velocity_);
-    }
-    publisher_joint_state_.publish(message);
-    next_joint_publish_time_ = ros::Time::now() + ros::Duration(1.0 / joint_publish_rate_);
-  }
 
-  if (ros::Time::now() > next_diagnostic_publish_time_)
-  {
-    next_diagnostic_publish_time_ = ros::Time::now() + ros::Duration(1.0 / diagnostic_publish_rate_);
-  }
 }
 
-
-/*
- * Override shutdown. Adopt from
- * http://answers.ros.org/question/27655/what-is-the-correct-way-to-do-stuff-before-a-node/
- */
-
-// Signal-safe flag for whether shutdown is requested
-sig_atomic_t volatile g_request_shutdown = 0;
-
-// Replacement SIGINT handler
-void mySigIntHandler(int sig)
-{
-  g_request_shutdown = 1;
-}
-
-// Replacement "shutdown" XMLRPC callback
-void shutdownCallback(XmlRpc::XmlRpcValue& params, XmlRpc::XmlRpcValue& result)
-{
-  int num_params = 0;
-  if (params.getType() == XmlRpc::XmlRpcValue::TypeArray)
-    num_params = params.size();
-  if (num_params > 1)
-  {
-    std::string reason = params[1];
-    ROS_WARN("Shutdown request received. Reason: [%s]", reason.c_str());
-    g_request_shutdown = 1; // Set flag
-  }
-
-  result = ros::xmlrpc::responseInt(1, "", 0);
-}
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "hgROS", ros::init_options::NoSigintHandler);
-  signal(SIGINT, mySigIntHandler);
+  ros::init(argc, argv, "hgROS");
+
+#if REAL_TIME
+  // Keep the kernel from swapping us out
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
+    perror("mlockall");
+    return -1;
+  }
+#endif
 
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
-
-  // Override XMLRPC shutdown
-  ros::XMLRPCManager::instance()->unbind("shutdown");
-  ros::XMLRPCManager::instance()->bind("shutdown", shutdownCallback);
-
   hg::ControllerNode node(nh, nh_private);
-  node.run(&g_request_shutdown);
 
-  ros::shutdown();
+  g_control_thread = boost::thread(&ControllerNode::run, &node);
+
+  ros::spin();
+
+  g_control_thread.join();
 
   return 0;
 }

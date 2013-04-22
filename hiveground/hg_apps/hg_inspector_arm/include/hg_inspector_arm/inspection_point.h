@@ -105,8 +105,8 @@ public:
   void setPitch(double a) { rotate(roll(), a, yaw()); }
   void setYaw(double a) { rotate(roll(), pitch(), a); }
 
-  bool setPose(const geometry_msgs::Pose& pose, bool check_ik);
-  bool setPose(const tf::Transform& tf, bool check_ik);
+  bool setPose(const geometry_msgs::Pose& pose, bool check_ik, bool update_marker=true);
+  bool setPose(const tf::Transform& tf, bool check_ik, bool update_marker=true);
   void setJointState(const  sensor_msgs::JointState& joint_state) { joint_state_ = joint_state; }
   void move(double x, double y, double z);
   virtual void moveBy(double x, double y, double z);
@@ -125,6 +125,7 @@ protected:
   QString name_;
   geometry_msgs::Pose pose_;
   sensor_msgs::JointState joint_state_;
+  ros::Duration duration_; //time to stop before move to next point
   double marker_scale_;
 
 
