@@ -73,7 +73,8 @@ public:
   {
     Rtti_Item = 0,
     Rtti_HandPushPull,
-    Rtti_BodyMovement
+    Rtti_BodyMovement,
+    Rtti_ElbowSwitch
   };
 
   virtual int rtti() const

@@ -148,6 +148,15 @@ bool UserInteraction::initialize()
     gesture_detector_items_[item->objectName()] = item;
   }
 
+  item = new GestureDetectorElbowSwitch(nh_private_, QRect(150, 50, 50, 50));
+  item->setObjectName("ElbowSwitch");
+  if (item->initialize())
+  {
+    scene_->addItem(item);
+    gesture_detector_items_[item->objectName()] = item;
+  }
+
+
 
 
 
@@ -237,7 +246,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
   {
     if (transformed_skeletons->skeletons[i].skeleton_tracking_state == Skeleton::SKELETON_TRACKED)
     {
-      //getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
+      getSkeletionMarker(skeletons->skeletons[i], "kinect_server", color_joint_, color_link_, markers);
 
       for (int j = 0; j < Skeleton::SKELETON_POSITION_COUNT; j++)
       {
@@ -248,7 +257,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
     }
   }
 
-  //ROS_INFO_THROTTLE(1.0, __FUNCTION__);
+
   Gestures gestures;
   gestures.header = transformed_skeletons->header;
   GestureDetectorItem* item;
@@ -264,6 +273,7 @@ void UserInteraction::skeletonsCallback(const kinect_msgs::SkeletonsConstPtr& sk
       item->drawResult(markers, transformed_skeletons->header.frame_id);
       if (detected_gesture != Gesture::GESTURE_NOT_DETECTED)
       {
+        //ROS_INFO("gesture %d", detected_gesture);
         gestures.gestures.push_back(gesture);
       }
     }
@@ -615,6 +625,28 @@ void UserInteraction::gestureDetectorItemClicked(QObject* item)
       addProperty(property, QLatin1String("activating_time"));
     }
     break;
+    case GestureDetectorItem::Rtti_ElbowSwitch:
+    {
+      GestureDetectorElbowSwitch* i = dynamic_cast<GestureDetectorElbowSwitch*>(current_item_);
+      property = integer_manager_->addProperty("Max Frame");
+      integer_manager_->setRange(property, 1, 100);
+      integer_manager_->setValue(property, i->getMaxFrame());
+      addProperty(property, QLatin1String("max_frame"));
+
+      property = double_manager_->addProperty("Min length");
+      double_manager_->setRange(property, 0.08, 0.5);
+      double_manager_->setSingleStep(property, 0.01);
+      double_manager_->setValue(property, i->getMinLength());
+      addProperty(property, QLatin1String("min_length"));
+
+      property = double_manager_->addProperty("Max detection/s");
+      double_manager_->setRange(property, 1.0, 5.0);
+      double_manager_->setSingleStep(property, 1.0);
+      double_manager_->setValue(property, i->getMaxDetectRate());
+      addProperty(property, QLatin1String("max_detecting_rate"));
+
+    }
+    break;
     default:
       break;
   }
@@ -664,10 +696,24 @@ void UserInteraction::valueChanged(QtProperty *property, double value)
     else if(id == QLatin1String("time_out")) i->setTimeOut(value);
     else if(id == QLatin1String("activating_time")) i->setActivatingTime(value);
   }
+  if(current_item_->rtti() == GestureDetectorItem::Rtti_ElbowSwitch)
+  {
+    GestureDetectorElbowSwitch* i = dynamic_cast<GestureDetectorElbowSwitch*>(current_item_);
+    if(id ==  QLatin1String("min_length")) { i->setMinLength(value); }
+    else if(id ==  QLatin1String("max_detecting_rate")) { i->setMaxDetectRate(value); }
+  }
 }
 
 void UserInteraction::valueChanged(QtProperty *property, int value)
 {
+  if (!property_to_id_.contains(property))
+    return;
+
+  if (!current_item_)
+    return;
+
+  QString id = property_to_id_[property];
+  ROS_INFO("%s", id.toStdString().c_str());
 
 }
 
@@ -681,6 +727,12 @@ void UserInteraction::valueChanged(QtProperty *property, bool value)
 
   QString id = property_to_id_[property];
   ROS_INFO("%s", id.toStdString().c_str());
+
+  if(current_item_->rtti() == GestureDetectorItem::Rtti_ElbowSwitch)
+  {
+    GestureDetectorElbowSwitch* i = dynamic_cast<GestureDetectorElbowSwitch*>(current_item_);
+    if(id ==  QLatin1String("max_frame")) { i->setMaxFrame(value); }
+  }
 
 
 }

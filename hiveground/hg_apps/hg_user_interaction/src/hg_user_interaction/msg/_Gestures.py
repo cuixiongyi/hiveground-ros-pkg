@@ -9,7 +9,7 @@ import hg_user_interaction.msg
 import std_msgs.msg
 
 class Gestures(genpy.Message):
-  _md5sum = "24ca0655602b0a9814569dc0b56ad044"
+  _md5sum = "acbc7e79b65b2f75cdaf2322e9e35134"
   _type = "hg_user_interaction/Gestures"
   _has_header = True #flag to mark the presence of a Header object
   _full_text = """Header header
@@ -47,6 +47,9 @@ uint32 GESTURE_NOT_DETECTED = 0
 #hand
 uint32 GESTURE_HAND_SWEEP = 1
 uint32 GESTURE_HAND_PUSH_PULL = 2
+
+#elbow
+uint32 GESTURE_ELBOW_TOGGLE = 51
 
 #body
 uint32 GESTURE_BODY_MOVE = 101

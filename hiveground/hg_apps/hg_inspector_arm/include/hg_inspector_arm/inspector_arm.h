@@ -57,6 +57,10 @@
 #include <hg_object_tracking/Hands.h>
 #include <hg_user_interaction/Gestures.h>
 
+#include <leptrino/ForceTorque.h>
+
+#include <spline_smoother/clamped_cubic_spline_smoother.h>
+#include <spline_smoother/cubic_spline_velocity_scaler.h>
 
 typedef std::map<interactive_markers::MenuHandler::EntryHandle, std::string> MenuEntryHandleMap;
 typedef std::map<std::string, MenuEntryHandleMap> MenuEntryMap;
@@ -97,8 +101,11 @@ protected:
                    bool selectable = true,
                    double arrow_length = 0.05,
                    double scale = 2.0);
-  std::string getMarkerName();
+  std::string getMarkerName(const std::string& type);
   void addMarkerAtEndEffector();
+  void addMarkerAtTool();
+  void addInspectionPoint(const std::string& name, const geometry_msgs::Pose& pose, const sensor_msgs::JointState& joint_state);
+  void addInspectionPointFrom(const std::string& name, const InspectionPointItem* item);
   void clearMarker();
   visualization_msgs::Marker makeBox(double size = 0.1,
                                       double r = 1.0, double g = 0.0, double b = 0.0, double a = 1.0);
@@ -116,6 +123,8 @@ protected:
   void deselectMarker(const std::string& name);
   void selectOnlyOneMarker(const std::string& name);
   bool setMarkerOrientation(const std::string& name, double roll, double pitch, double yaw);
+  tf::Transform moveSelectedMarker(const std::string& name, const tf::Vector3& rotation, const tf::Vector3& translation);
+
 
   void makeMenu();
   interactive_markers::MenuHandler::EntryHandle registerMenuEntry(interactive_markers::MenuHandler& handler,
@@ -133,19 +142,26 @@ protected:
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& message);
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
                                   const control_msgs::FollowJointTrajectoryResultConstPtr& result);
-  void handsCallBack(const hg_object_tracking::HandsConstPtr message);
-  void handGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
-  void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr message);
-  void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr message);
+  void handsCallBack(const hg_object_tracking::HandsConstPtr& message);
+  void handGestureCallBack(const hg_user_interaction::GesturesConstPtr& message);
+  void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr& message);
+  void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message);
+  void forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& message);
+
+
+  void updateMarkerCallbBack(const std::string& name, const tf::Transform& pose);
+  void updateMarkerCallbBack(const std::string& name, const geometry_msgs::Pose& pose);
 
 
   //utility functions
   void lookAt(const tf::Vector3& at, const tf::Transform& from, double distance, tf::Transform& result);
+  bool executeTrajectory(trajectory_msgs::JointTrajectory& trajectory);
 
 Q_SIGNALS:
   void inspectionPointClickedSignal(InspectionPointItem *item);
   void inspectionPointMovedSignal(InspectionPointItem *item);
   void followPointSignal();
+  void moveToMarkerSignal(QString name);
 
 private Q_SLOTS:
   //Inspection point property
@@ -159,7 +175,10 @@ private Q_SLOTS:
   void valueChanged(QtProperty *property, const QSize &value);
 
   //UI
+  void on_pushButtonSTOP_clicked();
   void on_pushButtonPlan_clicked();
+  void on_pushButtonSetZeroForceTorque_clicked();
+
 
 
   //Menu action
@@ -167,6 +186,8 @@ private Q_SLOTS:
 
   //Path Menu
   void on_actionAddMarker_triggered();
+  void on_actionAddMarkerHere_triggered();
+  void on_actionAddMarkerToTool_triggered();
   void on_actionClearMarker_triggered();
   void on_actionLoadMarker_triggered();
   void on_actionSaveMarker_triggered();
@@ -174,9 +195,13 @@ private Q_SLOTS:
 
   //Follow point
   void followPointSlot();
+  void moveToMarker(const QString& name);
 
   //Marker
   void onMarkerArrayPublisherTimer();
+
+  //Marker list
+  void on_listWidgetMarker_itemClicked( QListWidgetItem * item );
 
 
 
@@ -212,6 +237,7 @@ private:
   tf::TransformListener listener_;
   std::string world_frame_;
   std::string base_link_;
+  std::string tool_frame_;
   tf::Transform last_feedback_pose_;
   kinematics_msgs::GetKinematicSolverInfo::Response ik_solver_info_;
   int name_count_;
@@ -255,6 +281,9 @@ private:
   ros::ServiceClient hg_cartesian_trajectory_client_;
   bool arm_is_active_;
 
+  //Maximum composite speed
+  double max_composite_speed_;
+
 
   //gesture
   ros::Subscriber hands_subscriber_;
@@ -265,6 +294,11 @@ private:
   ros::Subscriber space_navigator_subscriber_;
   ros::Time space_navigator_last_update_;
 
+  //Force sensor
+  ros::Subscriber force_torque_subscriber_;
+  ros::Publisher force_torque_set_zero_publisher_;
+  QMutex force_torque_mutex_;
+  ros::Publisher force_torque_direction_publisher_;
 
   //Marker
   QTimer* marker_array_publisher_timer_;

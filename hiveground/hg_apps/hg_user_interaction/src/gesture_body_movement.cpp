@@ -92,11 +92,11 @@ void GestureBodyMovement::addSkeletonsMessage(const kinect_msgs::SkeletonsConstP
     {
       skeleton_updated_ = true;
       //ROS_INFO_STREAM("[" << i << "] " << skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER]);
-      tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER], tf0);
+      //tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_CENTER], tf0);
       tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_LEFT], tf1);
       tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_SHOULDER_RIGHT], tf2);
-      tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_HEAD], tf3);
-      last_position_.setOrigin((tf0.getOrigin() + tf1.getOrigin() + tf2.getOrigin() + tf3.getOrigin()) / 4.0);
+      //tf::transformMsgToTF(skeletons->skeletons[i].skeleton_positions[Skeleton::SKELETON_POSITION_HEAD], tf3);
+      last_position_.setOrigin((/*tf0.getOrigin() + */tf1.getOrigin() + tf2.getOrigin() /*+ tf3.getOrigin()*/) / 2.0);
     }
   }
 }
@@ -281,36 +281,36 @@ int GestureBodyMovement::getState(const tf::Vector3& vec_to_body)
             case 0:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO_THROTTLE(1.0, "X+");
+                //ROS_INFO_THROTTLE(1.0, "X+");
                 detected_gesture = Gesture::DIR_X_POS;
               }
               else
               {
-                ROS_INFO_THROTTLE(1.0, "X-");
+                //ROS_INFO_THROTTLE(1.0, "X-");
                 detected_gesture = Gesture::DIR_X_NEG;
               }
               break;
             case 1:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO_THROTTLE(1.0, "Y+");
+                //ROS_INFO_THROTTLE(1.0, "Y+");
                 detected_gesture = Gesture::DIR_Y_POS;
               }
               else
               {
-                ROS_INFO_THROTTLE(1.0, "Y-");
+                //ROS_INFO_THROTTLE(1.0, "Y-");
                 detected_gesture = Gesture::DIR_Y_NEG;
               }
               break;
             case 2:
               if (dot_products[min_error_index] > 0)
               {
-                ROS_INFO_THROTTLE(1.0, "Z+");
+                //ROS_INFO_THROTTLE(1.0, "Z+");
                 detected_gesture = Gesture::DIR_Z_POS;
               }
               else
               {
-                ROS_INFO_THROTTLE(1.0, "Z-");
+                //ROS_INFO_THROTTLE(1.0, "Z-");
                 detected_gesture = Gesture::DIR_Z_NEG;
               }
               break;

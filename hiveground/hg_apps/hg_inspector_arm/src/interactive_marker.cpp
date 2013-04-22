@@ -53,6 +53,9 @@ bool InspectorArm::initializeInteractiveMarkerServer()
   ROS_ASSERT(nh_private_.getParam("base_link", base_link_));
   ROS_INFO_STREAM("base_link: " << base_link_);
 
+  ROS_ASSERT(nh_private_.getParam("tool_frame", tool_frame_));
+  ROS_INFO_STREAM("tool_frame: " << tool_frame_);
+
   //ik_query_client_ = nh_.serviceClient<kinematics_msgs::GetKinematicSolverInfo>("get_ik_solver_info");
   //ik_client_ = nh_.serviceClient<kinematics_msgs::GetPositionIK>("get_ik");
 
@@ -89,11 +92,23 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
   {
     case InteractiveMarkerFeedback::BUTTON_CLICK:
       {
-        selectOnlyOneMarker(feedback->marker_name);
-        Q_EMIT followPointSignal();
+        //ROS_INFO_STREAM("click : " << feedback->marker_name);
+        if(selected_markers_.back() != feedback->marker_name)
+        {
+          selectOnlyOneMarker(feedback->marker_name);
+          if(ui.checkBoxFollowPoint->isChecked())
+          {
+            Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
+          }
+        }
+        else
+        {
+          Q_EMIT followPointSignal();
+        }
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:
+      //ROS_INFO_STREAM("mouse down : " << feedback->marker_name);
       if(feedback->marker_name.rfind("marker_") != std::string::npos)
       {
         Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
@@ -103,14 +118,43 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
       break;
     case InteractiveMarkerFeedback::POSE_UPDATE:
       {
-        tf::Transform pose_new;
-        tf::poseMsgToTF(feedback->pose, pose_new);
-        if(pose_new == last_feedback_pose_)
-          return;
-        last_feedback_pose_ = pose_new;
+        //ROS_INFO_STREAM("pose: " << feedback->marker_name);
+        if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
+        {
+          //ROS_INFO("a");
+          tf::Transform pose_new;
+          tf::poseMsgToTF(feedback->pose, pose_new);
+          if(pose_new == last_feedback_pose_)
+            return;
+          last_feedback_pose_ = pose_new;
 
-        if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
-          markers_touched_ = true;
+          if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
+            markers_touched_ = true;
+        }
+        else if(feedback->marker_name.rfind("marker_tool") != std::string::npos)
+        {
+          //ROS_INFO("b");
+          tf::Transform pose_tool;
+          tf::poseMsgToTF(feedback->pose, pose_tool);
+          if(pose_tool == last_feedback_pose_)
+            return;
+          last_feedback_pose_ = pose_tool;
+
+          //ROS_INFO_STREAM("haha: " << feedback->pose);
+
+          tf::StampedTransform tfs;
+          listener_.lookupTransform(tool_frame_,
+                                    ik_solver_info_.kinematic_solver_info.link_names[0],
+                                    ros::Time(0), tfs);
+          tf::Transform pose_ee = pose_tool * tfs;
+          sensor_msgs::JointState joint_state = markers_[feedback->marker_name]->jointState();
+          if(checkIKConstraintAware(pose_ee, joint_state))
+          {
+            markers_[feedback->marker_name]->setJointState(joint_state);
+            markers_[feedback->marker_name]->setPose(feedback->pose, false);
+            markers_touched_ = true;
+          }
+        }
       }
       break;
     case InteractiveMarkerFeedback::MENU_SELECT:
@@ -136,15 +180,22 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
  #endif
         if(feedback->menu_entry_id == menu_entry_add_here_)
         {
-          std::string name = getMarkerName();
+          std::string name;
+          if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
+          {
+            name = getMarkerName("marker_ee");
+          }
+          else if(feedback->marker_name.rfind("marker_tool") != std::string::npos)
+          {
+            name = getMarkerName("marker_tool");
+          }
+
           addMarker(name, feedback->pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
-          InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, feedback->pose);
-          item->setName(name.c_str());
-          item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
-          item->setJointState(markers_[feedback->marker_name]->jointState());
-          markers_[item->name().toStdString()] = item;
+          addInspectionPointFrom(name, markers_[feedback->marker_name]);
+
           selectOnlyOneMarker(name);
           Q_EMIT inspectionPointClickedSignal(markers_[name]);
+
         }
         else if(feedback->menu_entry_id == menu_entry_point_x_plus_)
         {
@@ -172,14 +223,23 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         }
         else if(feedback->menu_entry_id == menu_entry_reset_position_)
         {
-          ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+          if(feedback->marker_name.rfind("marker_ee") != std::string::npos)
+          {
 
-          tf::StampedTransform ee_pose;
-          listener_.lookupTransform(world_frame_,
-                                      ik_solver_info_.kinematic_solver_info.link_names[0],
-                                      ros::Time(0), ee_pose);
-          geometry_msgs::Pose pose;
-          tf::poseTFToMsg(ee_pose, pose);
+            ROS_DEBUG_STREAM("reset position:" << feedback->header << " " << feedback->pose);
+
+            tf::StampedTransform ee_pose;
+            listener_.lookupTransform(world_frame_,
+                                        ik_solver_info_.kinematic_solver_info.link_names[0],
+                                        ros::Time(0), ee_pose);
+            geometry_msgs::Pose pose;
+            tf::poseTFToMsg(ee_pose, pose);
+            if(markers_[feedback->marker_name]->setPose(feedback->pose, true))
+              markers_touched_ = true;
+          }
+
+
+/*
           marker_server_.setPose(feedback->marker_name, pose, feedback->header);
           marker_server_.applyChanges();
           markers_[feedback->marker_name]->setPose(pose, false);
@@ -188,6 +248,7 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           mutex_joint_state_.unlock();
           Q_EMIT inspectionPointMovedSignal(markers_[feedback->marker_name]);
           markers_touched_ = true;
+          */
         }
         else if (feedback->menu_entry_id == menu_entry_reset_orientation_)
         {
@@ -202,6 +263,13 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
           marker_server_.applyChanges();
           Q_EMIT inspectionPointClickedSignal(0);
           markers_touched_ = true;
+          QList<QListWidgetItem*> items = ui.listWidgetMarker->findItems(feedback->marker_name.c_str(), Qt::MatchExactly);
+          Q_FOREACH(QListWidgetItem* item, items)
+          {
+            ROS_INFO_STREAM(item->text().toStdString());
+            ui.listWidgetMarker->takeItem(ui.listWidgetMarker->row(item));
+            delete item;
+          }
         }
       }
       else if(feedback->marker_name == "top_level")
@@ -358,19 +426,19 @@ bool InspectorArm::checkIKConstraintAware(const tf::Transform& pose, sensor_msgs
   return true;
 }
 
-std::string InspectorArm::getMarkerName()
+std::string InspectorArm::getMarkerName(const std::string& type)
 {
     std::stringstream ss;
-    ss << "marker_" << std::setfill('0') << std::setw(5) << name_count_++;
+    ss << std::setfill('0') << std::setw(5) << name_count_++ << "_" << type;
     return ss.str();
 }
 
 
 void InspectorArm::addMarker(const std::string& name,
-                                 geometry_msgs::Pose pose,
-                                 bool selectable,
-                                 double arrow_length,
-                                 double scale)
+                             geometry_msgs::Pose pose,
+                             bool selectable,
+                             double arrow_length,
+                             double scale)
 {
   InteractiveMarker int_marker;
   int_marker.name = name;
@@ -380,8 +448,8 @@ void InspectorArm::addMarker(const std::string& name,
   int_marker.pose = pose;
 
   std::vector<Marker> markers;
-  markers.push_back(makeBox(scale * 0.5 * arrow_length, 0.5, 0.5, 0.5, 0.5));
-  markers.push_back(makeArrow(scale * arrow_length, 1.0, 0.0, 0.0, 0.5));
+  markers.push_back(makeBox(scale * 0.5 * arrow_length, 0.5, 0.5, 0.5, 0.8));
+  markers.push_back(makeArrow(scale * arrow_length, 1.0, 0.0, 0.0, 0.8));
 
   if(selectable)
   {
@@ -405,28 +473,61 @@ void InspectorArm::addMarker(const std::string& name,
 
 void InspectorArm::addMarkerAtEndEffector()
 {
+  
+
   tf::StampedTransform transform;
+  if(!listener_.waitForTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), ros::Duration(1.0)))
+  {
+    return;
+  }
   listener_.lookupTransform(world_frame_, ik_solver_info_.kinematic_solver_info.link_names[0], ros::Time(0), transform);
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(transform, pose);
-  std::string name = getMarkerName();
+  std::string name = getMarkerName("marker_ee");
   addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
 
-
-
-  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
-  item->setName(name.c_str());
-  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
-  mutex_joint_state_.lock();
-  item->setJointState(latest_joint_state_);
-  mutex_joint_state_.unlock();
-  markers_[item->name().toStdString()] = item;
+  addInspectionPoint(name, pose, latest_joint_state_);
 
   selectOnlyOneMarker(name);
 
   Q_EMIT inspectionPointClickedSignal(markers_[name]);
   markers_touched_ = true;
 }
+
+void InspectorArm::addMarkerAtTool()
+{
+  tf::StampedTransform transform;
+  listener_.lookupTransform(world_frame_, tool_frame_, ros::Time(0), transform);
+  geometry_msgs::Pose pose;
+  tf::poseTFToMsg(transform, pose);
+  std::string name = getMarkerName("marker_tool");
+  addMarker(name, pose, true, 0.05, ui.doubleSpinBoxDefaultMarkerScale->value());
+
+  addInspectionPoint(name, pose, latest_joint_state_);
+
+  selectOnlyOneMarker(name);
+
+  Q_EMIT inspectionPointClickedSignal(markers_[name]);
+  markers_touched_ = true;
+
+}
+
+void InspectorArm::addInspectionPoint(const std::string& name, const geometry_msgs::Pose& pose, const sensor_msgs::JointState& joint_state)
+{
+  InspectionPointItem* item = new InspectionPointItem(this, &marker_server_, pose);
+  item->setName(name.c_str());
+  item->setMarkerScale(ui.doubleSpinBoxDefaultMarkerScale->value());
+  item->setJointState(joint_state);
+  markers_[item->name().toStdString()] = item;
+
+  ui.listWidgetMarker->addItem(item->name());
+}
+
+void InspectorArm::addInspectionPointFrom(const std::string& name, const InspectionPointItem* from)
+{
+  addInspectionPoint(name, from->pose(), from->jointState());
+}
+
 
 void InspectorArm::clearMarker()
 {
@@ -441,6 +542,8 @@ void InspectorArm::clearMarker()
   marker_server_.applyChanges();
   Q_EMIT inspectionPointClickedSignal(0);
   markers_touched_ = true;
+
+  ui.listWidgetMarker->clear();
 }
 
 Marker InspectorArm::makeBox(double size, double r, double g, double b, double a)
@@ -593,13 +696,27 @@ void InspectorArm::selectOnlyOneMarker(const std::string& name)
 
 bool InspectorArm::setMarkerOrientation(const std::string& name, double roll, double pitch, double yaw)
 {
-  ROS_DEBUG("reset orientation");
   geometry_msgs::Pose pose = markers_[name]->pose();
   tf::Quaternion q;
   q.setRPY(roll, pitch, yaw);
   tf::quaternionTFToMsg(q, pose.orientation);
   sensor_msgs::JointState joint_state;
-  if (checkIKConstraintAware(pose, joint_state))
+
+
+  tf::Transform marker_pose;
+  tf::poseMsgToTF(pose, marker_pose);
+  tf::Transform pose_ee = marker_pose;
+  if(name.rfind("marker_tool") != std::string::npos)
+  {
+    tf::StampedTransform tfs;
+    listener_.lookupTransform(tool_frame_,
+                              ik_solver_info_.kinematic_solver_info.link_names[0],
+                              ros::Time(0), tfs);
+    pose_ee = marker_pose * tfs;
+  }
+
+
+  if (checkIKConstraintAware(pose_ee, joint_state))
   {
     markers_[name]->setPose(pose, false);
     markers_[name]->setJointState(joint_state);
@@ -611,6 +728,77 @@ bool InspectorArm::setMarkerOrientation(const std::string& name, double roll, do
     return true;
   }
   return false;
+}
+
+tf::Transform  InspectorArm::moveSelectedMarker(const std::string& name, const tf::Vector3& rotation, const tf::Vector3& translation)
+{
+  tf::Vector3 linear = translation;
+  tf::Vector3 angular = rotation;
+  tf::Transform pose;
+  tf::poseMsgToTF(markers_[name]->pose(), pose);
+
+
+  double l1 = linear.length2();
+  double l2 = angular.length2();
+
+  if((l1 == 0.0) && (l2 == 0.0))
+    return pose;
+
+  bool translate = false;
+  if(l1 > l2)
+    translate = true;
+
+
+  if(!ui.checkBoxAllTranslation->isChecked())
+  {
+    if(!ui.checkBoxEnableTranX->isChecked()) linear.setX(0);
+    if(!ui.checkBoxEnableTranY->isChecked()) linear.setY(0);
+    if(!ui.checkBoxEnableTranZ->isChecked()) linear.setZ(0);
+  }
+
+  if(!ui.checkBoxAllRotation->isChecked())
+  {
+    if(!ui.checkBoxEnableRotX->isChecked()) angular.setX(0);
+    if(!ui.checkBoxEnableRotY->isChecked()) angular.setY(0);
+    if(!ui.checkBoxEnableRotZ->isChecked()) angular.setZ(0);
+  }
+
+  tf::Quaternion q;
+  if (ui.checkBoxSwapRxRz->isChecked())
+    q.setRPY(angular.z(), angular.y(), angular.x());
+  else
+    q.setRPY(angular.x(), angular.y(), angular.z());
+
+
+  if (ui.checkBoxEnableTranslation->isChecked())
+  {
+    if(!ui.checkBoxApproach->isChecked())
+    {
+      if (ui.checkBoxUseWorldCoordinate->isChecked())
+      {
+        pose.setOrigin(pose.getOrigin() + linear);
+      }
+      else
+      {
+        tf::Transform offset(tf::Quaternion(0, 0, 0, 1), linear);
+        offset = pose * offset;
+        pose = offset;
+      }
+    }
+    else
+    {
+      tf::Transform offset(tf::Quaternion(0, 0, 0, 1), tf::Vector3(linear.getX(), 0, 0));
+      offset = pose * offset;
+      pose = offset;
+    }
+  }
+
+  if (ui.checkBoxEnableRotation->isChecked() && !translate)
+  {
+    pose.setRotation(pose.getRotation() * q);
+  }
+
+  return pose;
 }
 
 void InspectorArm::makeMenu()
@@ -726,12 +914,21 @@ void InspectorArm::saveMarker()
   out << (quint32) FILE_VERSION_MARKER;
   out << name_count_;
 
+  int count = ui.listWidgetMarker->count();
+  for (int i = 0; i < count; i++)
+  {
+    markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->save(out);
+  }
+
+  /*
   std::map<std::string, InspectionPointItem*>::iterator it = markers_.begin();
   while (it != markers_.end())
   {
     it->second->save(out);
     it++;
   }
+  */
+
   file.close();
   markers_touched_  = false;
 }
@@ -787,6 +984,7 @@ void InspectorArm::loadMarker()
           item->load(in);
           markers_[item->name().toStdString()] = item;
           addMarker(item->name().toStdString(), item->pose(), true, 0.05, item->getMarkerScale());
+          ui.listWidgetMarker->addItem(item->name());
           Q_EMIT inspectionPointClickedSignal(item);
         }
         break;

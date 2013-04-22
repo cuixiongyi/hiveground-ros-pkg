@@ -52,7 +52,7 @@ InspectionPointItem::~InspectionPointItem()
 
 }
 
-bool InspectionPointItem::setPose(const geometry_msgs::Pose& pose, bool check_ik)
+bool InspectionPointItem::setPose(const geometry_msgs::Pose& pose, bool check_ik, bool update_marker)
 {
   if(check_ik)
   {
@@ -61,9 +61,12 @@ bool InspectionPointItem::setPose(const geometry_msgs::Pose& pose, bool check_ik
     {
       pose_ = pose;
       joint_state_ = joint_state;
-      server_->setPose(name_.toStdString(), pose_);
-      server_->applyChanges();
-      inspector_arm_->inspectionPointMoved(this);
+      if(update_marker)
+      {
+        server_->setPose(name_.toStdString(), pose_);
+        server_->applyChanges();
+      }
+      Q_EMIT inspector_arm_->inspectionPointMovedSignal(this);
       Q_EMIT inspector_arm_->followPointSignal();
       return true;
     }
@@ -72,17 +75,22 @@ bool InspectionPointItem::setPose(const geometry_msgs::Pose& pose, bool check_ik
   else
   {
     pose_ = pose;
-    server_->setPose(name_.toStdString(), pose_);
-    server_->applyChanges();
+    if(update_marker)
+    {
+      server_->setPose(name_.toStdString(), pose_);
+      server_->applyChanges();
+    }
+    Q_EMIT inspector_arm_->inspectionPointMovedSignal(this);
+    Q_EMIT inspector_arm_->followPointSignal();
     return true;
   }
 }
 
-bool InspectionPointItem::setPose(const tf::Transform& tf, bool check_ik)
+bool InspectionPointItem::setPose(const tf::Transform& tf, bool check_ik, bool update_marker)
 {
   geometry_msgs::Pose pose;
   tf::poseTFToMsg(tf, pose);
-  return setPose(pose, check_ik);
+  return setPose(pose, check_ik, update_marker);
 }
 
 void InspectionPointItem::move(double x, double y, double z)
@@ -92,7 +100,7 @@ void InspectionPointItem::move(double x, double y, double z)
 
 void InspectionPointItem::moveBy(double dx, double dy, double dz)
 {
-  if(dx || dy || dz)
+  if((dx != 0.0) || (dy != 0.0) || (dz != 0.0))
   {
     geometry_msgs::Pose old_pose = pose_;
     sensor_msgs::JointState joint_state = joint_state_;
@@ -100,7 +108,20 @@ void InspectionPointItem::moveBy(double dx, double dy, double dz)
     pose_.position.y += dy;
     pose_.position.z += dz;
 
-    if(inspector_arm_->checkIKConstraintAware(pose_, joint_state))
+    tf::Transform marker_pose;
+    tf::poseMsgToTF(pose_, marker_pose);
+    tf::Transform pose_ee = marker_pose;
+    if(name_.toStdString().rfind("marker_tool") != std::string::npos)
+    {
+      tf::StampedTransform tfs;
+      inspector_arm_->listener_.lookupTransform(inspector_arm_->tool_frame_,
+                                                inspector_arm_->ik_solver_info_.kinematic_solver_info.link_names[0],
+                                                ros::Time(0), tfs);
+      pose_ee = marker_pose * tfs;
+    }
+
+
+    if(inspector_arm_->checkIKConstraintAware(pose_ee, joint_state))
     {
       joint_state_ = joint_state;
       server_->setPose(name_.toStdString(), pose_);
@@ -122,7 +143,7 @@ void InspectionPointItem::rotate(double roll, double pitch, double yaw)
 
 void InspectionPointItem::rotateBy(double dRoll, double dPitch, double dYaw)
 {
-  if((dRoll != 0.0) || (dPitch != 0) || (dYaw != 0))
+  if((dRoll != 0.0) || (dPitch != 0.0) || (dYaw != 0.0))
   {
     geometry_msgs::Pose old_pose = pose_;
     sensor_msgs::JointState joint_state;
@@ -133,7 +154,20 @@ void InspectionPointItem::rotateBy(double dRoll, double dPitch, double dYaw)
     q = q * dq;
     tf::quaternionTFToMsg(q, pose_.orientation);
 
-    if(inspector_arm_->checkIKConstraintAware(pose_, joint_state))
+    tf::Transform marker_pose;
+    tf::poseMsgToTF(pose_, marker_pose);
+    tf::Transform pose_ee = marker_pose;
+
+    if(name_.toStdString().rfind("marker_tool") != std::string::npos)
+    {
+      tf::StampedTransform tfs;
+      inspector_arm_->listener_.lookupTransform(inspector_arm_->tool_frame_,
+                                                inspector_arm_->ik_solver_info_.kinematic_solver_info.link_names[0],
+                                                ros::Time(0), tfs);
+      pose_ee = marker_pose * tfs;
+    }
+
+    if(inspector_arm_->checkIKConstraintAware(pose_ee, joint_state))
     {
       joint_state_ = joint_state;
       server_->setPose(name_.toStdString(), pose_);

@@ -30,14 +30,12 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_library(${PROJECT_NAME}   
-  src/follow_joint_controller.cpp 
+  src/follow_joint_controller2.cpp
   src/joint.cpp
-  src/cubic_trajectory.cpp
 )
 
 rosbuild_add_library(hg_common_plugins 
   src/absolute_joint.cpp
-  src/cubic_trajectory.cpp  
 )
 target_link_libraries(hg_common_plugins ${PROJECT_NAME})
 

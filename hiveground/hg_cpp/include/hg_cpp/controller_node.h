@@ -40,6 +40,8 @@
 #include <pluginlib/class_loader.h>
 #include <hg_cpp/controller.h>
 #include <hg_cpp/joint.h>
+#include <realtime_tools/realtime_publisher.h>
+#include <sensor_msgs/JointState.h>
 
 namespace hg
 {
@@ -64,7 +66,7 @@ public:
   /**
    * Main loop of the node.
    */
-  virtual void run(sig_atomic_t volatile *is_shutdown);
+  virtual void run();
 
   /**
    * Node message will be published from this function.
@@ -89,8 +91,9 @@ public:
   std::vector<boost::shared_ptr<hg::Controller> > controllers_;
   std::vector<boost::shared_ptr<hg::Joint> > joints_;
 
-  ros::Publisher publisher_joint_state_;
-  ros::Publisher publisher_diagnostic_;
+
+  realtime_tools::RealtimePublisher<sensor_msgs::JointState> pub_joint_state_;
+
 };
 
 }
