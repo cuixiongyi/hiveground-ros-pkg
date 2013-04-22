@@ -96,7 +96,8 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
   ui.doubleSpinBoxGestureRotationScale->setValue(d);
 
   //HACKKKKK
-  max_composite_speed_= 1.0; //3.9 m/s for Denso VP6242G
+  max_joint_velocity_ = 2.0;
+  max_joint_acceleration_ = 3.0;
 
 
 
@@ -346,20 +347,38 @@ void InspectorArm::bodyGestureCallBack(const hg_user_interaction::GesturesConstP
 }
 
 
-void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message)
+void InspectorArm::spaceNavigatorCallBack(const sensor_msgs::Joy& message)
 {
-  tf::Vector3 linear;
-  tf::vector3MsgToTF(message->linear, linear);
-  tf::Vector3 angular;
-  tf::vector3MsgToTF(message->angular, angular);
+  static int last_button0_state = 0;
+  static int last_button1_state = 0;
+
+  if(!ui.checkBox3DMouse->isChecked())
+      return;
+
+  if (last_button0_state != message.buttons[0])
+  {
+    if(message.buttons[0] == 1)
+      ui.checkBoxUseWorldCoordinate->toggle();
+    last_button0_state = message.buttons[0];
+  }
+
+  if (last_button1_state != message.buttons[1])
+  {
+    if (message.buttons[1] == 1)
+      ui.checkBoxApproach->toggle();
+    last_button1_state = message.buttons[1];
+  }
+
+  if(!(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked()))
+  {
+    return;
+  }
+
+  tf::Vector3 linear(message.axes[0], message.axes[1], message.axes[2]);
+  tf::Vector3 angular(message.axes[3], message.axes[4], message.axes[5]);
 
   if((linear.length2() == 0) && (angular.length2() == 0))
     return;
-
-
-  //ROS_INFO_STREAM_THROTTLE(1.0, *message);
-  if(!ui.checkBox3DMouse->isChecked()) return;
-
 
   if(markers_.find(selected_markers_.back()) != markers_.end())
   {
@@ -367,16 +386,12 @@ void InspectorArm::spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& me
     linear.setX(-linear.x());
     linear.setY(-linear.y());
 
-    linear = linear * (1/350.0) * ui.doubleSpinBoxLinearScale->value();
-    angular = angular * (1/350.0) * ui.doubleSpinBoxAngularScale->value();
+    linear = linear * ui.doubleSpinBoxLinearScale->value();
+    angular = angular * ui.doubleSpinBoxAngularScale->value();
 
     tf::Transform pose = moveSelectedMarker(selected_markers_.back(), angular, linear);
 
-    if(ui.checkBoxEnableTranslation->isChecked() || ui.checkBoxEnableRotation->isChecked())
-    {
-      updateMarkerCallbBack(selected_markers_.back(), pose);
-    }
-
+    updateMarkerCallbBack(selected_markers_.back(), pose);
   }
 }
 
@@ -532,9 +547,9 @@ bool InspectorArm::executeTrajectory(trajectory_msgs::JointTrajectory& trajector
     limit.max_position = 0;  //not use
     limit.min_position = 0;  //not use
     limit.has_velocity_limits = 1;
-    limit.max_velocity = 6.0 * ui.spinBoxMoveSpeed->value() * 0.01;
+    limit.max_velocity = max_joint_velocity_ * ui.spinBoxMoveSpeed->value() * 0.01;
     limit.has_acceleration_limits = 1;
-    limit.max_acceleration = 2.0 * ui.spinBoxMoveAcceleration->value() * 0.01;
+    limit.max_acceleration = max_joint_acceleration_ * ui.spinBoxMoveAcceleration->value() * 0.01;
     limits.push_back(limit);
   }
 
@@ -552,9 +567,33 @@ bool InspectorArm::executeTrajectory(trajectory_msgs::JointTrajectory& trajector
   if(arm_is_active_)
   {
     ROS_INFO("Arm is moving!");
-    for(size_t i = 0; i < goal.trajectory.points.size(); i++)
+
+
+    mutex_joint_state_.lock();
+    sensor_msgs::JointState latest_joint_state = latest_joint_state_;
+    mutex_joint_state_.unlock();
+
+    double max_ds = 0;
+    double ds = 0;
+    int index = -1;
+    for (size_t i = 0; i < latest_joint_state.name.size(); i++)
     {
-      goal.trajectory.points[i].time_from_start += ros::Duration(4.0);
+      ds = fabs(latest_joint_state.position[i] - trajectory.points[0].positions[i]);
+      if (ds > max_ds)
+      {
+        max_ds = ds;
+        index = i;
+      }
+    }
+
+    if (index != -1)
+    {
+      double min_time = sqrt((max_ds * 2.0) / (max_joint_acceleration_ * ui.spinBoxMoveAcceleration->value() * 0.01));
+      ROS_INFO("Max ds: %f @ Joint %d min t %f", max_ds, index, min_time);
+      for(size_t i = 0; i < goal.trajectory.points.size(); i++)
+      {
+        goal.trajectory.points[i].time_from_start += ros::Duration(min_time);
+      }
     }
   }
 
@@ -570,14 +609,14 @@ bool InspectorArm::executeTrajectory(trajectory_msgs::JointTrajectory& trajector
 void InspectorArm::on_pushButtonSTOP_clicked()
 {
   ROS_ERROR("STOP Trajectory!!");
-  action_client_map_["manipulator"]->cancelAllGoals();
+  //action_client_map_["manipulator"]->cancelAllGoals();
+  action_client_map_["manipulator"]->cancelGoal();
 }
 
 void InspectorArm::on_pushButtonPlan_clicked()
 {
   if(markers_.size() == 0)
     return;
-
 
   trajectory_msgs::JointTrajectory trajectory;
   trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
@@ -589,6 +628,8 @@ void InspectorArm::on_pushButtonPlan_clicked()
   mutex_joint_state_.lock();
   point.positions = latest_joint_state_.position;
   mutex_joint_state_.unlock();
+
+
 
   if (!arm_is_active_)
   {
@@ -625,14 +666,36 @@ void InspectorArm::on_pushButtonPlan_clicked()
       point.positions = markers_[ui.listWidgetMarker->item(i)->text().toStdString()]->jointState().position;
       trajectory.points.push_back(point);
     }
+
+    ROS_INFO("A");
+    if(trajectory.points.size() == 1)
+    {
+      moveToPosition(trajectory.points[0]);
+      return;
+    }
+    ROS_INFO("B");
   }
 
   executeTrajectory(trajectory);
+}
 
+void InspectorArm::on_checkBoxFollowPoint_clicked()
+{
+  if(ui.checkBoxFollowPoint->isChecked())
+  {
+    //disable
+    ui.checkBox3DMouse->setChecked(false);
+    ui.checkBoxEnableHandGesture->setChecked(false);
+    ui.checkBoxEnableBodyGesture->setChecked(false);
+    ui.checkBoxEnableForceTorque->setChecked(false);
+  }
 }
 
 void InspectorArm::on_pushButtonSetZeroForceTorque_clicked()
 {
+  if(force_torque_set_zero_publisher_.getNumSubscribers() == 0)
+    return;
+
   QMutexLocker lock(&force_torque_mutex_);
   ui.checkBoxEnableForceTorque->setChecked(false);
   std_msgs::Bool msg;
@@ -732,9 +795,9 @@ void InspectorArm::followPointSlot()
   {
     if(markers_.find(selected_markers_.back()) != markers_.end())
     {
-      control_msgs::FollowJointTrajectoryGoal goal;
-      goal.trajectory.header.stamp = ros::Time::now();
-      goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+      //control_msgs::FollowJointTrajectoryGoal goal;
+      //goal.trajectory.header.stamp = ros::Time::now();
+      //goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
       trajectory_msgs::JointTrajectoryPoint point;
       if(ui.checkBoxLookAt->isEnabled() && ui.checkBoxLookAt->isChecked())
       {
@@ -759,10 +822,41 @@ void InspectorArm::followPointSlot()
         point.positions = markers_[selected_markers_.back()]->jointState().position;
 
       }
-      point.time_from_start = ros::Duration(0.5);
+
+      moveToPosition(point);
+
+      /*
+      mutex_joint_state_.lock();
+      sensor_msgs::JointState latest_joint_state = latest_joint_state_;
+      mutex_joint_state_.unlock();
+
+      double max_ds = 0;
+      double ds = 0;
+      int index = -1;
+      for(size_t i = 0; i < latest_joint_state.name.size(); i++)
+      {
+        ds = fabs(latest_joint_state.position[i] - point.positions[i]);
+        if(ds > max_ds)
+        {
+          max_ds = ds;
+          index = i;
+        }
+      }
+
+      if(index != -1)
+      {
+        double min_time = sqrt((max_ds * 2.0) / (max_joint_acceleration_ * ui.spinBoxMoveAcceleration->value() * 0.01));
+        ROS_INFO("Max ds: %f @ Joint %d min t %f", max_ds, index, min_time);
+        point.time_from_start = ros::Duration(min_time);
+      }
+      else
+      {
+        point.time_from_start = ros::Duration(0.5);
+      }
       goal.trajectory.points.push_back(point);
       action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
       arm_is_active_ = true;
+      */
     }
   }
 }
@@ -777,36 +871,29 @@ void InspectorArm::moveToMarker(const QString& name)
     return;
   }
 
-  if (arm_is_active_)
-  {
-    ROS_INFO("Hey! Arm is moving!!");
-    control_msgs::FollowJointTrajectoryGoal goal;
-    goal.trajectory.header.stamp = ros::Time::now();
-    goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
-    goal.trajectory.points.resize(1);
-    goal.trajectory.points[0].positions = markers_[name.toStdString()]->jointState().position;
-    goal.trajectory.points[0].time_from_start = ros::Duration(4.0);
-    action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
-    arm_is_active_ = true;
-    return;
-  }
-
   trajectory_msgs::JointTrajectory trajectory;
   trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
   trajectory_msgs::JointTrajectoryPoint point;
+  point.velocities.resize(point.positions.size());
+  point.accelerations.resize(point.positions.size());
 
   //current position
+  if(arm_is_active_)
+  {
+    on_pushButtonSTOP_clicked();
+    sleep(1.0);
+  }
+
+
+
   mutex_joint_state_.lock();
   point.positions = latest_joint_state_.position;
   mutex_joint_state_.unlock();
-  point.velocities.resize(point.positions.size());
-  point.accelerations.resize(point.positions.size());
   trajectory.points.push_back(point);
 
 
   point.positions = markers_[name.toStdString()]->jointState().position;
   trajectory.points.push_back(point);
-
 
   bool diff = false;
   for (int i = 0; i < 6; i++)
@@ -828,6 +915,47 @@ void InspectorArm::moveToMarker(const QString& name)
   }
 
   executeTrajectory(trajectory);
+}
+
+
+void InspectorArm::moveToPosition(const trajectory_msgs::JointTrajectoryPoint& point)
+{
+  control_msgs::FollowJointTrajectoryGoal goal;
+  goal.trajectory.header.stamp = ros::Time::now();
+  goal.trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
+
+  mutex_joint_state_.lock();
+  sensor_msgs::JointState latest_joint_state = latest_joint_state_;
+  mutex_joint_state_.unlock();
+
+  trajectory_msgs::JointTrajectoryPoint p = point;
+
+  double max_ds = 0;
+  double ds = 0;
+  int index = -1;
+  for (size_t i = 0; i < latest_joint_state.name.size(); i++)
+  {
+    ds = fabs(latest_joint_state.position[i] - point.positions[i]);
+    if (ds > max_ds)
+    {
+      max_ds = ds;
+      index = i;
+    }
+  }
+
+  if (index != -1)
+  {
+    double min_time = sqrt((max_ds * 2.0) / (max_joint_acceleration_ * ui.spinBoxMoveAcceleration->value() * 0.01));
+    ROS_INFO("Max ds: %f @ Joint %d min t %f", max_ds, index, min_time);
+    p.time_from_start = ros::Duration(min_time);
+  }
+  else
+  {
+    p.time_from_start = ros::Duration(0.5);
+  }
+  goal.trajectory.points.push_back(p);
+  action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
+  arm_is_active_ = true;
 }
 
 void InspectorArm::onMarkerArrayPublisherTimer()
@@ -861,13 +989,15 @@ void InspectorArm::onMarkerArrayPublisherTimer()
 
 void InspectorArm::on_listWidgetMarker_itemClicked( QListWidgetItem * item )
 {
-  if(selected_markers_.back() == item->text().toStdString()) return;
+  if(selected_markers_.back() == item->text().toStdString())
+    return;
 
   if(markers_.find(item->text().toStdString()) != markers_.end())
   {
     selectOnlyOneMarker(item->text().toStdString());
     inspectionPointClicked(markers_[item->text().toStdString()]);
     moveToMarker(item->text());
+    //Q_EMIT followPointSignal();
   }
 }
 

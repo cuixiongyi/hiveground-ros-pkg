@@ -93,26 +93,14 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
     case InteractiveMarkerFeedback::BUTTON_CLICK:
       {
         //ROS_INFO_STREAM("click : " << feedback->marker_name);
-        if(selected_markers_.back() != feedback->marker_name)
+        if(feedback->marker_name != selected_markers_.back())
         {
           selectOnlyOneMarker(feedback->marker_name);
-          if(ui.checkBoxFollowPoint->isChecked())
-          {
-            Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
-          }
-        }
-        else
-        {
-          Q_EMIT followPointSignal();
+          Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
         }
       }
       break;
     case InteractiveMarkerFeedback::MOUSE_DOWN:
-      //ROS_INFO_STREAM("mouse down : " << feedback->marker_name);
-      if(feedback->marker_name.rfind("marker_") != std::string::npos)
-      {
-        Q_EMIT inspectionPointClickedSignal(markers_[feedback->marker_name]);
-      }
       break;
     case InteractiveMarkerFeedback::MOUSE_UP:
       break;
