@@ -163,11 +163,28 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButtonPlan">
-          <property name="text">
-           <string>Plan</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_15">
+          <item>
+           <widget class="QPushButton" name="pushButtonPlan">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Plan</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxLoop">
+            <property name="text">
+             <string>Loop</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -769,8 +786,6 @@
          </item>
         </layout>
        </widget>
-       <zorder>layoutWidget</zorder>
-       <zorder>label_6</zorder>
       </widget>
      </widget>
     </item>

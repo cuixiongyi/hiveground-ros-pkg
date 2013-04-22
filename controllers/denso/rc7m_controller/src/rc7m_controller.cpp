@@ -154,9 +154,11 @@ void RC7MController::update()
       BCAP_HRESULT hr = bcap_->RobotExecute2(h_robot_, "slvMove", VT_R4 | VT_ARRAY, 7, command_degree, command_result);
       if(FAILED(hr))
       {
-        ROS_FATAL("b-Cap error in control loop!!");
-        shutdown();
-        ros::shutdown();
+        ROS_ERROR_THROTTLE(1.0, "b-Cap error in control loop!! %x", hr);
+        //if(hr == BCAP_E_INVALIDRCVPACKET)
+          //return;
+        //shutdown();
+        //ros::shutdown();
         return;
       }
     }

@@ -70,7 +70,7 @@ typedef enum BCAP_HRESULT
 
   BCAP_E_PACKETSIZEOVER = 0x80010011, /*      Received packet size over ( > 16Mbytes) */
 
-  BCAP_E_ARGSIZEOVER = 0x80010012, /*      An argument siez over of the received packet. ( > 16Mbytes) */
+  BCAP_E_ARGSIZEOVER = 0x80010012, /*      An argument size over of the received packet. ( > 16Mbytes) */
   BCAP_E_ACCESSDENIED = 0x80070005, /*      Access denied                           */
   BCAP_E_HANDLE = 0x80070006, /*      Invalid handle                          */
   BCAP_E_OUTOFMEMORY = 0x8007000E, /*      Out of memory                           */

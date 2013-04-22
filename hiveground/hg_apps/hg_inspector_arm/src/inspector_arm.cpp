@@ -97,7 +97,8 @@ bool InspectorArm::initialize(const std::string& param_server_prefix)
 
   //HACKKKKK
   max_joint_velocity_ = 2.0;
-  max_joint_acceleration_ = 3.0;
+  max_joint_acceleration_ = 2.0;
+  loop_count_ = 0.0;
 
 
 
@@ -186,6 +187,11 @@ void InspectorArm::controllerDoneCallback(const actionlib::SimpleClientGoalState
 {
   ROS_INFO_STREAM_THROTTLE(1.0, "trajectory done");
   arm_is_active_ = false;
+  if(ui.checkBoxLoop->isChecked())
+  {
+    sleep(1.0);
+    on_pushButtonPlan_clicked();
+  }
 }
 
 
@@ -618,6 +624,15 @@ void InspectorArm::on_pushButtonPlan_clicked()
   if(markers_.size() == 0)
     return;
 
+  if(!ui.checkBoxLoop->isChecked())
+  {
+    loop_count_ = 0;
+  }
+  else
+  {
+    ROS_INFO("Loop %d", loop_count_++);
+  }
+
   trajectory_msgs::JointTrajectory trajectory;
   trajectory.joint_names = ik_solver_info_.kinematic_solver_info.joint_names;
 
@@ -824,39 +839,6 @@ void InspectorArm::followPointSlot()
       }
 
       moveToPosition(point);
-
-      /*
-      mutex_joint_state_.lock();
-      sensor_msgs::JointState latest_joint_state = latest_joint_state_;
-      mutex_joint_state_.unlock();
-
-      double max_ds = 0;
-      double ds = 0;
-      int index = -1;
-      for(size_t i = 0; i < latest_joint_state.name.size(); i++)
-      {
-        ds = fabs(latest_joint_state.position[i] - point.positions[i]);
-        if(ds > max_ds)
-        {
-          max_ds = ds;
-          index = i;
-        }
-      }
-
-      if(index != -1)
-      {
-        double min_time = sqrt((max_ds * 2.0) / (max_joint_acceleration_ * ui.spinBoxMoveAcceleration->value() * 0.01));
-        ROS_INFO("Max ds: %f @ Joint %d min t %f", max_ds, index, min_time);
-        point.time_from_start = ros::Duration(min_time);
-      }
-      else
-      {
-        point.time_from_start = ros::Duration(0.5);
-      }
-      goal.trajectory.points.push_back(point);
-      action_client_map_["manipulator"]->sendGoal(goal, boost::bind(&InspectorArm::controllerDoneCallback, this, _1, _2));
-      arm_is_active_ = true;
-      */
     }
   }
 }
@@ -946,7 +928,7 @@ void InspectorArm::moveToPosition(const trajectory_msgs::JointTrajectoryPoint& p
   if (index != -1)
   {
     double min_time = sqrt((max_ds * 2.0) / (max_joint_acceleration_ * ui.spinBoxMoveAcceleration->value() * 0.01));
-    ROS_INFO("Max ds: %f @ Joint %d min t %f", max_ds, index, min_time);
+    ROS_DEBUG("Max ds: %f @ Joint %d min t %f", max_ds, index, min_time);
     p.time_from_start = ros::Duration(min_time);
   }
   else
