@@ -336,6 +336,8 @@ bool kinect_server::nuiGotColorAlert()
   }
 
   INuiFrameTexture * pTexture = imageFrame.pFrameTexture;
+
+  /*
   NUI_LOCKED_RECT LockedRect;
   pTexture->LockRect( 0, &LockedRect, NULL, 0 );
   if ( LockedRect.Pitch != 0 )
@@ -351,6 +353,7 @@ bool kinect_server::nuiGotColorAlert()
 
   pTexture->UnlockRect( 0 );
   nui_sensor_->NuiImageStreamReleaseFrame( p_video_stream_handle_, &imageFrame );
+  */
 
   return true;
 }
@@ -601,7 +604,7 @@ bool kinect_server::nuiGotSkeletonAlert()
   }
 
   // smooth out the skeleton data
-  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_MORE);
+  HRESULT hr = nui_sensor_->NuiTransformSmooth(&SkeletonFrame, &SMOOTH_DEFAULT);
   if ( FAILED(hr) )
   {
     return false;
