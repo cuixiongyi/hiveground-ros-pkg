@@ -96,7 +96,8 @@ void InspectorArm::processMarkerCallback(const visualization_msgs::InteractiveMa
         if(feedback->marker_name != selected_markers_.back())
         {
           selectOnlyOneMarker(feedback->marker_name);
-          Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
+          if(ui.checkBoxFollowPoint->isChecked())
+            Q_EMIT moveToMarkerSignal(feedback->marker_name.c_str());
         }
       }
       break;

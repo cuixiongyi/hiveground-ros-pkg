@@ -264,6 +264,7 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
   QString markers_save_file_name_;
   bool markers_touched_;
+  int loop_count_;
 
 
   //trajectory
