@@ -339,12 +339,62 @@ void FollowJointController2::cancelCBFollow(GoalHandleFollow gh)
   boost::shared_ptr<RTGoalHandleFollow> current_active_goal(rt_active_goal_follow_);
   if (current_active_goal && current_active_goal->gh_ == gh)
   {
-    rt_active_goal_follow_.reset();
+    ros::Time time = ros::Time::now() + ros::Duration(0.1);
+
+    boost::shared_ptr<const SpecifiedTrajectory> prev_traj_ptr;
+    current_trajectory_box_.get(prev_traj_ptr);
+    if (!prev_traj_ptr)
+    {
+      ROS_FATAL("The current trajectory can never be null");
+      return;
+    }
+    const SpecifiedTrajectory &prev_traj = *prev_traj_ptr;
+
+    // ------ Copies over the segments from the previous trajectory that are still useful.
+
+    // Useful segments are still relevant after the current time.
+    int first_useful = -1;
+    while (first_useful + 1 < (int)prev_traj.size() && prev_traj[first_useful + 1].start_time <= time.toSec())
+    {
+      ++first_useful;
+    }
+
+    //double dt = prev_traj.back().start_time - prev_traj[first_useful].start_time;
+    //ROS_INFO("first_useful %d dt: %f", first_useful, dt);
+
+    if(first_useful == 0)
+    {
+      ROS_INFO("Cancel at very end of trajectory (< 0.1 s before end)");
+      first_useful = prev_traj.size() - 1;
+    }
 
     trajectory_msgs::JointTrajectory::Ptr empty(new trajectory_msgs::JointTrajectory);
+    empty->header.stamp = ros::Time::now();
     empty->joint_names.resize(joint_count_);
-    for (size_t j = 0; j < joint_count_; ++j)
-      empty->joint_names[j] = joints_[j]->name_;
+    empty->points.resize(1);
+    empty->points[0].positions.resize(joint_count_);
+    empty->points[0].velocities.resize(joint_count_);
+    empty->points[0].accelerations.resize(joint_count_);
+
+
+    std::vector<double> q_(joint_count_), qd_(joint_count_), qdd_(joint_count_);  // Preallocated in init
+    for (size_t i = 0; i < q.size(); ++i)
+    {
+      sampleSplineWithTimeBounds(prev_traj[first_useful].splines[i].coef,
+                                 prev_traj[first_useful].duration,
+                                 time.toSec() - prev_traj[first_useful].start_time,
+                                 q_[i],
+                                 qd_[i],
+                                 qdd_[i]);
+      //ROS_INFO("Stop position[i] %f", q_[i]);
+      empty->joint_names[i] = joints_[i]->name_;
+      empty->points[0].positions[i] = q_[i];
+    }
+
+    empty->points[0].time_from_start = ros::Duration(0.3); //a little bit more time
+
+    rt_active_goal_follow_.reset();
+
     commandTrajectory(empty);
 
     // Marks the current goal as canceled.

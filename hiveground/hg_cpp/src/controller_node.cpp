@@ -250,23 +250,22 @@ void ControllerNode::run()
   int publish_count = 0;
   while (ros::ok())
   {
-    ROS_INFO_THROTTLE(1.0, "Loop %d", count++);
     //update all controllers
     for(it = controllers_.begin(); it != controllers_.end(); it++)
     {
       (*it)->update();
     }
 
-    ROS_INFO_THROTTLE(1.0, "A");
+    //ROS_INFO_THROTTLE(1.0, "A");
 
     //publish message
     publish_count++;
     if(publish_count >= 10)
     {
-      ROS_INFO_THROTTLE(1.0, "B");
+      //ROS_INFO_THROTTLE(1.0, "B");
       if(pub_joint_state_.trylock())
       {
-        ROS_INFO_THROTTLE(1.0, "C");
+        //ROS_INFO_THROTTLE(1.0, "C");
         pub_joint_state_.msg_.header.stamp = ros::Time::now();
         size_t i = 0;
         std::vector<boost::shared_ptr<hg::Joint> >::iterator joint_it;
@@ -276,9 +275,9 @@ void ControllerNode::run()
           pub_joint_state_.msg_.velocity[i] = (*joint_it)->velocity_;
           pub_joint_state_.msg_.effort[i] = 0.0;
         }
-        ROS_INFO_THROTTLE(1.0, "D");
+        //ROS_INFO_THROTTLE(1.0, "D");
         pub_joint_state_.unlockAndPublish();
-        ROS_INFO_THROTTLE(1.0, "E");
+        //ROS_INFO_THROTTLE(1.0, "E");
         publish_count = 0;
       }
     }
@@ -291,7 +290,7 @@ void ControllerNode::run()
     if ((before.tv_sec + double(before.tv_nsec) / NSEC_PER_SECOND)
         > (tick.tv_sec + double(tick.tv_nsec) / NSEC_PER_SECOND))
     {
-      ROS_INFO_THROTTLE(1.0, "Overrun");
+      ROS_ERROR("Overrun");
       // We overran, snap to next "period"
       tick.tv_sec = before.tv_sec;
       tick.tv_nsec = (before.tv_nsec / period) * period;
