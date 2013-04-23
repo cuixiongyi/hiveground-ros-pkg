@@ -283,7 +283,7 @@ void ControllerNode::run()
         > (tick.tv_sec + double(tick.tv_nsec) / NSEC_PER_SECOND))
     {
       //ROS_ERROR("Overrun");
-      printf("overrun");
+      printf("overrun\n");
       // We overran, snap to next "period"
       tick.tv_sec = before.tv_sec;
       tick.tv_nsec = (before.tv_nsec / period) * period;
