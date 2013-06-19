@@ -428,7 +428,7 @@ void InspectorArm::forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& mess
   if(ui.checkBoxEnableForceTorque->isChecked())
   {
 
-    if((force.length() > 3) || (torque.length() > 0.25))
+    if((force.length() > 3) || (torque.length() > 1))
     {
       count = 0;
       tf::Vector3 liner = force.normalized() * ui.doubleSpinBoxForceTranslationScale->value();
