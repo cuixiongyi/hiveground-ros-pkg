@@ -77,7 +77,7 @@ private:
   GLWidget* draw_image_;
   
   //ROS
-  ros::Publisher gesture_pub_;
+  //ros::Publisher gesture_pub_;
   ros::Publisher skeleton_pub_;
 
 
