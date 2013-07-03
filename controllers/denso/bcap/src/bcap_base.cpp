@@ -1861,7 +1861,7 @@ BCAP_HRESULT BCap::SendAndReceive(BCAP_PACKET *pSndPacket, BCAP_PACKET *pRecPack
       else
       {
         /* allocation error */
-        hr = BCAP_E_UNEXPECTED;
+        hr = BCAP_E_INVALIDRCVPACKET;
       }
 
     }

@@ -1,5 +1,5 @@
 <launch>  
-  <node pkg="spacenav_node" type="spacenav_node" name="spacenav"/>
+  <!-- node pkg="spacenav_node" type="spacenav_node" name="spacenav"/-->
 
   <node pkg="hg_inspector_arm" type="inspector_arm" name="inspector_arm" output="screen">
     <param name="base_link" value="base_link" />    
@@ -8,7 +8,7 @@
     <remap from="hands_message" to="object_tracking/filtered_hands"/>
     <remap from="hand_gestures_message" to="user_interaction/hand_gestures"/>
     <remap from="body_gestures_message" to="user_interaction/body_gestures"/>
-    <remap from="space_navigator_message" to="spacenav/twist"/>
+    <remap from="space_navigator_message" to="spacenav/joy"/>
     <remap from="force_torque_message" to="leptrino/force_torque"/>
     <rosparam>
       marker_scale: 2.0

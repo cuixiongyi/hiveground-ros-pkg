@@ -49,6 +49,7 @@
 #include <tf/tf.h>
 #include <planning_models/kinematic_state.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <sensor_msgs/Joy.h>
 
 
 #include <hg_inspector_arm/inspection_point.h>
@@ -145,7 +146,7 @@ protected:
   void handsCallBack(const hg_object_tracking::HandsConstPtr& message);
   void handGestureCallBack(const hg_user_interaction::GesturesConstPtr& message);
   void bodyGestureCallBack(const hg_user_interaction::GesturesConstPtr& message);
-  void spaceNavigatorCallBack(const geometry_msgs::TwistConstPtr& message);
+  void spaceNavigatorCallBack(const sensor_msgs::Joy& message);
   void forceTorqueCallBack(const leptrino::ForceTorqueConstPtr& message);
 
 
@@ -177,7 +178,9 @@ private Q_SLOTS:
   //UI
   void on_pushButtonSTOP_clicked();
   void on_pushButtonPlan_clicked();
+  void on_checkBoxFollowPoint_clicked();
   void on_pushButtonSetZeroForceTorque_clicked();
+
 
 
 
@@ -196,6 +199,7 @@ private Q_SLOTS:
   //Follow point
   void followPointSlot();
   void moveToMarker(const QString& name);
+  void moveToPosition(const trajectory_msgs::JointTrajectoryPoint& point);
 
   //Marker
   void onMarkerArrayPublisherTimer();
@@ -260,6 +264,7 @@ private:
   interactive_markers::MenuHandler::EntryHandle menu_entry_remove_;
   QString markers_save_file_name_;
   bool markers_touched_;
+  int loop_count_;
 
 
   //trajectory
@@ -282,8 +287,8 @@ private:
   bool arm_is_active_;
 
   //Maximum composite speed
-  double max_composite_speed_;
-
+  double max_joint_velocity_;
+  double max_joint_acceleration_;
 
   //gesture
   ros::Subscriber hands_subscriber_;
