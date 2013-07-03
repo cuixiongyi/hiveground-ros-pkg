@@ -87,7 +87,7 @@ kinect_server::kinect_server(ros::NodeHandle& nh, QWidget *parent, Qt::WFlags fl
   connect(this, SIGNAL(showImage(const QImage &)), draw_image_, SLOT(updateImage(const QImage&)));
 
 
-  gesture_pub_ = nh_.advertise<std_msgs::String>("gesture", 10);
+  //gesture_pub_ = nh_.advertise<std_msgs::String>("gesture", 10);
   skeleton_pub_ = nh_.advertise<kinect_msgs::Skeletons>("skeletons", 10);
   
   nuiInit();
@@ -146,8 +146,8 @@ void kinect_server::nuiZero()
   p_video_stream_handle_ = NULL;
   p_depth_stream_handle_ = NULL;  
   skeleton_tracking_flags_ = NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE | NUI_SKELETON_TRACKING_FLAG_ENABLE_SEATED_SUPPORT;
-  //depth_stream_flags_ = 0;
-  depth_stream_flags_ = NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE;
+  depth_stream_flags_ = 0;
+  //depth_stream_flags_ = NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE;
 
   depth_frames_total_ = 0;
   last_depth_fps_time_ = 0;
