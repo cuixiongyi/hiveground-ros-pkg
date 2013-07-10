@@ -637,9 +637,9 @@ bool kinect_server::nuiGotSkeletonAlert()
     skelentons_message.skeletons[i].skeleton_tracking_state = SkeletonFrame.SkeletonData[i].eTrackingState;
     skelentons_message.skeletons[i].quality_flag = SkeletonFrame.SkeletonData[i].dwQualityFlags;
 
-    skelentons_message.skeletons[i].position.translation.x = SkeletonFrame.SkeletonData[i].Position.x; 
-    skelentons_message.skeletons[i].position.translation.y = SkeletonFrame.SkeletonData[i].Position.y;
-    skelentons_message.skeletons[i].position.translation.z = SkeletonFrame.SkeletonData[i].Position.z;        
+    skelentons_message.skeletons[i].position.translation.x = SkeletonFrame.SkeletonData[i].Position.z; 
+    skelentons_message.skeletons[i].position.translation.y = SkeletonFrame.SkeletonData[i].Position.x;
+    skelentons_message.skeletons[i].position.translation.z = SkeletonFrame.SkeletonData[i].Position.y;        
     skelentons_message.skeletons[i].position.rotation.x = 0;
     skelentons_message.skeletons[i].position.rotation.y = 0;
     skelentons_message.skeletons[i].position.rotation.z = 0;
@@ -650,9 +650,9 @@ bool kinect_server::nuiGotSkeletonAlert()
     for(int j = 0; j < NUI_SKELETON_POSITION_COUNT; j++)
     {
       skelentons_message.skeletons[i].skeleton_position_tracking_state[j] = SkeletonFrame.SkeletonData[i].eSkeletonPositionTrackingState[j];
-      skelentons_message.skeletons[i].skeleton_positions[j].translation.x = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].x;
-      skelentons_message.skeletons[i].skeleton_positions[j].translation.y = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].y;
-      skelentons_message.skeletons[i].skeleton_positions[j].translation.z = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].z;        
+      skelentons_message.skeletons[i].skeleton_positions[j].translation.x = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].z;
+      skelentons_message.skeletons[i].skeleton_positions[j].translation.y = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].x;
+      skelentons_message.skeletons[i].skeleton_positions[j].translation.z = SkeletonFrame.SkeletonData[i].SkeletonPositions[j].y;        
       skelentons_message.skeletons[i].skeleton_positions[j].rotation.x = 0;
       skelentons_message.skeletons[i].skeleton_positions[j].rotation.y = 0;
       skelentons_message.skeletons[i].skeleton_positions[j].rotation.z = 0;
